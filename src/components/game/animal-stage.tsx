@@ -1,9 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { useEffect, useRef } from "react";
 
 type AnimalKind =
   | "cat"
@@ -38,9 +35,10 @@ interface AnimalMood {
   gradient: string;
   glow: string;
   ring: string;
-  ambient: string;
-  key: string;
-  fill: string;
+  /** CSS filter applied to the video — cinematic per-animal grading */
+  filter: string;
+  /** Tint color used for sparkle particles */
+  sparkle: string;
 }
 
 const animalMoods: Record<AnimalKind, AnimalMood> = {
@@ -48,349 +46,107 @@ const animalMoods: Record<AnimalKind, AnimalMood> = {
     gradient: "radial-gradient(ellipse at 30% 20%, #ffd9a8 0%, #ff9a6c 45%, #f57c5b 100%)",
     glow: "rgba(255,168,108,0.55)",
     ring: "rgba(255,210,170,0.65)",
-    ambient: "#fff0e0",
-    key: "#fff4d6",
-    fill: "#ffb38a",
+    filter: "saturate(1.18) contrast(1.08) brightness(1.04)",
+    sparkle: "#ffd9a8",
   },
   dog: {
     gradient: "radial-gradient(ellipse at 30% 20%, #fff3c4 0%, #f0c068 50%, #b88450 100%)",
     glow: "rgba(240,192,104,0.55)",
     ring: "rgba(255,236,180,0.65)",
-    ambient: "#fff7e0",
-    key: "#fff4d6",
-    fill: "#f0c068",
+    filter: "saturate(1.2) contrast(1.08) brightness(1.05)",
+    sparkle: "#fff3c4",
   },
   lion: {
     gradient: "radial-gradient(ellipse at 30% 20%, #fff0bf 0%, #f5b841 45%, #c9742a 100%)",
     glow: "rgba(245,184,65,0.6)",
     ring: "rgba(255,224,150,0.7)",
-    ambient: "#fff5d8",
-    key: "#fff0bf",
-    fill: "#f5b841",
+    filter: "saturate(1.22) contrast(1.12) brightness(1.04)",
+    sparkle: "#ffe28a",
   },
   zebra: {
     gradient: "radial-gradient(ellipse at 30% 20%, #f5f7fa 0%, #c9d4e0 50%, #6f7b8e 100%)",
     glow: "rgba(201,212,224,0.55)",
     ring: "rgba(245,247,250,0.7)",
-    ambient: "#ffffff",
-    key: "#f5f7fa",
-    fill: "#c9d4e0",
+    filter: "saturate(1.05) contrast(1.18) brightness(1.04)",
+    sparkle: "#ffffff",
   },
   elephant: {
     gradient: "radial-gradient(ellipse at 30% 20%, #e7e2d8 0%, #b6a98e 50%, #6f5d3f 100%)",
     glow: "rgba(182,169,142,0.55)",
     ring: "rgba(231,226,216,0.65)",
-    ambient: "#fbf6ec",
-    key: "#fff7e0",
-    fill: "#b6a98e",
+    filter: "saturate(1.1) contrast(1.1) brightness(1.05)",
+    sparkle: "#fff3d6",
   },
   gorilla: {
     gradient: "radial-gradient(ellipse at 30% 20%, #c8d6c2 0%, #5e7a5b 45%, #2a3a2a 100%)",
     glow: "rgba(94,122,91,0.55)",
     ring: "rgba(200,214,194,0.6)",
-    ambient: "#e2eedd",
-    key: "#f3fbef",
-    fill: "#7a9a73",
+    filter: "saturate(1.18) contrast(1.1) brightness(1.06)",
+    sparkle: "#d6efc4",
   },
   fish: {
     gradient: "radial-gradient(ellipse at 30% 20%, #b8f2ff 0%, #4ec3e0 45%, #0e6a8c 100%)",
     glow: "rgba(78,195,224,0.6)",
     ring: "rgba(184,242,255,0.7)",
-    ambient: "#dbf5ff",
-    key: "#eaffff",
-    fill: "#4ec3e0",
+    filter: "saturate(1.3) contrast(1.05) brightness(1.06) hue-rotate(-4deg)",
+    sparkle: "#e3faff",
   },
   jellyfish: {
     gradient: "radial-gradient(ellipse at 30% 20%, #f6c8ff 0%, #b78cf2 50%, #5a3a8c 100%)",
     glow: "rgba(183,140,242,0.6)",
     ring: "rgba(246,200,255,0.7)",
-    ambient: "#f1deff",
-    key: "#fff0ff",
-    fill: "#b78cf2",
+    filter: "saturate(1.4) contrast(1.05) brightness(1.06) hue-rotate(8deg)",
+    sparkle: "#f6c8ff",
   },
   turtle: {
     gradient: "radial-gradient(ellipse at 30% 20%, #c5f0d6 0%, #4fae7c 50%, #1f6a47 100%)",
     glow: "rgba(79,174,124,0.55)",
     ring: "rgba(197,240,214,0.7)",
-    ambient: "#e2faea",
-    key: "#f1ffe8",
-    fill: "#4fae7c",
+    filter: "saturate(1.2) contrast(1.08) brightness(1.05)",
+    sparkle: "#dcffe5",
   },
   whale: {
     gradient: "radial-gradient(ellipse at 30% 20%, #b6e0ff 0%, #3c8dbc 45%, #0c3b5e 100%)",
     glow: "rgba(60,141,188,0.6)",
     ring: "rgba(182,224,255,0.7)",
-    ambient: "#dbf0ff",
-    key: "#eaf6ff",
-    fill: "#3c8dbc",
+    filter: "saturate(1.22) contrast(1.08) brightness(1.05)",
+    sparkle: "#dff6ff",
   },
+};
+
+// Each animal gets its own slow Ken Burns drift so the loop feels alive
+const animalKenBurns: Record<AnimalKind, string> = {
+  cat: "kenburns-zoom-right",
+  dog: "kenburns-zoom-left",
+  lion: "kenburns-zoom-in",
+  zebra: "kenburns-zoom-right",
+  elephant: "kenburns-zoom-left",
+  gorilla: "kenburns-zoom-in",
+  fish: "kenburns-pan-right",
+  jellyfish: "kenburns-zoom-out",
+  turtle: "kenburns-zoom-in",
+  whale: "kenburns-pan-left",
 };
 
 export function getAnimalKind(word: string) {
   return animalWords[word.toLowerCase()] ?? null;
 }
 
-interface AssetState {
-  status: "loading" | "model" | "video";
-}
-
-/**
- * Three.js GLB renderer with auto-fit camera, soft idle spin, drag-to-rotate,
- * and per-animal lighting moods.
- */
-function ModelView({ kind, mood }: { kind: AnimalKind; mood: AnimalMood }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let disposed = false;
-
-    const scene = new THREE.Scene();
-    scene.fog = null;
-
-    const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 100);
-    camera.position.set(0, 0.4, 3.4);
-
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setClearColor(0x000000, 0);
-    renderer.domElement.style.display = "block";
-    renderer.domElement.style.height = "100%";
-    renderer.domElement.style.width = "100%";
-    renderer.domElement.style.cursor = "grab";
-    container.appendChild(renderer.domElement);
-
-    // Lighting tuned per-animal
-    const ambient = new THREE.AmbientLight(mood.ambient, 1.4);
-    const key = new THREE.DirectionalLight(mood.key, 2.6);
-    key.position.set(2.2, 3.2, 3.5);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
-    key.shadow.bias = -0.0008;
-    const fill = new THREE.DirectionalLight(mood.fill, 0.9);
-    fill.position.set(-3, 1, 2);
-    const rim = new THREE.DirectionalLight("#ffffff", 0.85);
-    rim.position.set(0, 2.6, -3);
-    scene.add(ambient, key, fill, rim);
-
-    // Soft ground shadow disc
-    const shadowGeo = new THREE.CircleGeometry(1.0, 48);
-    const shadowMat = new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.18,
-      depthWrite: false,
-    });
-    const shadowDisc = new THREE.Mesh(shadowGeo, shadowMat);
-    shadowDisc.rotation.x = -Math.PI / 2;
-    shadowDisc.position.y = -0.001;
-    scene.add(shadowDisc);
-
-    const pivot = new THREE.Group();
-    scene.add(pivot);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.enablePan = false;
-    controls.enableZoom = false;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 1.2;
-    controls.target.set(0, 0.6, 0);
-
-    // Pause auto-rotate while user is dragging
-    renderer.domElement.addEventListener("pointerdown", () => {
-      controls.autoRotate = false;
-      renderer.domElement.style.cursor = "grabbing";
-    });
-    renderer.domElement.addEventListener("pointerup", () => {
-      controls.autoRotate = true;
-      renderer.domElement.style.cursor = "grab";
-    });
-
-    let mixer: THREE.AnimationMixer | null = null;
-    const clock = new THREE.Clock();
-
-    const loader = new GLTFLoader();
-    loader.load(
-      `/models/${kind}.glb`,
-      (gltf) => {
-        if (disposed) return;
-        const root = gltf.scene;
-        root.traverse((obj) => {
-          if (obj instanceof THREE.Mesh) {
-            obj.castShadow = true;
-            obj.receiveShadow = true;
-            const mat = obj.material;
-            if (mat instanceof THREE.MeshStandardMaterial) {
-              mat.envMapIntensity = 0.9;
-            }
-          }
-        });
-
-        // Auto-fit: scale + recenter, then position camera based on FOV so
-        // the model comfortably fills ~75% of the viewport.
-        const box = new THREE.Box3().setFromObject(root);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const targetSize = 2.0;
-        const scale = targetSize / maxDim;
-        root.scale.setScalar(scale);
-
-        box.setFromObject(root);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
-        root.position.x -= center.x;
-        root.position.z -= center.z;
-        root.position.y -= box.min.y; // sit on ground
-
-        pivot.add(root);
-
-        // Distance based on the largest visible extent + FOV
-        box.setFromObject(root);
-        box.getSize(size);
-        const fitH = size.y / (2 * Math.tan((Math.PI * camera.fov) / 360));
-        const fitW = size.x / (2 * Math.tan((Math.PI * camera.fov) / 360)) / camera.aspect;
-        const distance = Math.max(fitH, fitW) * 1.45;
-        const yMid = box.min.y + size.y / 2;
-        camera.position.set(0, yMid + size.y * 0.15, distance);
-        controls.target.set(0, yMid, 0);
-        controls.minDistance = distance * 0.7;
-        controls.maxDistance = distance * 1.6;
-        controls.update();
-
-        // Ground shadow disc to model footprint
-        const footprint = Math.max(size.x, size.z) * 0.65;
-        shadowDisc.scale.setScalar(Math.max(footprint, 0.8));
-
-        if (gltf.animations && gltf.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(root);
-          // Prefer idle/walk anim if present, otherwise the first
-          const idle =
-            gltf.animations.find((a) => /idle|stand|breath/i.test(a.name)) ??
-            gltf.animations.find((a) => /walk|swim|fly/i.test(a.name)) ??
-            gltf.animations[0];
-          const action = mixer.clipAction(idle);
-          action.play();
-        }
-      },
-      undefined,
-      (err) => {
-        // Loader error — silent: parent will swap to video on probe failure,
-        // but if we somehow reach here without a probe, log for debugging.
-        console.warn(`[animal-stage] failed to load /models/${kind}.glb`, err);
-      }
-    );
-
-    let frame = 0;
-    const resize = () => {
-      const { width, height } = container.getBoundingClientRect();
-      const w = Math.max(width, 1);
-      const h = Math.max(height, 1);
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    };
-    const ro = new ResizeObserver(resize);
-    ro.observe(container);
-    resize();
-
-    const animate = () => {
-      if (disposed) return;
-      const dt = clock.getDelta();
-      mixer?.update(dt);
-      controls.update();
-      renderer.render(scene, camera);
-      frame = requestAnimationFrame(animate);
-    };
-    animate();
-
-    return () => {
-      disposed = true;
-      cancelAnimationFrame(frame);
-      ro.disconnect();
-      controls.dispose();
-      renderer.dispose();
-      scene.traverse((obj) => {
-        if (obj instanceof THREE.Mesh) {
-          obj.geometry.dispose();
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => m.dispose());
-          } else {
-            obj.material.dispose();
-          }
-        }
-      });
-      renderer.domElement.remove();
-    };
-  }, [kind, mood]);
-
-  return <div ref={containerRef} className="absolute inset-0 h-full w-full" />;
-}
-
-function VideoView({ kind }: { kind: AnimalKind }) {
+export function AnimalStage({ word }: AnimalStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const kind = getAnimalKind(word);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     video.currentTime = 0;
     void video.play().catch(() => undefined);
-  }, [kind]);
-
-  return (
-    <video
-      ref={videoRef}
-      key={kind}
-      className="absolute inset-0 h-full w-full object-cover"
-      autoPlay
-      loop
-      muted
-      playsInline
-      preload="auto"
-      aria-hidden="true"
-    >
-      <source src={`/videos/${kind}.webm`} type="video/webm" />
-      <source src={`/videos/${kind}.mp4`} type="video/mp4" />
-    </video>
-  );
-}
-
-export function AnimalStage({ word }: AnimalStageProps) {
-  const kind = getAnimalKind(word);
-  const [asset, setAsset] = useState<AssetState>({ status: "loading" });
-
-  useEffect(() => {
-    if (!kind) return;
-    let cancelled = false;
-    setAsset({ status: "loading" });
-
-    // Probe for a GLB model — fall back to the video pipeline if missing
-    fetch(`/models/${kind}.glb`, { method: "HEAD" })
-      .then((r) => {
-        if (cancelled) return;
-        setAsset({ status: r.ok ? "model" : "video" });
-      })
-      .catch(() => {
-        if (!cancelled) setAsset({ status: "video" });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [kind]);
+  }, [word]);
 
   if (!kind) return null;
 
   const mood = animalMoods[kind];
+  const kenBurns = animalKenBurns[kind];
 
   return (
     <div className="relative h-full w-full" data-animal-stage={kind}>
@@ -419,12 +175,46 @@ export function AnimalStage({ word }: AnimalStageProps) {
           }}
         />
 
-        {/* Asset (model or video) */}
-        {asset.status === "model" ? (
-          <ModelView kind={kind} mood={mood} />
-        ) : asset.status === "video" ? (
-          <VideoView kind={kind} />
-        ) : null}
+        {/* Video — Ken Burns drift wrapper for slow cinematic motion */}
+        <div
+          className="absolute inset-0 h-full w-full"
+          style={{ animation: `${kenBurns} 14s ease-in-out infinite alternate` }}
+        >
+          <video
+            ref={videoRef}
+            key={kind}
+            className="absolute inset-0 h-full w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            style={{ filter: mood.filter }}
+          >
+            <source src={`/videos/${kind}.webm`} type="video/webm" />
+            <source src={`/videos/${kind}.mp4`} type="video/mp4" />
+          </video>
+        </div>
+
+        {/* Sparkle particles — float up from bottom, tinted to mood */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          {SPARKLE_OFFSETS.map((p, i) => (
+            <span
+              key={i}
+              className="absolute block rounded-full opacity-0"
+              style={{
+                left: `${p.x}%`,
+                bottom: 0,
+                width: `${p.size}px`,
+                height: `${p.size}px`,
+                background: `radial-gradient(circle, ${mood.sparkle} 0%, transparent 70%)`,
+                animation: `sparkle-float ${p.dur}s ease-in ${p.delay}s infinite`,
+                filter: "blur(0.5px)",
+              }}
+            />
+          ))}
+        </div>
 
         {/* Top-edge gloss */}
         <div
@@ -449,3 +239,12 @@ export function AnimalStage({ word }: AnimalStageProps) {
     </div>
   );
 }
+
+const SPARKLE_OFFSETS = [
+  { x: 12, size: 8, dur: 6, delay: 0 },
+  { x: 28, size: 5, dur: 5.2, delay: 1.4 },
+  { x: 47, size: 9, dur: 6.4, delay: 2.6 },
+  { x: 64, size: 6, dur: 5.6, delay: 0.8 },
+  { x: 78, size: 7, dur: 5.8, delay: 3.2 },
+  { x: 90, size: 5, dur: 5.0, delay: 1.9 },
+] as const;

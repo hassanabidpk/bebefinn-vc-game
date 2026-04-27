@@ -213,6 +213,23 @@ export function AlphabetGame({
     }
   };
 
+  // Cursor / touch parallax tilt on the lesson card
+  const cardRef = useRef<HTMLButtonElement | null>(null);
+  const handleCardPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const dx = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 .. 0.5
+    const dy = (e.clientY - rect.top) / rect.height - 0.5;
+    const max = 8;
+    el.style.transform = `perspective(900px) rotateY(${dx * max}deg) rotateX(${-dy * max}deg)`;
+  };
+  const handleCardPointerLeave = () => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.transform = "perspective(900px) rotateY(0deg) rotateX(0deg)";
+  };
+
   return (
     <div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] transition-colors duration-500"
@@ -310,9 +327,12 @@ export function AlphabetGame({
 
           <section className="flex min-h-0 items-center justify-center">
             <motion.button
-              className="group relative grid aspect-[1.25] w-full max-w-[22rem] place-items-center overflow-hidden rounded-[2.4rem] border border-white/60 bg-white/30 p-4 shadow-[0_24px_60px_rgba(14,82,116,0.32)] outline-none ring-1 ring-inset ring-white/40 backdrop-blur-2xl transition focus-visible:ring-4 focus-visible:ring-sunny sm:max-w-[40rem] sm:p-6"
+              ref={cardRef}
+              className="card-tilt group relative grid aspect-[1.25] w-full max-w-[22rem] place-items-center overflow-hidden rounded-[2.4rem] border border-white/60 bg-white/30 p-4 shadow-[0_24px_60px_rgba(14,82,116,0.32)] outline-none ring-1 ring-inset ring-white/40 backdrop-blur-2xl focus-visible:ring-4 focus-visible:ring-sunny sm:max-w-[40rem] sm:p-6"
               whileTap={{ scale: 0.97 }}
               onClick={handleBebeFinnTap}
+              onPointerMove={handleCardPointerMove}
+              onPointerLeave={handleCardPointerLeave}
               aria-label={
                 isGuessing
                   ? `Guess the picture for letter ${entry.letter}`

@@ -130,6 +130,57 @@
   50% { transform: translateX(-50%) scaleX(0.78); opacity: 0.18; }
 }
 
+/* Ken Burns drift presets — slow cinematic motion on top of looping video */
+@keyframes kenburns-zoom-in {
+  0%   { transform: scale(1.02) translate(0, 0); }
+  100% { transform: scale(1.12) translate(-1%, -1%); }
+}
+
+@keyframes kenburns-zoom-out {
+  0%   { transform: scale(1.12) translate(0, 0); }
+  100% { transform: scale(1.02) translate(0, 1%); }
+}
+
+@keyframes kenburns-zoom-left {
+  0%   { transform: scale(1.08) translate(2%, 0); }
+  100% { transform: scale(1.14) translate(-3%, -1%); }
+}
+
+@keyframes kenburns-zoom-right {
+  0%   { transform: scale(1.08) translate(-2%, 0); }
+  100% { transform: scale(1.14) translate(3%, -1%); }
+}
+
+@keyframes kenburns-pan-left {
+  0%   { transform: scale(1.06) translate(3%, 0); }
+  100% { transform: scale(1.06) translate(-3%, 0); }
+}
+
+@keyframes kenburns-pan-right {
+  0%   { transform: scale(1.06) translate(-3%, 0); }
+  100% { transform: scale(1.06) translate(3%, 0); }
+}
+
+@keyframes sparkle-float {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  10% { opacity: 0.9; }
+  60% { opacity: 0.7; }
+  100% {
+    transform: translate(8px, -120px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Card tilt parallax — subtle 3D depth on cursor / touch hover */
+.card-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.4, 1);
+  will-change: transform;
+}
+
 @keyframes pop-in {
   0% { transform: scale(0); opacity: 0; }
   50% { transform: scale(1.2); }
