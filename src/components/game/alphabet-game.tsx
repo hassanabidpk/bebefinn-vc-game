@@ -8,6 +8,7 @@ import { useSpeech } from "@/hooks/use-speech";
 import { BubbleBackground } from "@/components/ui/bubble-background";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { AnimalStage, getAnimalKind } from "./animal-stage";
+import { getAnimalFact } from "@/lib/animal-facts";
 
 interface AlphabetGameProps {
   isMusicPlaying: boolean;
@@ -23,6 +24,7 @@ export function AlphabetGame({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isGuessing, setIsGuessing] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
   const { speak, stop, isSpeaking } = useSpeech();
   const {
     playAnimalSound,
@@ -86,6 +88,12 @@ export function AlphabetGame({
     revealTimerRef.current = setTimeout(() => {
       setIsGuessing(false);
       speakCurrent();
+      // Tiny confetti burst on every reveal — celebrate each lesson
+      setShowConfetti(true);
+      if (confettiTimerRef.current) {
+        clearTimeout(confettiTimerRef.current);
+      }
+      confettiTimerRef.current = setTimeout(() => setShowConfetti(false), 1600);
     }, 860);
   }, [currentIndex, playGuessSuspense, speakCurrent]);
 
@@ -213,22 +221,34 @@ export function AlphabetGame({
     }
   };
 
-  // Cursor / touch parallax tilt on the lesson card
-  const cardRef = useRef<HTMLButtonElement | null>(null);
-  const handleCardPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+  // Cursor / touch parallax tilt on the lesson card. Suspend tilt while
+  // the card is flipped so the rotateY(180deg) isn't fought by tilt math.
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const handleCardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = cardRef.current;
-    if (!el) return;
+    if (!el || isFlipped) return;
     const rect = el.getBoundingClientRect();
-    const dx = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 .. 0.5
+    const dx = (e.clientX - rect.left) / rect.width - 0.5;
     const dy = (e.clientY - rect.top) / rect.height - 0.5;
     const max = 8;
     el.style.transform = `perspective(900px) rotateY(${dx * max}deg) rotateX(${-dy * max}deg)`;
   };
   const handleCardPointerLeave = () => {
     const el = cardRef.current;
-    if (!el) return;
+    if (!el || isFlipped) return;
     el.style.transform = "perspective(900px) rotateY(0deg) rotateX(0deg)";
   };
+
+  // Flip handlers
+  const flipCard = useCallback(() => {
+    playTap();
+    setIsFlipped((f) => !f);
+  }, [playTap]);
+
+  // Reset flip whenever the lesson changes so we always land on the front
+  useEffect(() => {
+    setIsFlipped(false);
+  }, [currentIndex]);
 
   return (
     <div
@@ -317,70 +337,161 @@ export function AlphabetGame({
               key={`${currentIndex}-${isGuessing ? "guess" : "reveal"}`}
               initial={{ opacity: 0, y: 10, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="absolute left-1/2 top-1 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-4 py-2 text-center font-display text-base font-bold shadow-xl sm:left-[64%] sm:top-[18%] sm:-translate-x-0"
+              className="absolute left-1/2 top-1 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white px-4 py-2 text-center font-display text-base font-bold shadow-xl sm:left-[64%] sm:top-[18%] sm:-translate-x-0"
               style={{ color: entry.color }}
               aria-live="polite"
             >
-              {isGuessing ? "Guess!" : `${entry.letter} for ${entry.word}!`}
+              <SpeakingIndicator active={isSpeaking} color={entry.color} />
+              <span>{isGuessing ? "Guess!" : `${entry.letter} for ${entry.word}!`}</span>
             </motion.div>
           </section>
 
           <section className="flex min-h-0 items-center justify-center">
-            <motion.button
-              ref={cardRef}
-              className="card-tilt group relative grid aspect-[1.25] w-full max-w-[22rem] place-items-center overflow-hidden rounded-[2.4rem] border border-white/60 bg-white/30 p-4 shadow-[0_24px_60px_rgba(14,82,116,0.32)] outline-none ring-1 ring-inset ring-white/40 backdrop-blur-2xl focus-visible:ring-4 focus-visible:ring-sunny sm:max-w-[40rem] sm:p-6"
-              whileTap={{ scale: 0.97 }}
-              onClick={handleBebeFinnTap}
-              onPointerMove={handleCardPointerMove}
-              onPointerLeave={handleCardPointerLeave}
-              aria-label={
-                isGuessing
-                  ? `Guess the picture for letter ${entry.letter}`
-                  : `Tap the letter card for ${entry.letter} for ${entry.word}`
-              }
-            >
-              {/* Inner gloss highlight */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-[2.4rem] bg-gradient-to-b from-white/55 to-transparent"
-              />
-              {/* Subtle outer aura */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute -inset-3 -z-10 rounded-[3rem] bg-white/30 blur-2xl"
-              />
-
-              <div className="relative z-10 grid h-full w-full grid-cols-[0.85fr_1.15fr] items-center gap-3 sm:gap-5">
-                <motion.div
-                  key={`letter-${currentIndex}-${isGuessing ? "guess" : "reveal"}`}
-                  initial={{ scale: 0, rotate: -18 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", damping: 12, stiffness: 200 }}
-                  className="font-display font-bold leading-none drop-shadow-[0_6px_0_rgba(255,255,255,0.5)]"
-                  style={{
-                    fontSize: "clamp(6.5rem, 24vw, 15rem)",
-                    color: entry.color,
-                    textShadow: `5px 7px 0 ${entry.color}33, 0 2px 0 #ffffff66`,
+            <div className={`flip-card relative aspect-[1.25] w-full max-w-[22rem] sm:max-w-[40rem] ${isFlipped ? "flipped" : ""}`}>
+              <div className="flip-card-inner">
+                {/* FRONT */}
+                <div
+                  ref={cardRef}
+                  role="button"
+                  tabIndex={0}
+                  className="flip-face card-tilt group relative grid aspect-[1.25] w-full max-w-[22rem] cursor-pointer place-items-center overflow-hidden rounded-[2.4rem] border border-white/60 bg-white/30 p-4 shadow-[0_24px_60px_rgba(14,82,116,0.32)] outline-none ring-1 ring-inset ring-white/40 backdrop-blur-2xl focus-visible:ring-4 focus-visible:ring-sunny sm:max-w-[40rem] sm:p-6"
+                  onClick={handleBebeFinnTap}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleBebeFinnTap();
+                    }
                   }}
+                  onPointerMove={handleCardPointerMove}
+                  onPointerLeave={handleCardPointerLeave}
+                  aria-label={
+                    isGuessing
+                      ? `Guess the picture for letter ${entry.letter}`
+                      : `Tap the letter card for ${entry.letter} for ${entry.word}`
+                  }
                 >
-                  {isGuessing ? "?" : entry.letter}
-                </motion.div>
+                  {/* Inner gloss highlight */}
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-[2.4rem] bg-gradient-to-b from-white/55 to-transparent"
+                  />
+                  {/* Subtle outer aura */}
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -inset-3 -z-10 rounded-[3rem] bg-white/30 blur-2xl"
+                  />
 
-                <motion.div
-                  key={`visual-${currentIndex}`}
-                  initial={{ scale: 0, y: 24 }}
-                  animate={{
-                    scale: 1,
-                    y: 0,
-                    transition: { type: "spring", damping: 8 },
-                  }}
-                  className="grid aspect-square h-full w-full place-items-center text-[5rem] leading-none sm:text-[8rem]"
-                  aria-hidden="true"
+                  <div className="relative z-10 grid h-full w-full grid-cols-[0.85fr_1.15fr] items-center gap-3 sm:gap-5">
+                    <motion.div
+                      key={`letter-${currentIndex}-${isGuessing ? "guess" : "reveal"}`}
+                      initial={{ scale: 0, rotate: -18 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: "spring", damping: 12, stiffness: 200 }}
+                      className="font-display font-bold leading-none drop-shadow-[0_6px_0_rgba(255,255,255,0.5)]"
+                      style={{
+                        fontSize: "clamp(6.5rem, 24vw, 15rem)",
+                        color: entry.color,
+                        textShadow: `5px 7px 0 ${entry.color}33, 0 2px 0 #ffffff66`,
+                      }}
+                    >
+                      {isGuessing ? "?" : entry.letter}
+                    </motion.div>
+
+                    <motion.div
+                      key={`visual-${currentIndex}`}
+                      initial={{ scale: 0, y: 24 }}
+                      animate={{
+                        scale: 1,
+                        y: 0,
+                        transition: { type: "spring", damping: 8 },
+                      }}
+                      className="grid aspect-square h-full w-full place-items-center text-[5rem] leading-none sm:text-[8rem]"
+                      aria-hidden="true"
+                    >
+                      {animalKind ? <AnimalStage word={entry.word} /> : entry.emoji}
+                    </motion.div>
+                  </div>
+
+                  {/* Info button — flip to back; only when a fact is available */}
+                  {getAnimalFact(entry.word) ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        flipCard();
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      aria-label={`Show fun fact about ${entry.word}`}
+                      className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/70 font-display text-base font-bold shadow-md backdrop-blur transition hover:bg-white sm:h-11 sm:w-11 sm:text-lg"
+                      style={{ color: entry.color }}
+                    >
+                      i
+                    </button>
+                  ) : null}
+                </div>
+
+                {/* BACK */}
+                <div
+                  className="flip-face flip-face-back grid aspect-[1.25] w-full max-w-[22rem] place-items-center overflow-hidden rounded-[2.4rem] border border-white/60 bg-white/85 p-5 shadow-[0_24px_60px_rgba(14,82,116,0.32)] backdrop-blur-2xl sm:max-w-[40rem] sm:p-8"
+                  aria-hidden={!isFlipped}
                 >
-                  {animalKind ? <AnimalStage word={entry.word} /> : entry.emoji}
-                </motion.div>
+                  {(() => {
+                    const fact = getAnimalFact(entry.word);
+                    if (!fact) return null;
+                    return (
+                      <div className="grid h-full w-full grid-rows-[auto_auto_1fr_auto] items-center gap-2 text-center">
+                        <div className="text-5xl sm:text-7xl" aria-hidden="true">
+                          {entry.emoji}
+                        </div>
+                        <div>
+                          <div
+                            className="font-display text-2xl font-bold sm:text-4xl"
+                            style={{ color: entry.color }}
+                          >
+                            {fact.english}
+                          </div>
+                          <div className="font-display text-xl font-semibold text-slate-700 sm:text-3xl">
+                            {fact.chinese}
+                            <span className="ml-2 text-sm font-normal text-slate-500 sm:text-base">
+                              {fact.pinyin}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="px-2 font-body text-sm leading-snug text-slate-700 sm:text-lg">
+                          {fact.fact}
+                        </p>
+                        <div className="flex items-center justify-center gap-3">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playTap();
+                              playAnimalSound(entry.word);
+                            }}
+                            className="grid h-12 w-12 place-items-center rounded-full text-white shadow-lg transition active:scale-95"
+                            style={{ backgroundColor: entry.color }}
+                            aria-label={`Play ${fact.english} sound`}
+                          >
+                            <span className="text-xl">🔊</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              flipCard();
+                            }}
+                            className="rounded-full bg-slate-100 px-4 py-2 font-display text-sm font-bold text-slate-700 shadow transition hover:bg-slate-200 sm:text-base"
+                            aria-label="Flip card back"
+                          >
+                            Back
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
-            </motion.button>
+            </div>
           </section>
 
           <section className="flex flex-col items-center gap-3 sm:col-start-2">
@@ -435,6 +546,31 @@ export function AlphabetGame({
         </div>
       </div>
     </div>
+  );
+}
+
+function SpeakingIndicator({ active, color }: { active: boolean; color: string }) {
+  // Three vertical bars that pulse while speech is active
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex h-5 items-end gap-[3px]"
+      style={{ opacity: active ? 1 : 0.35 }}
+    >
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="block w-[3px] rounded-full"
+          style={{
+            backgroundColor: color,
+            height: active ? "100%" : "30%",
+            animation: active
+              ? `speak-bar 0.65s ease-in-out ${i * 0.12}s infinite`
+              : undefined,
+          }}
+        />
+      ))}
+    </span>
   );
 }
 
