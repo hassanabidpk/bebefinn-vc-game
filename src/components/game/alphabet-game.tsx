@@ -300,7 +300,7 @@ export function AlphabetGame({
 
           <section className="flex min-h-0 items-center justify-center">
             <motion.button
-              className="grid aspect-[1.18] w-full max-w-[20rem] place-items-center overflow-hidden rounded-[2rem] bg-white/82 p-5 shadow-2xl outline-none ring-4 ring-white/45 backdrop-blur-md transition focus-visible:ring-sunny sm:max-w-[32rem]"
+              className="group relative grid aspect-[1.25] w-full max-w-[22rem] place-items-center overflow-hidden rounded-[2.4rem] border border-white/60 bg-white/30 p-4 shadow-[0_24px_60px_rgba(14,82,116,0.32)] outline-none ring-1 ring-inset ring-white/40 backdrop-blur-2xl transition focus-visible:ring-4 focus-visible:ring-sunny sm:max-w-[40rem] sm:p-6"
               whileTap={{ scale: 0.97 }}
               onClick={handleBebeFinnTap}
               aria-label={
@@ -309,17 +309,28 @@ export function AlphabetGame({
                   : `Tap the letter card for ${entry.letter} for ${entry.word}`
               }
             >
-              <div className="grid h-full w-full grid-cols-[0.9fr_1.1fr] items-center gap-2">
+              {/* Inner gloss highlight */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-[2.4rem] bg-gradient-to-b from-white/55 to-transparent"
+              />
+              {/* Subtle outer aura */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-3 -z-10 rounded-[3rem] bg-white/30 blur-2xl"
+              />
+
+              <div className="relative z-10 grid h-full w-full grid-cols-[0.85fr_1.15fr] items-center gap-3 sm:gap-5">
                 <motion.div
                   key={`letter-${currentIndex}-${isGuessing ? "guess" : "reveal"}`}
                   initial={{ scale: 0, rotate: -18 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: "spring", damping: 12, stiffness: 200 }}
-                  className="font-display font-bold leading-none"
+                  className="font-display font-bold leading-none drop-shadow-[0_6px_0_rgba(255,255,255,0.5)]"
                   style={{
-                    fontSize: "clamp(6rem, 22vw, 13rem)",
+                    fontSize: "clamp(6.5rem, 24vw, 15rem)",
                     color: entry.color,
-                    textShadow: `5px 7px 0 ${entry.color}33`,
+                    textShadow: `5px 7px 0 ${entry.color}33, 0 2px 0 #ffffff66`,
                   }}
                 >
                   {isGuessing ? "?" : entry.letter}
@@ -333,7 +344,7 @@ export function AlphabetGame({
                     y: 0,
                     transition: { type: "spring", damping: 8 },
                   }}
-                  className="grid h-full min-h-[8rem] place-items-center text-[5rem] leading-none sm:min-h-[11rem] sm:text-[8rem]"
+                  className="grid aspect-square h-full w-full place-items-center text-[5rem] leading-none sm:text-[8rem]"
                   aria-hidden="true"
                 >
                   {animalKind ? <AnimalStage word={entry.word} /> : entry.emoji}
