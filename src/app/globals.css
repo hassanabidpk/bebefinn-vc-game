@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ocean-50: #e6f7ff;
+  --color-ocean-100: #b3e6ff;
+  --color-ocean-200: #80d4ff;
+  --color-ocean-300: #4dc3ff;
+  --color-ocean-400: #1ab1ff;
+  --color-ocean-500: #0099e6;
+  --color-ocean-600: #0077b3;
+  --color-ocean-700: #005580;
+  --color-ocean-800: #00334d;
+  --color-ocean-900: #00111a;
+
+  --color-coral: #ff6b8a;
+  --color-sunny: #ffd93d;
+  --color-seafoam: #6bcb77;
+  --color-sand: #ffe8a3;
+
+  --font-display: "Fredoka", "Comic Sans MS", "Chalkboard SE", sans-serif;
+  --font-body: "Nunito", "Rounded Mplus 1c", sans-serif;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes bubble-rise {
+  0% {
+    transform: translateY(100vh) scale(0.4);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-20vh) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes cat-prowl {
+  0%, 100% { transform: rotate(-4deg) translateY(0) scale(1); }
+  25% { transform: rotate(2deg) translateY(-4px) scale(1.04); }
+  50% { transform: rotate(-2deg) translateY(0) scale(1); }
+  75% { transform: rotate(4deg) translateY(-3px) scale(1.03); }
+}
+
+@keyframes dog-wag {
+  0%, 100% { transform: rotate(-6deg) translateY(0); }
+  20% { transform: rotate(8deg) translateY(-6px); }
+  40% { transform: rotate(-4deg) translateY(0); }
+  60% { transform: rotate(8deg) translateY(-6px); }
+  80% { transform: rotate(-4deg) translateY(0); }
+}
+
+@keyframes lion-roar {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  20% { transform: scale(1.05) rotate(-3deg); }
+  40% { transform: scale(1.18) rotate(0deg); }
+  60% { transform: scale(1.12) rotate(3deg); }
+  80% { transform: scale(1.04) rotate(0deg); }
+}
+
+@keyframes zebra-gallop {
+  0%, 100% { transform: translateX(-6px) translateY(0) rotate(-2deg); }
+  25% { transform: translateX(0) translateY(-8px) rotate(0deg); }
+  50% { transform: translateX(6px) translateY(0) rotate(2deg); }
+  75% { transform: translateX(0) translateY(-8px) rotate(0deg); }
+}
+
+@keyframes elephant-trumpet {
+  0%, 100% { transform: rotate(-3deg) translateY(0) scale(1); }
+  30% { transform: rotate(2deg) translateY(-4px) scale(1.06); }
+  60% { transform: rotate(-2deg) translateY(0) scale(1.03); }
+}
+
+@keyframes gorilla-pound {
+  0%, 100% { transform: scale(1) translateY(0); }
+  20% { transform: scale(1.08, 0.92) translateY(4px); }
+  40% { transform: scale(0.95, 1.1) translateY(-4px); }
+  60% { transform: scale(1.08, 0.92) translateY(4px); }
+  80% { transform: scale(0.98, 1.04) translateY(-2px); }
+}
+
+@keyframes fish-swim {
+  0% { transform: translateX(-14px) rotate(-10deg); }
+  50% { transform: translateX(14px) rotate(10deg); }
+  100% { transform: translateX(-14px) rotate(-10deg); }
+}
+
+@keyframes jelly-pulse {
+  0%, 100% { transform: scaleX(1) scaleY(1) translateY(0); }
+  50% { transform: scaleX(1.18) scaleY(0.78) translateY(-10px); }
+}
+
+@keyframes turtle-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-6px) rotate(2deg); }
+}
+
+@keyframes whale-spout {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  40% { transform: translateY(-6px) rotate(3deg) scale(1.04); }
+  70% { transform: translateY(-2px) rotate(0deg) scale(1.02); }
+}
+
+@keyframes spout-rise {
+  0% { transform: translate(-50%, 30%) scaleY(0.4); opacity: 0; }
+  40% { transform: translate(-50%, -50%) scaleY(1); opacity: 0.95; }
+  100% { transform: translate(-50%, -180%) scaleY(0.5); opacity: 0; }
+}
+
+@keyframes mane-sway {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.6; }
+  50% { transform: scale(1.18) rotate(8deg); opacity: 0.95; }
+}
+
+@keyframes ground-shadow {
+  0%, 100% { transform: translateX(-50%) scaleX(1); opacity: 0.35; }
+  50% { transform: translateX(-50%) scaleX(0.78); opacity: 0.18; }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+body {
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
