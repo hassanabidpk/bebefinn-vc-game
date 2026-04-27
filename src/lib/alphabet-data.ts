@@ -6,7 +6,7 @@ export interface AlphabetEntry {
 }
 
 export const alphabetData: AlphabetEntry[] = [
-  { letter: "A", word: "Apple", emoji: "🍎", color: "#FF6B6B" },
+  { letter: "A", word: "Alpaca", emoji: "🦙", color: "#C49A6C" },
   { letter: "B", word: "Banana", emoji: "🍌", color: "#FFD93D" },
   { letter: "C", word: "Cat", emoji: "🐱", color: "#FF9F43" },
   { letter: "D", word: "Dog", emoji: "🐶", color: "#A0522D" },

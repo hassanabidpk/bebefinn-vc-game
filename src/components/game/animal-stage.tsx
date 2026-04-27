@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 type AnimalKind =
+  | "alpaca"
   | "cat"
   | "dog"
   | "elephant"
@@ -19,6 +20,7 @@ interface AnimalStageProps {
 }
 
 const animalWords: Record<string, AnimalKind> = {
+  alpaca: "alpaca",
   cat: "cat",
   dog: "dog",
   elephant: "elephant",
@@ -42,6 +44,13 @@ interface AnimalMood {
 }
 
 const animalMoods: Record<AnimalKind, AnimalMood> = {
+  alpaca: {
+    gradient: "radial-gradient(ellipse at 30% 20%, #fbe8c2 0%, #d6a472 50%, #8a5a3a 100%)",
+    glow: "rgba(214,164,114,0.55)",
+    ring: "rgba(251,232,194,0.7)",
+    filter: "saturate(1.18) contrast(1.08) brightness(1.05)",
+    sparkle: "#fbe8c2",
+  },
   cat: {
     gradient: "radial-gradient(ellipse at 30% 20%, #ffd9a8 0%, #ff9a6c 45%, #f57c5b 100%)",
     glow: "rgba(255,168,108,0.55)",
@@ -116,6 +125,7 @@ const animalMoods: Record<AnimalKind, AnimalMood> = {
 
 // Each animal gets its own slow Ken Burns drift so the loop feels alive
 const animalKenBurns: Record<AnimalKind, string> = {
+  alpaca: "kenburns-zoom-in",
   cat: "kenburns-zoom-right",
   dog: "kenburns-zoom-left",
   lion: "kenburns-zoom-in",
