@@ -96,6 +96,16 @@ export function AlphabetGame({
     }
   }, [currentIndex, revealCurrent]);
 
+  // Speak the very first lesson on mount — Start button click already
+  // satisfied the user-gesture requirement for audio autoplay
+  useEffect(() => {
+    if (!hasSpokenRef.current) {
+      hasSpokenRef.current = true;
+      revealCurrent();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handlePrev = useCallback(() => {
     hasSpokenRef.current = true;
     if (!isFirst) {
