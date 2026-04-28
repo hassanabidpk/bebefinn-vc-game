@@ -65,6 +65,31 @@ export function LessonScreen({
     });
   };
 
+  // Keyboard shortcut: pressing A-Z jumps to that lesson; ←/→ navigate.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k.length === 1 && k >= "a" && k <= "z") {
+        const target = LETTERS.findIndex((it) => it.letter.toLowerCase() === k);
+        if (target >= 0 && target !== index) {
+          e.preventDefault();
+          onIndex(target);
+        }
+        return;
+      }
+      if (e.key === "ArrowRight" && index < TOTAL - 1) {
+        e.preventDefault();
+        onIndex(index + 1);
+      } else if (e.key === "ArrowLeft" && index > 0) {
+        e.preventDefault();
+        onIndex(index - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [index, onIndex]);
+
   // Guess → reveal → speak → confetti, kicked off whenever the lesson changes.
   useEffect(() => {
     clearAllTimers();

@@ -243,6 +243,7 @@ function scheduleBackgroundMusic(
 }
 
 const ANIMAL_SOUND_FILES: Record<string, string> = {
+  bear: "/sounds/bear.mp3",
   cat: "/sounds/cat.mp3",
   dog: "/sounds/dog.mp3",
   elephant: "/sounds/elephant.mp3",

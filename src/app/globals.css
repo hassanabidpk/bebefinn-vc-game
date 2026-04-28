@@ -55,6 +55,14 @@ html, body {
     #0a1622;
   padding: 24px;
 }
+
+/* Mobile: tighten margins so the iPad scales up to fill the viewport. */
+@media (max-width: 720px) {
+  .page { padding: 8px; }
+  .ipad-scaler {
+    transform: scale(min(calc((100vw - 16px) / 1180px), calc((100vh - 16px) / 820px)));
+  }
+}
 /* The iPad is rendered at the design's native 1180x820 then uniformly
  * scaled to fit the viewport. This keeps all the fixed pixel sizes inside
  * (font sizes, mascot dimensions, etc.) pixel-perfect to the design. */
