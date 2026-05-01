@@ -18,7 +18,7 @@ const CARD_IMAGES: Record<string, string> = {
   Fish: "/animals/Fish.jpg",
   Gorilla: "/animals/Gorilla.jpg",
   Jellyfish: "/animals/Jellyfish.jpg",
-  Koala: "/animals/Koala.jpg",
+  Kangaroo: "/animals/Kangaroo.jpg",
   Lion: "/animals/Lion.jpg",
   Panda: "/animals/Panda.jpg",
   Quokka: "/animals/Quokka.jpg",

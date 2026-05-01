@@ -281,7 +281,9 @@ export function LessonScreen({
                 {isGuessing ? "?" : display}
               </div>
               <div className="big-emoji" key={`e-${index}-${isGuessing ? "g" : "r"}`}>
-                {!isGuessing && hasAnimalPhoto(item.word) ? (
+                {isGuessing ? (
+                  <span style={{ opacity: 0.55 }}>❓</span>
+                ) : hasAnimalPhoto(item.word) ? (
                   <AnimalPhoto word={item.word} color={item.color} size={210} />
                 ) : (
                   item.emoji
