@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useGameAudio } from "@/hooks/use-game-audio";
+import { useSpeech } from "@/hooks/use-speech";
 import { IpadShell } from "@/components/game/ipad-shell";
 import { HomeScreen } from "@/components/game/home-screen";
 import { LessonScreen, type LetterCase } from "@/components/game/lesson-screen";
@@ -28,6 +29,7 @@ export default function Home() {
     stopBackgroundMusic,
     toggleBackgroundMusic,
   } = useGameAudio();
+  const { warmUp } = useSpeech();
 
   const goHome = () => {
     stopBackgroundMusic();
@@ -35,16 +37,19 @@ export default function Home() {
   };
   const goLesson = (index = 0) => {
     playStart();
+    warmUp();
     startBackgroundMusic();
     setRoute({ screen: "lesson", index });
   };
   const goListen = () => {
     playStart();
+    warmUp();
     startBackgroundMusic();
     setRoute({ screen: "listen", index: 0 });
   };
   const goPlay = () => {
     playStart();
+    warmUp();
     startBackgroundMusic();
     setRoute({ screen: "play", index: 0 });
   };

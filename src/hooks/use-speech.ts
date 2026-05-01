@@ -90,5 +90,22 @@ export function useSpeech() {
     setIsSpeaking(false);
   }, []);
 
-  return { speak, stop, isSpeaking };
+  /**
+   * Warm up SpeechSynthesis with an empty utterance. Must be invoked
+   * inside a real user gesture (e.g. Start button click) so iOS Safari
+   * unblocks future speak() calls scheduled later via setTimeout.
+   */
+  const warmUp = useCallback(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    try {
+      const u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0;
+      u.rate = 1;
+      window.speechSynthesis.speak(u);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  return { speak, stop, isSpeaking, warmUp };
 }

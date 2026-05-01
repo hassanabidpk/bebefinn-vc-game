@@ -56,6 +56,14 @@ html, body {
   padding: 24px;
 }
 
+/* The iPad is rendered at the design's native 1180x820 then uniformly
+ * scaled to fit the viewport. This keeps all the fixed pixel sizes inside
+ * (font sizes, mascot dimensions, etc.) pixel-perfect to the design. */
+.ipad-scaler {
+  transform: scale(min(calc((100vw - 48px) / 1180px), calc((100vh - 48px) / 820px)));
+  transform-origin: center;
+}
+
 /* Mobile: tighten margins so the iPad scales up to fill the viewport. */
 @media (max-width: 720px) {
   .page { padding: 8px; }
@@ -63,12 +71,26 @@ html, body {
     transform: scale(min(calc((100vw - 16px) / 1180px), calc((100vh - 16px) / 820px)));
   }
 }
-/* The iPad is rendered at the design's native 1180x820 then uniformly
- * scaled to fit the viewport. This keeps all the fixed pixel sizes inside
- * (font sizes, mascot dimensions, etc.) pixel-perfect to the design. */
-.ipad-scaler {
-  transform: scale(min(calc((100vw - 48px) / 1180px), calc((100vh - 48px) / 820px)));
-  transform-origin: center;
+
+/* Phone portrait (taller than wide and narrower than the design): rotate
+ * the iPad 90° and scale so the landscape design fills the portrait
+ * viewport instead of letterboxing as a tiny strip. */
+@media (max-width: 820px) and (max-aspect-ratio: 1/1) {
+  .page { padding: 0; }
+  .ipad-scaler {
+    transform:
+      rotate(90deg)
+      scale(min(calc(100vh / 1180px), calc(100vw / 820px)));
+    transform-origin: center;
+  }
+  .ipad {
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .ipad::before { display: none; }
+  .ipad-screen { border-radius: 0; }
 }
 .ipad {
   position: relative;
