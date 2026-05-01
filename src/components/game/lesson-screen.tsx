@@ -10,8 +10,10 @@ import { Confetti } from "./confetti";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto, hasAnimalPhoto } from "./animal-photo";
 
-// Lessons cover only the 26 letters; numbers are handled elsewhere.
-const LETTERS = alphabetData.filter((entry) => /^[A-Z]$/.test(entry.letter));
+// Lessons cover the 26 letters plus the 10 number lessons (1–9 and 10).
+const LETTERS = alphabetData.filter((entry) =>
+  /^[A-Z]$|^[1-9]$|^10$/.test(entry.letter)
+);
 const TOTAL = LETTERS.length;
 
 export type LetterCase = "upper" | "lower" | "both";
@@ -66,13 +68,29 @@ export function LessonScreen({
     });
   };
 
-  // Keyboard shortcut: pressing A-Z jumps to that lesson; ←/→ navigate.
+  // Keyboard shortcut: A-Z, 1-9 (numbers), 0 (=10), and ←/→ to navigate.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = e.key.toLowerCase();
       if (k.length === 1 && k >= "a" && k <= "z") {
         const target = LETTERS.findIndex((it) => it.letter.toLowerCase() === k);
+        if (target >= 0 && target !== index) {
+          e.preventDefault();
+          onIndex(target);
+        }
+        return;
+      }
+      if (k.length === 1 && k >= "1" && k <= "9") {
+        const target = LETTERS.findIndex((it) => it.letter === k);
+        if (target >= 0 && target !== index) {
+          e.preventDefault();
+          onIndex(target);
+        }
+        return;
+      }
+      if (k === "0") {
+        const target = LETTERS.findIndex((it) => it.letter === "10");
         if (target >= 0 && target !== index) {
           e.preventDefault();
           onIndex(target);
@@ -103,13 +121,15 @@ export function LessonScreen({
       setIsSpeaking(true);
 
       const hasPhoto = hasAnimalPhoto(item.word);
+      const isNumber = /^[0-9]+$/.test(item.letter);
+      const phrase = isNumber
+        ? `${item.letter} for ${item.word}!`
+        : `${item.letter}! ${item.letter} for ${item.word}!`;
       if (hasPhoto) {
         playAnimalSound(item.word.toLowerCase());
-        speechTimer.current = setTimeout(() => {
-          speak(`${item.letter}! ${item.letter} for ${item.word}!`);
-        }, 900);
+        speechTimer.current = setTimeout(() => speak(phrase), 900);
       } else {
-        speak(`${item.letter}! ${item.letter} for ${item.word}!`);
+        speak(phrase);
       }
 
       setShowConfetti(true);
@@ -128,13 +148,15 @@ export function LessonScreen({
     clearAllTimers();
     setIsSpeaking(true);
     const hasPhoto = hasAnimalPhoto(item.word);
+    const isNumber = /^[0-9]+$/.test(item.letter);
+    const phrase = isNumber
+      ? `${item.letter} for ${item.word}!`
+      : `${item.letter}! ${item.letter} for ${item.word}!`;
     if (hasPhoto) {
       playAnimalSound(item.word.toLowerCase());
-      speechTimer.current = setTimeout(() => {
-        speak(`${item.letter}! ${item.letter} for ${item.word}!`);
-      }, 900);
+      speechTimer.current = setTimeout(() => speak(phrase), 900);
     } else {
-      speak(`${item.letter}! ${item.letter} for ${item.word}!`);
+      speak(phrase);
     }
     speakOffTimer.current = setTimeout(() => setIsSpeaking(false), 3200);
   };
@@ -294,7 +316,10 @@ export function LessonScreen({
           >
             ◀
           </button>
-          <div className="dot-strip">
+          <div
+            className="dot-strip"
+            style={{ ["--dot-count" as string]: TOTAL } as React.CSSProperties}
+          >
             {LETTERS.map((it, i) => (
               <span
                 key={it.letter}

@@ -68,7 +68,7 @@ export default function Home() {
       {route.screen === "lesson" ? (
         <LessonScreen
           index={route.index}
-          onIndex={(i) => setRoute((r) => ({ ...r, index: Math.max(0, Math.min(25, i)) }))}
+          onIndex={(i) => setRoute((r) => ({ ...r, index: Math.max(0, Math.min(35, i)) }))}
           onHome={goHome}
           letterCase={letterCase}
           isMusicPlaying={isMusicPlaying}
