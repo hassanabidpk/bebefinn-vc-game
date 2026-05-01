@@ -280,14 +280,16 @@ export function LessonScreen({
               >
                 {isGuessing ? "?" : display}
               </div>
-              <div className="big-emoji" key={`e-${index}-${isGuessing ? "g" : "r"}`}>
-                {isGuessing ? (
-                  <span style={{ opacity: 0.55 }}>❓</span>
-                ) : hasAnimalPhoto(item.word) ? (
+              <div
+                className={`big-emoji ${isGuessing ? "guessing" : ""}`}
+                key={`e-${index}-${isGuessing ? "g" : "r"}`}
+              >
+                {hasAnimalPhoto(item.word) ? (
                   <AnimalPhoto word={item.word} color={item.color} size={210} />
                 ) : (
-                  item.emoji
+                  <span>{item.emoji}</span>
                 )}
+                {isGuessing ? <span className="guess-mark">?</span> : null}
               </div>
             </div>
             <button
