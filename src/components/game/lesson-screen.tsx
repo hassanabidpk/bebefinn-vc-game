@@ -37,6 +37,7 @@ export function LessonScreen({
   const [isGuessing, setIsGuessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const guessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animalSoundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -162,7 +163,7 @@ export function LessonScreen({
 
       {showConfetti ? <Confetti /> : null}
 
-      <header className="lesson-header">
+      <header className="lesson-header lesson-header--with-picker">
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
         <div className="progress-pill">
           <div className="progress-pill-row">
@@ -175,6 +176,13 @@ export function LessonScreen({
         </div>
         <button
           className="icon-btn"
+          onClick={() => setPickerOpen((v) => !v)}
+          aria-label={pickerOpen ? "Close letter picker" : "Open letter picker"}
+        >
+          ⌨
+        </button>
+        <button
+          className="icon-btn"
           onClick={onToggleMusic}
           aria-label={isMusicPlaying ? "Pause music" : "Play music"}
         >
@@ -182,6 +190,47 @@ export function LessonScreen({
         </button>
         <button className="icon-btn" onClick={handleReplay} aria-label="Replay">🔊</button>
       </header>
+
+      {pickerOpen ? (
+        <div className="letter-picker-overlay" onClick={() => setPickerOpen(false)}>
+          <div
+            className="letter-picker"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Pick a letter"
+          >
+            <div className="letter-picker-header">
+              <span>Pick a letter</span>
+              <button
+                className="letter-picker-close"
+                onClick={() => setPickerOpen(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="letter-picker-grid">
+              {LETTERS.map((it, i) => (
+                <button
+                  key={it.letter}
+                  className={`letter-picker-tile ${i === index ? "active" : ""}`}
+                  style={{
+                    color: it.color,
+                    boxShadow: i === index ? `0 0 0 4px ${it.color}` : undefined,
+                  }}
+                  onClick={() => {
+                    setPickerOpen(false);
+                    if (i !== index) onIndex(i);
+                  }}
+                  aria-label={`${it.letter} for ${it.word}`}
+                >
+                  {it.letter}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="lesson-body">
         <div className="lesson-mascot-col">
