@@ -758,3 +758,95 @@ html, body {
   font-size: 32px;
   animation: sparkle-pop 1s ease-out forwards;
 }
+
+/* ---- Touch device enhancements ----
+ * Bump button sizes and tap targets when the primary input device is
+ * a finger so tablets and phones get easier-to-press controls without
+ * affecting the desktop pixel-perfect look. */
+@media (pointer: coarse) {
+  .lesson-header {
+    grid-template-columns: 5.5rem 1fr 5.5rem 5.5rem;
+    gap: 14px;
+  }
+  .lesson-header--with-picker {
+    grid-template-columns: 5.5rem 1fr 5.5rem 5.5rem 5.5rem;
+  }
+  .icon-btn {
+    width: 76px; height: 76px;
+    font-size: 32px; border-width: 3px;
+  }
+  .info-pip {
+    width: 52px; height: 52px;
+    font-size: 22px;
+    right: 16px; top: 16px;
+  }
+  .nav-btn {
+    width: 92px; height: 92px;
+    font-size: 36px; border-width: 3px;
+  }
+  .nav-row {
+    grid-template-columns: 6rem 1fr 6rem;
+    gap: 18px; max-width: 560px;
+  }
+  .home-chip {
+    min-height: 60px; padding: 16px;
+    font-size: 22px;
+  }
+  .home-cta-block { gap: 18px; max-width: 520px; }
+  .start-btn {
+    min-height: 96px; font-size: 42px; padding: 22px 40px;
+  }
+  .start-btn .play-pip {
+    width: 64px; height: 64px; font-size: 34px;
+  }
+  .play-pause {
+    width: 92px; height: 92px; font-size: 40px;
+  }
+  .letter-picker-tile {
+    font-size: 38px;
+    border-width: 4px;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.10);
+  }
+  .letter-picker-grid { gap: 10px; }
+  .letter-picker-close {
+    width: 48px; height: 48px; font-size: 22px;
+  }
+  .play-tile {
+    border-width: 6px; border-radius: 32px;
+    box-shadow: 0 10px 0 rgba(0,0,0,0.18), 0 14px 26px rgba(0,0,0,0.15);
+  }
+  .progress-pill { padding: 12px 20px; }
+  .progress-letter { font-size: 26px; }
+  .progress-count { font-size: 20px; }
+  .progress-track { height: 14px; }
+  /* Bigger invisible hit area for the lesson dots so kids can poke
+   * at them with a finger without having to be precise. */
+  .dot-strip { gap: 5px; padding: 14px 0; }
+  .dot {
+    height: 18px;
+    position: relative;
+  }
+  .dot::after {
+    content: ""; position: absolute;
+    inset: -14px -2px;
+  }
+  .speech-bubble {
+    font-size: 16px; padding: 8px 16px;
+  }
+}
+
+/* Stronger press feedback across all primary buttons — works on both
+ * mouse and touch. Helps kids see their tap registered. */
+.icon-btn,
+.nav-btn,
+.home-chip,
+.start-btn,
+.play-pause,
+.play-tile,
+.letter-picker-tile,
+.info-pip,
+.prompt-speak,
+.letter-picker-close {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
