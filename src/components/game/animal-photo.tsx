@@ -105,7 +105,10 @@ export function AnimalPhoto({ word, color, size = 220 }: AnimalPhotoProps) {
   const ring = color || "#ffffff";
   const animClass = ANIM_CLASS[word] || "a-bob";
   const isPhoto = Boolean(photoUrl);
-  const isPng = photoUrl?.endsWith(".png");
+  // Only the BebeFinn mascot needs `contain` + tinted backdrop because
+  // it is a transparent character cutout. Animal photos are full-frame
+  // shots that should center-crop to fill the square card edge to edge.
+  const isMascotPng = photoUrl === "/assets/images/bebefinn.png";
 
   return (
     <div
@@ -117,7 +120,7 @@ export function AnimalPhoto({ word, color, size = 220 }: AnimalPhotoProps) {
           ["--ring" as string]: ring,
           // PNG mascot sits on a soft tinted backdrop instead of a white
           // square so transparency reads as part of the ring.
-          background: isPng
+          background: isMascotPng
             ? `radial-gradient(circle at 50% 30%, ${ring}33 0%, ${ring}66 60%, ${ring}88 100%)`
             : "#fff",
         } as React.CSSProperties
@@ -132,7 +135,7 @@ export function AnimalPhoto({ word, color, size = 220 }: AnimalPhotoProps) {
           alt={word}
           draggable={false}
           loading="lazy"
-          style={isPng ? { objectFit: "contain", padding: "6%" } : undefined}
+          style={isMascotPng ? { objectFit: "contain", padding: "6%" } : undefined}
         />
       ) : (
         <div
