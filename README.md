@@ -10,11 +10,13 @@ A bright, toddler-friendly **alphabet, numbers, colors, and animals** game built
 
 ## ✨ Features
 
-- **A → Z + 1 → 10 lessons** — every letter and number paired with a friendly word, emoji, and spoken pronunciation.
-- **10 animated 3D animals** — cat, dog, lion, zebra, elephant, gorilla, fish, jellyfish, turtle, whale — built with Three.js per-animal rigs (head turns, tail wags, ear flaps, blinking eyes, blowhole spouts, segmented elephant trunks, gallop cycles, jellyfish bell pulse).
-- **Real CC0 animal sounds** — natural recordings sourced from Wikimedia Commons so kids hear what each animal actually sounds like.
+- **A → Z + 1 → 10 lessons** — every letter and number paired with a friendly word, real photo, and spoken pronunciation.
+- **22 realistic animal photos** — generated with **Imagen 4.0** and **Nano Banana 2** for warm, kid-friendly portraits.
+- **Animal videos** — short cinematic clips generated with **Veo 3.1**, played on demand from a ▶ button on the lesson card (lion shipped first, more on the way).
+- **Studio-grade narration** — every lesson and bilingual flip-card fact is voiced by **Gemini Flash 3.1 TTS** (`gemini-3.1-flash-tts-preview`, voice "Leda" for English, "Aoede" for Mandarin), pre-generated at build time and cached so the app works offline after first load.
+- **Bilingual flip card** — tap the `i` pip to flip the lesson card and hear the word + a short fact in English and 中文 (with pinyin).
+- **Real CC0 animal sounds** — natural recordings sourced from Wikimedia Commons play alongside the photo so kids hear what each animal actually sounds like.
 - **Cheerful generated music** — looping background track and interaction SFX synthesized via the Web Audio API.
-- **Speech synthesis** — every lesson is read out loud through the browser SpeechSynthesis API.
 - **Suspense → reveal flow** — each lesson plays a short anticipation cue before revealing the answer.
 - **Toddler-grade UI** — large rounded buttons (≥64 px touch targets), no text inputs, no external links, no in-app purchases, no data collection.
 - **Keyboard shortcuts** — `A–Z` jump to a letter, `1–9` to numbers, `0` to ten, `←` / `→` to navigate, `Space` to replay, `Esc` to exit.
@@ -31,7 +33,9 @@ A bright, toddler-friendly **alphabet, numbers, colors, and animals** game built
 | 3D / Animation | [Three.js](https://threejs.org) `requestAnimationFrame` rigs + CSS keyframe overlays |
 | UI motion | [Framer Motion](https://www.framer.com/motion/) |
 | Audio | Web Audio API (synthesis) + `<audio>` elements (real animal sound files) |
-| Speech | Browser `SpeechSynthesis` via `src/hooks/use-speech.ts` |
+| Speech | **Gemini Flash 3.1 TTS** (`gemini-3.1-flash-tts-preview`) via `src/hooks/use-gemini-tts.ts`, with browser `SpeechSynthesis` fallback |
+| Image generation | [Imagen 4.0](https://deepmind.google/technologies/imagen/) + Nano Banana 2 |
+| Video generation | [Veo 3.1](https://deepmind.google/technologies/veo/) |
 | Hosting | [Vercel](https://vercel.com) |
 
 ---
@@ -84,6 +88,20 @@ Key files:
 - `src/components/game/animal-stage.tsx` — Three.js rigs for each animal + CSS animation overlay.
 - `src/hooks/use-game-audio.ts` — Web Audio music/SFX, real animal-sound playback, vibrato helper.
 - `src/lib/alphabet-data.ts` — lesson content (letter, word, emoji, character, sound mapping).
+
+---
+
+## 🤖 Generative AI Assets
+
+Original art and audio for this project are produced with Google's generative AI stack. All assets are reviewed before shipping.
+
+| Asset type | Model | Where it lives |
+|------------|-------|----------------|
+| Realistic animal photos | **Imagen 4.0** + **Nano Banana 2** | `public/animals/*.png`, `*.jpeg` |
+| Short animal video clips | **Veo 3.1** | `public/assets/videos/*.mp4` |
+| Lesson narration (en + zh) | **Gemini Flash 3.1 TTS** (`gemini-3.1-flash-tts-preview`) | Pre-generated to `public/tts/*.wav` by `scripts/generate-tts.ts`; runtime fallback via `/api/tts` |
+
+The TTS pipeline runs as a `prebuild` step on Vercel — set `GEMINI_API_KEY` in your project env vars and the build will only generate the WAVs missing from the repo. Existing files are skipped, so deploys stay fast.
 
 ---
 

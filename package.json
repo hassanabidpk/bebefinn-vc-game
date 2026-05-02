@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "tts:generate": "tsx scripts/generate-tts.ts",
+    "prebuild": "npm run tts:generate",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -25,6 +27,7 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.1.0",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.0"
   }
 }

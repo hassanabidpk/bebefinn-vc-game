@@ -40,6 +40,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Generated TTS audio: tracked in git so Vercel builds stay fast (script
+# only generates the missing files). To regen, delete and run tts:generate.
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
