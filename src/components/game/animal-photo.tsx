@@ -26,6 +26,7 @@ const CARD_IMAGES: Record<string, string> = {
   Quokka: "/animals/quokka.png",
   Turtle: "/animals/turtle.png",
   Whale: "/animals/whale.png",
+  Unicorn: "/animals/unicorn.png",
   Yak: "/animals/yak.png",
   Zebra: "/animals/zebra.png",
   // H for Handsome Zaven uses the BebeFinn mascot image.
@@ -72,6 +73,7 @@ const ANIM_CLASS: Record<string, string> = {
   Yak: "a-sway",
   "Handsome Zaven": "a-bob",
   "Renee Princesse": "a-sway",
+  Unicorn: "a-bob",
 };
 
 export function hasAnimalPhoto(word: string) {

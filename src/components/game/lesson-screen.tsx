@@ -9,6 +9,7 @@ import { SpeakingBars } from "./speaking-bars";
 import { Confetti } from "./confetti";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto, hasAnimalPhoto, hasAnimalVideo, getAnimalVideo } from "./animal-photo";
+import { getAnimalInfo } from "@/lib/animal-info";
 
 // Lessons cover the 26 letters plus the 10 number lessons (1–9 and 10).
 const LETTERS = alphabetData.filter((entry) =>
@@ -41,12 +42,14 @@ export function LessonScreen({
   const [showConfetti, setShowConfetti] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const flipBackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const guessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animalSoundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { speak, stop } = useSpeech();
+  const { speak, speakBilingual, stop } = useSpeech();
   const { playAnimalSound } = useGameAudio();
 
   const display =
@@ -61,7 +64,7 @@ export function LessonScreen({
   const overlay = `radial-gradient(circle at 50% 10%, ${item.color}55 0%, transparent 32%), linear-gradient(180deg, ${item.color}33 0%, #0495d9 48%, #005580 100%)`;
 
   const clearAllTimers = () => {
-    [guessTimer, speechTimer, animalSoundTimer, confettiTimer, speakOffTimer].forEach((ref) => {
+    [guessTimer, speechTimer, animalSoundTimer, confettiTimer, speakOffTimer, flipBackTimer].forEach((ref) => {
       if (ref.current) {
         clearTimeout(ref.current);
         ref.current = null;
@@ -117,6 +120,7 @@ export function LessonScreen({
     setIsSpeaking(false);
     setShowConfetti(false);
     setVideoOpen(false);
+    setFlipped(false);
 
     guessTimer.current = setTimeout(() => {
       setIsGuessing(false);
@@ -270,55 +274,117 @@ export function LessonScreen({
         </div>
 
         <div className="lesson-card-col">
-          <div className="lesson-card" onClick={handleReplay}>
-            <div className="lesson-card-grid">
-              <div
-                className="big-letter"
-                key={`l-${index}-${isGuessing ? "g" : "r"}`}
-                style={{
-                  color: item.color,
-                  textShadow: `5px 7px 0 ${item.color}33, 0 2px 0 #ffffff66`,
-                }}
-              >
-                {isGuessing ? "?" : display}
+          <div
+            className={`lesson-card-flip ${flipped ? "is-flipped" : ""}`}
+            onClick={() => {
+              if (flipped) {
+                stop();
+                if (flipBackTimer.current) clearTimeout(flipBackTimer.current);
+                setFlipped(false);
+              } else {
+                handleReplay();
+              }
+            }}
+          >
+            <div className="lesson-card lesson-card-front">
+              <div className="lesson-card-grid">
+                <div
+                  className="big-letter"
+                  key={`l-${index}-${isGuessing ? "g" : "r"}`}
+                  style={{
+                    color: item.color,
+                    textShadow: `5px 7px 0 ${item.color}33, 0 2px 0 #ffffff66`,
+                  }}
+                >
+                  {isGuessing ? "?" : display}
+                </div>
+                <div
+                  className={`big-emoji ${isGuessing ? "guessing" : ""}`}
+                  key={`e-${index}-${isGuessing ? "g" : "r"}`}
+                >
+                  {hasAnimalPhoto(item.word) ? (
+                    <AnimalPhoto word={item.word} color={item.color} size={440} />
+                  ) : (
+                    <span>{item.emoji}</span>
+                  )}
+                  {isGuessing ? <span className="guess-mark">?</span> : null}
+                </div>
               </div>
-              <div
-                className={`big-emoji ${isGuessing ? "guessing" : ""}`}
-                key={`e-${index}-${isGuessing ? "g" : "r"}`}
-              >
-                {hasAnimalPhoto(item.word) ? (
-                  <AnimalPhoto word={item.word} color={item.color} size={440} />
-                ) : (
-                  <span>{item.emoji}</span>
-                )}
-                {isGuessing ? <span className="guess-mark">?</span> : null}
-              </div>
+              {!isGuessing ? (
+                <button
+                  className="info-pip"
+                  style={{ color: item.color }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const info = getAnimalInfo(item.word);
+                    if (!info) {
+                      speak(item.word);
+                      return;
+                    }
+                    stop();
+                    setFlipped(true);
+                    if (flipBackTimer.current) clearTimeout(flipBackTimer.current);
+                    // After speech, auto-flip back so the lesson resets cleanly.
+                    speakBilingual(info.en, info.zh, () => {
+                      flipBackTimer.current = setTimeout(() => setFlipped(false), 1400);
+                    });
+                  }}
+                  aria-label="Show info"
+                >
+                  i
+                </button>
+              ) : null}
+              {!isGuessing && hasAnimalVideo(item.word) ? (
+                <button
+                  className="video-pip"
+                  style={{ color: item.color }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    stop();
+                    setVideoOpen(true);
+                  }}
+                  aria-label="Play video"
+                >
+                  ▶
+                </button>
+              ) : null}
             </div>
-            <button
-              className="info-pip"
-              style={{ color: item.color }}
-              onClick={(e) => {
-                e.stopPropagation();
-                speak(item.word);
+
+            <div
+              className="lesson-card lesson-card-back"
+              style={{
+                background: `linear-gradient(180deg, ${item.color}cc 0%, ${item.color}88 100%)`,
               }}
-              aria-label="Speak the word"
             >
-              i
-            </button>
-            {!isGuessing && hasAnimalVideo(item.word) ? (
+              {(() => {
+                const info = getAnimalInfo(item.word);
+                if (!info) return null;
+                return (
+                  <div className="card-back-content">
+                    <div className="card-back-word">
+                      {item.letter} · {item.word}
+                    </div>
+                    <div className="card-back-en">{info.en}</div>
+                    <div className="card-back-zh">{info.zh}</div>
+                    {info.pinyin ? (
+                      <div className="card-back-pinyin">{info.pinyin}</div>
+                    ) : null}
+                  </div>
+                );
+              })()}
               <button
-                className="video-pip"
-                style={{ color: item.color }}
+                className="info-pip card-back-close"
                 onClick={(e) => {
                   e.stopPropagation();
                   stop();
-                  setVideoOpen(true);
+                  if (flipBackTimer.current) clearTimeout(flipBackTimer.current);
+                  setFlipped(false);
                 }}
-                aria-label="Play video"
+                aria-label="Back to picture"
               >
-                ▶
+                ↩
               </button>
-            ) : null}
+            </div>
           </div>
         </div>
       </div>

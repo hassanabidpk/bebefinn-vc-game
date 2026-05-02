@@ -26,7 +26,7 @@ export const alphabetData: AlphabetEntry[] = [
   { letter: "R", word: "Renee Princesse", emoji: "👸", color: "#E74C3C" },
   { letter: "S", word: "Star", emoji: "⭐", color: "#F1C40F" },
   { letter: "T", word: "Turtle", emoji: "🐢", color: "#27AE60" },
-  { letter: "U", word: "Uncle Hassan", emoji: "👨", color: "#3498DB" },
+  { letter: "U", word: "Unicorn", emoji: "🦄", color: "#A569BD" },
   { letter: "V", word: "Violin", emoji: "🎻", color: "#8B0000" },
   { letter: "W", word: "Whale", emoji: "🐋", color: "#2980B9" },
   { letter: "X", word: "Xylophone", emoji: "🎵", color: "#1ABC9C" },

@@ -24,6 +24,21 @@ function chooseFriendlyVoice(voices: SpeechSynthesisVoice[]) {
   );
 }
 
+function chooseChineseVoice(voices: SpeechSynthesisVoice[]) {
+  return (
+    voices.find((v) => v.lang === "zh-CN" && /female|natural|google|tingting/i.test(v.name)) ??
+    voices.find((v) => v.lang === "zh-CN") ??
+    voices.find((v) => v.lang.startsWith("zh")) ??
+    null
+  );
+}
+
+export interface SpeakOptions {
+  lang?: "en" | "zh";
+  rate?: number;
+  onEnd?: () => void;
+}
+
 export function useSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -45,7 +60,7 @@ export function useSpeech() {
     };
   }, []);
 
-  const speak = useCallback((text: string) => {
+  const speak = useCallback((text: string, opts: SpeakOptions = {}) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
     // Detach old handlers before cancelling to prevent error events
@@ -58,21 +73,28 @@ export function useSpeech() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.72;
+    utterance.rate = opts.rate ?? 0.72;
     utterance.pitch = 1.2;
     utterance.volume = 0.95;
 
     const voices = voicesRef.current.length
       ? voicesRef.current
       : window.speechSynthesis.getVoices();
-    const preferredVoice = chooseFriendlyVoice(voices);
+    const preferredVoice =
+      opts.lang === "zh" ? chooseChineseVoice(voices) : chooseFriendlyVoice(voices);
 
     if (preferredVoice) {
       utterance.voice = preferredVoice;
+      utterance.lang = preferredVoice.lang;
+    } else if (opts.lang === "zh") {
+      utterance.lang = "zh-CN";
     }
 
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      opts.onEnd?.();
+    };
     utterance.onerror = (e) => {
       // Suppress "interrupted" and "canceled" errors — these happen
       // normally when cancelling speech to start a new utterance
@@ -83,6 +105,22 @@ export function useSpeech() {
     utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   }, []);
+
+  /** Speak English then Chinese (zh-CN), back-to-back. */
+  const speakBilingual = useCallback(
+    (en: string, zh: string, onAllDone?: () => void) => {
+      speak(en, {
+        lang: "en",
+        onEnd: () => {
+          // Tiny pause so the two languages don't blur together.
+          setTimeout(() => {
+            speak(zh, { lang: "zh", rate: 0.78, onEnd: onAllDone });
+          }, 250);
+        },
+      });
+    },
+    [speak]
+  );
 
   const stop = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -107,5 +145,5 @@ export function useSpeech() {
     }
   }, []);
 
-  return { speak, stop, isSpeaking, warmUp };
+  return { speak, speakBilingual, stop, isSpeaking, warmUp };
 }
