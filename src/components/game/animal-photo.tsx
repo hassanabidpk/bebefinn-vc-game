@@ -9,26 +9,42 @@
  * Image assets live under /public/animals/ and /public/assets/images/.
  */
 
+// Prefer realistic AI-generated PNGs in /public/animals/ when present;
+// fall back to JPG otherwise.
 const CARD_IMAGES: Record<string, string> = {
-  Alpaca: "/animals/Alpaca.jpg",
-  Bear: "/animals/Bear.jpg",
-  Cat: "/animals/Cat.jpg",
-  Dog: "/animals/Dog.jpg",
-  Elephant: "/animals/Elephant.jpg",
-  Fish: "/animals/Fish.jpg",
-  Gorilla: "/animals/Gorilla.jpg",
-  Jellyfish: "/animals/Jellyfish.jpg",
-  Kangaroo: "/animals/Kangaroo.jpg",
-  Lion: "/animals/Lion.jpg",
-  Panda: "/animals/Panda.jpg",
-  Quokka: "/animals/Quokka.jpg",
-  Turtle: "/animals/Turtle.jpg",
-  Whale: "/animals/Whale.jpg",
-  Yak: "/animals/Yak.jpg",
-  Zebra: "/animals/Zebra.jpg",
+  Alpaca: "/animals/alpaca.png",
+  Bear: "/animals/bear.png",
+  Cat: "/animals/cat.png",
+  Dog: "/animals/dog.png",
+  Elephant: "/animals/elephant.png",
+  Fish: "/animals/fish.png",
+  Gorilla: "/animals/gorilla.png",
+  Jellyfish: "/animals/jellyfish.png",
+  Kangaroo: "/animals/kangaroo.png",
+  Lion: "/animals/lion.png",
+  Panda: "/animals/panda.png",
+  Quokka: "/animals/quokka.png",
+  Turtle: "/animals/turtle.png",
+  Whale: "/animals/whale.png",
+  Yak: "/animals/yak.png",
+  Zebra: "/animals/zebra.png",
   // H for Handsome Zaven uses the BebeFinn mascot image.
   "Handsome Zaven": "/assets/images/bebefinn.png",
 };
+
+// Optional realistic videos under /public/assets/videos/. Played on demand
+// when the user taps the video icon in a lesson.
+const ANIMAL_VIDEOS: Record<string, string> = {
+  Lion: "/assets/videos/lion.mp4",
+};
+
+export function getAnimalVideo(word: string): string | undefined {
+  return ANIMAL_VIDEOS[word];
+}
+
+export function hasAnimalVideo(word: string) {
+  return Boolean(ANIMAL_VIDEOS[word]);
+}
 
 /** Words rendered as a giant centred emoji inside the sticker ring instead
  *  of a photo. Useful when there's no clean licensed photo (e.g. R for

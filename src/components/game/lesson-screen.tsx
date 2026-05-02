@@ -8,7 +8,7 @@ import { Mascot } from "./mascot";
 import { SpeakingBars } from "./speaking-bars";
 import { Confetti } from "./confetti";
 import { BubbleBackground } from "./ocean-stage";
-import { AnimalPhoto, hasAnimalPhoto } from "./animal-photo";
+import { AnimalPhoto, hasAnimalPhoto, hasAnimalVideo, getAnimalVideo } from "./animal-photo";
 
 // Lessons cover the 26 letters plus the 10 number lessons (1–9 and 10).
 const LETTERS = alphabetData.filter((entry) =>
@@ -40,6 +40,7 @@ export function LessonScreen({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
   const guessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animalSoundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,6 +116,7 @@ export function LessonScreen({
     setIsGuessing(true);
     setIsSpeaking(false);
     setShowConfetti(false);
+    setVideoOpen(false);
 
     guessTimer.current = setTimeout(() => {
       setIsGuessing(false);
@@ -285,7 +287,7 @@ export function LessonScreen({
                 key={`e-${index}-${isGuessing ? "g" : "r"}`}
               >
                 {hasAnimalPhoto(item.word) ? (
-                  <AnimalPhoto word={item.word} color={item.color} size={210} />
+                  <AnimalPhoto word={item.word} color={item.color} size={440} />
                 ) : (
                   <span>{item.emoji}</span>
                 )}
@@ -303,9 +305,49 @@ export function LessonScreen({
             >
               i
             </button>
+            {!isGuessing && hasAnimalVideo(item.word) ? (
+              <button
+                className="video-pip"
+                style={{ color: item.color }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  stop();
+                  setVideoOpen(true);
+                }}
+                aria-label="Play video"
+              >
+                ▶
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
+
+      {videoOpen && hasAnimalVideo(item.word) ? (
+        <div
+          className="video-overlay"
+          onClick={() => setVideoOpen(false)}
+          role="dialog"
+          aria-label={`${item.word} video`}
+        >
+          <div className="video-frame" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="video-close"
+              onClick={() => setVideoOpen(false)}
+              aria-label="Close video"
+            >
+              ✕
+            </button>
+            <video
+              className="video-player"
+              src={getAnimalVideo(item.word)}
+              autoPlay
+              controls
+              playsInline
+            />
+          </div>
+        </div>
+      ) : null}
 
       <footer className="lesson-footer">
         <div className="word-banner" key={`w-${index}-${isGuessing ? "g" : "r"}`}>

@@ -430,7 +430,7 @@ html, body {
   position: relative; z-index: 10;
   flex: 1; min-height: 0;
   display: grid;
-  grid-template-columns: minmax(180px, 0.85fr) minmax(360px, 1.15fr);
+  grid-template-columns: minmax(140px, 0.45fr) minmax(480px, 1.55fr);
   gap: 14px;
   margin-top: 10px;
   overflow: hidden;
@@ -492,8 +492,8 @@ html, body {
 }
 .lesson-card {
   position: relative;
-  width: 100%; max-width: 640px;
-  aspect-ratio: 1.25;
+  width: 100%; max-width: 900px;
+  aspect-ratio: 1.4;
   border-radius: 40px;
   background: rgba(255,255,255,0.30);
   border: 1px solid rgba(255,255,255,0.6);
@@ -515,13 +515,13 @@ html, body {
 }
 .lesson-card-grid {
   position: relative; z-index: 2;
-  display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 16px;
+  display: grid; grid-template-columns: 0.7fr 1.3fr; gap: 18px;
   height: 100%; align-items: center;
 }
 @keyframes letter-pop { 0% { transform: scale(0) rotate(-18deg);} 100% { transform: scale(1) rotate(0);} }
 .big-letter {
   font-family: 'Fredoka', sans-serif; font-weight: 800;
-  font-size: 220px; line-height: 0.85;
+  font-size: 280px; line-height: 0.85;
   text-align: center;
   animation: letter-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
@@ -567,6 +567,51 @@ html, body {
   transition: transform 0.1s;
 }
 .info-pip:hover { transform: scale(1.08); background: #fff; }
+
+.video-pip {
+  position: absolute; right: 14px; top: 62px; z-index: 5;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.9); backdrop-filter: blur(4px);
+  border: none; cursor: pointer;
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 18px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.22);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 0.12s;
+  animation: video-pip-pulse 1.8s ease-in-out infinite;
+}
+.video-pip:hover { transform: scale(1.1); background: #fff; }
+@keyframes video-pip-pulse {
+  0%, 100% { box-shadow: 0 6px 14px rgba(0,0,0,0.22), 0 0 0 0 currentColor; }
+  50%      { box-shadow: 0 6px 14px rgba(0,0,0,0.22), 0 0 0 8px transparent; }
+}
+
+.video-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.78);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.video-frame {
+  position: relative;
+  width: min(960px, 96vw);
+  max-height: 90vh;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+}
+.video-player {
+  display: block; width: 100%; height: auto; max-height: 90vh;
+  background: #000;
+}
+.video-close {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.92); border: none; cursor: pointer;
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+}
 
 /* Footer */
 .lesson-footer {
