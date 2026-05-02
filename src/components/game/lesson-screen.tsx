@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { useSpeech } from "@/hooks/use-speech";
+import { useGeminiTTS } from "@/hooks/use-gemini-tts";
 import { Mascot } from "./mascot";
 import { SpeakingBars } from "./speaking-bars";
 import { Confetti } from "./confetti";
@@ -50,6 +51,7 @@ export function LessonScreen({
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak, speakBilingual, stop } = useSpeech();
+  const { playBilingual: geminiBilingual, stop: stopGemini } = useGeminiTTS();
   const { playAnimalSound } = useGameAudio();
 
   const display =
@@ -279,6 +281,7 @@ export function LessonScreen({
             onClick={() => {
               if (flipped) {
                 stop();
+                stopGemini();
                 if (flipBackTimer.current) clearTimeout(flipBackTimer.current);
                 setFlipped(false);
               } else {
@@ -322,11 +325,16 @@ export function LessonScreen({
                       return;
                     }
                     stop();
+                    stopGemini();
                     setFlipped(true);
                     if (flipBackTimer.current) clearTimeout(flipBackTimer.current);
-                    // After speech, auto-flip back so the lesson resets cleanly.
-                    speakBilingual(info.en, info.zh, () => {
+                    const onDone = () => {
                       flipBackTimer.current = setTimeout(() => setFlipped(false), 1400);
+                    };
+                    // Prefer Gemini studio voice; fall back to browser TTS
+                    // if the API or network fails (e.g. offline).
+                    geminiBilingual(info.en, info.zh, onDone).catch(() => {
+                      speakBilingual(info.en, info.zh, onDone);
                     });
                   }}
                   aria-label="Show info"
@@ -377,6 +385,7 @@ export function LessonScreen({
                 onClick={(e) => {
                   e.stopPropagation();
                   stop();
+                  stopGemini();
                   if (flipBackTimer.current) clearTimeout(flipBackTimer.current);
                   setFlipped(false);
                 }}
