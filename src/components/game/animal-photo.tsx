@@ -92,6 +92,14 @@ export function hasAnimalPhoto(word: string) {
   return Boolean(CARD_IMAGES[word] || EMOJI_STICKERS[word]);
 }
 
+/** True only for entries with a real animal photo under /public/animals/.
+ * Excludes the BebeFinn mascot stand-in and emoji-only stickers — used
+ * by the "Find the Animal" game where mismatched options would confuse. */
+export function isRealAnimal(word: string) {
+  const url = CARD_IMAGES[word];
+  return Boolean(url) && url.startsWith("/animals/");
+}
+
 interface AnimalPhotoProps {
   word: string;
   color?: string;

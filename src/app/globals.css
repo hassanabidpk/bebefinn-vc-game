@@ -856,6 +856,32 @@ html, body {
   grid-template-rows: repeat(2, 1fr);
   gap: 14px; padding: 8px 20px 30px;
 }
+.play-grid-animals {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  padding: 12px 32px 40px;
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+}
+.play-tile-animal {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px;
+  padding: 18px;
+  font-size: 28px;
+}
+.play-tile-label {
+  font-family: 'Fredoka', sans-serif; font-weight: 800;
+  font-size: 26px; line-height: 1;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 720px) {
+  .play-grid-animals { gap: 14px; padding: 8px 14px 22px; }
+  .play-tile-animal { padding: 10px; gap: 8px; }
+  .play-tile-label { font-size: 20px; }
+}
 .play-tile {
   background: linear-gradient(180deg, #fff 0%, #f0f8ff 100%);
   border: 5px solid #fff; border-radius: 28px;
