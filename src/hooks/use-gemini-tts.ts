@@ -81,20 +81,36 @@ export function useGeminiTTS() {
     });
   }, []);
 
-  /** Speak English (Puck), short pause, then Chinese (Aoede). */
+  /** Speak English (Leda, female), short pause, then Chinese (Aoede). */
   const playBilingual = useCallback(
     async (en: string, zh: string, onAllDone?: () => void) => {
-      try {
-        await play(en, { voice: "Puck" });
-        await new Promise((r) => setTimeout(r, 250));
-        await play(zh, { voice: "Aoede", onEnd: onAllDone });
-      } catch (err) {
-        // Bubble error so caller can fall back to browser SpeechSynthesis.
-        throw err;
-      }
+      await play(en, { voice: "Leda" });
+      await new Promise((r) => setTimeout(r, 250));
+      await play(zh, { voice: "Aoede", onEnd: onAllDone });
     },
     [play]
   );
 
-  return { play, playBilingual, stop };
+  /**
+   * Warm the cache without playing. Use as soon as a phrase is known so
+   * the WAV is in memory by the time the user actually needs to hear it.
+   */
+  const prefetch = useCallback(async (text: string, voice = "Leda") => {
+    const key = `${voice}|${text}`;
+    if (blobCache.has(key)) return;
+    try {
+      const r = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voice }),
+      });
+      if (!r.ok) return;
+      const blob = await r.blob();
+      blobCache.set(key, { url: URL.createObjectURL(blob), voice });
+    } catch {
+      // Network blip — caller will fall back to browser TTS.
+    }
+  }, []);
+
+  return { play, playBilingual, prefetch, stop };
 }

@@ -51,7 +51,22 @@ export function LessonScreen({
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak, speakBilingual, stop } = useSpeech();
-  const { playBilingual: geminiBilingual, stop: stopGemini } = useGeminiTTS();
+  const {
+    play: geminiPlay,
+    playBilingual: geminiBilingual,
+    prefetch: geminiPrefetch,
+    stop: stopGemini,
+  } = useGeminiTTS();
+
+  const buildRevealPhrase = (entry: typeof item) => {
+    const isNumber = /^[0-9]+$/.test(entry.letter);
+    return isNumber
+      ? `${entry.letter} for ${entry.word}!`
+      : `${entry.letter}! ${entry.letter} for ${entry.word}!`;
+  };
+  const speakReveal = (phrase: string) => {
+    geminiPlay(phrase, { voice: "Leda" }).catch(() => speak(phrase));
+  };
   const { playAnimalSound } = useGameAudio();
 
   const display =
@@ -124,20 +139,21 @@ export function LessonScreen({
     setVideoOpen(false);
     setFlipped(false);
 
+    // Prefetch Gemini audio for the reveal so the WAV is ready by the
+    // time the guess phase ends.
+    const phrase = buildRevealPhrase(item);
+    geminiPrefetch(phrase, "Leda");
+
     guessTimer.current = setTimeout(() => {
       setIsGuessing(false);
       setIsSpeaking(true);
 
       const hasPhoto = hasAnimalPhoto(item.word);
-      const isNumber = /^[0-9]+$/.test(item.letter);
-      const phrase = isNumber
-        ? `${item.letter} for ${item.word}!`
-        : `${item.letter}! ${item.letter} for ${item.word}!`;
       if (hasPhoto) {
         playAnimalSound(item.word.toLowerCase());
-        speechTimer.current = setTimeout(() => speak(phrase), 900);
+        speechTimer.current = setTimeout(() => speakReveal(phrase), 900);
       } else {
-        speak(phrase);
+        speakReveal(phrase);
       }
 
       setShowConfetti(true);
@@ -156,15 +172,12 @@ export function LessonScreen({
     clearAllTimers();
     setIsSpeaking(true);
     const hasPhoto = hasAnimalPhoto(item.word);
-    const isNumber = /^[0-9]+$/.test(item.letter);
-    const phrase = isNumber
-      ? `${item.letter} for ${item.word}!`
-      : `${item.letter}! ${item.letter} for ${item.word}!`;
+    const phrase = buildRevealPhrase(item);
     if (hasPhoto) {
       playAnimalSound(item.word.toLowerCase());
-      speechTimer.current = setTimeout(() => speak(phrase), 900);
+      speechTimer.current = setTimeout(() => speakReveal(phrase), 900);
     } else {
-      speak(phrase);
+      speakReveal(phrase);
     }
     speakOffTimer.current = setTimeout(() => setIsSpeaking(false), 3200);
   };

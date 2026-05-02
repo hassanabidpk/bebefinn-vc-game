@@ -19,10 +19,12 @@ const CARD_IMAGES: Record<string, string> = {
   Elephant: "/animals/elephant.png",
   Fish: "/animals/fish.png",
   Gorilla: "/animals/gorilla.png",
+  Hippo: "/animals/hippo.jpeg",
   Iguana: "/animals/iguana.jpeg",
   Jellyfish: "/animals/jellyfish.png",
   Kangaroo: "/animals/kangaroo.png",
   Lion: "/animals/lion.png",
+  Nest: "/animals/nest.jpeg",
   Octopus: "/animals/octopus.jpeg",
   Panda: "/animals/panda.png",
   Quokka: "/animals/quokka.png",
@@ -33,8 +35,8 @@ const CARD_IMAGES: Record<string, string> = {
   Vulture: "/animals/vulture.jpeg",
   Yak: "/animals/yak.png",
   Zebra: "/animals/zebra.png",
-  // H for Handsome Zaven uses the BebeFinn mascot image.
-  "Handsome Zaven": "/assets/images/bebefinn.png",
+  // X for Handsome Xaven uses the BebeFinn mascot image.
+  "Handsome Xaven": "/assets/images/bebefinn.png",
 };
 
 // Optional realistic videos under /public/assets/videos/. Played on demand
@@ -79,7 +81,9 @@ const ANIM_CLASS: Record<string, string> = {
   Octopus: "a-pulse",
   Shark: "a-swim",
   Vulture: "a-sway",
-  "Handsome Zaven": "a-bob",
+  "Handsome Xaven": "a-bob",
+  Hippo: "a-sway",
+  Nest: "a-breathe",
   "Renee Princesse": "a-sway",
   Unicorn: "a-bob",
 };
