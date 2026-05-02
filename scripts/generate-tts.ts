@@ -158,6 +158,13 @@ async function generateOne(
     return generateOne(apiKey, phrase, attempt + 1);
   }
 
+  if (r.status === 400 || r.status === 401 || r.status === 403) {
+    const msg = await r.text();
+    const err = new Error(`gemini auth ${r.status}: ${msg.slice(0, 200)}`);
+    (err as Error & { fatal?: boolean }).fatal = true;
+    throw err;
+  }
+
   if (!r.ok) {
     const msg = await r.text();
     throw new Error(`gemini ${r.status}: ${msg.slice(0, 200)}`);
@@ -207,8 +214,13 @@ async function main() {
       await sleep(THROTTLE_MS);
     } catch (err) {
       failed++;
+      const fatal = (err as Error & { fatal?: boolean }).fatal === true;
       console.warn(`\n[tts] failed: ${phrase.voice} | ${phrase.text}`, err);
-      // Pace down on failures too.
+      if (fatal) {
+        console.warn("[tts] auth error — aborting batch. Build continues; runtime /api/tts will fill gaps.");
+        break;
+      }
+      // Pace down on transient failures.
       await sleep(THROTTLE_MS);
     }
   }
