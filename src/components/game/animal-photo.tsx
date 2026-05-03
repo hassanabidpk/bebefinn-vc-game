@@ -57,7 +57,7 @@ export function hasAnimalVideo(word: string) {
  *  of a photo. Useful when there's no clean licensed photo (e.g. R for
  *  Renee Princesse — Disney IP can't be redistributed). */
 const EMOJI_STICKERS: Record<string, string> = {
-  "Renee Princesse": "👸",
+  Renee: "👸",
 };
 
 const ANIM_CLASS: Record<string, string> = {
@@ -84,7 +84,7 @@ const ANIM_CLASS: Record<string, string> = {
   "Handsome Xaven": "a-bob",
   Hippo: "a-sway",
   Nest: "a-breathe",
-  "Renee Princesse": "a-sway",
+  Renee: "a-sway",
   Unicorn: "a-bob",
 };
 

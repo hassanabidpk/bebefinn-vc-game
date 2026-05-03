@@ -32,6 +32,7 @@ export const ANIMAL_INFO: Record<string, AnimalInfo> = {
   Panda: { en: "Pandas eat bamboo!", zh: "熊猫吃竹子！", pinyin: "Xióng māo chī zhú zi" },
   Quokka: { en: "Quokkas always smile!", zh: "短尾矮袋鼠爱笑！", pinyin: "Duǎn wěi ǎi dài shǔ ài xiào" },
   "Renee Princesse": { en: "Hello princess!", zh: "你好公主！", pinyin: "Nǐ hǎo gōng zhǔ" },
+  Renee: { en: "Hi Renee, princess!", zh: "你好蕾妮公主！", pinyin: "Nǐ hǎo Léi nī gōng zhǔ" },
   Star: { en: "Stars twinkle bright!", zh: "星星闪闪亮！", pinyin: "Xīng xīng shǎn shǎn liàng" },
   Shark: { en: "Sharks have sharp teeth!", zh: "鲨鱼牙齿很尖！", pinyin: "Shā yú yá chǐ hěn jiān" },
   Turtle: { en: "Turtles walk slowly!", zh: "乌龟慢慢爬！", pinyin: "Wū guī màn màn pá" },
