@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "tts:generate": "tsx scripts/generate-tts.ts",
+    "videos:generate": "tsx scripts/generate-videos.ts",
     "prebuild": "npm run tts:generate",
     "build": "next build",
     "start": "next start",
