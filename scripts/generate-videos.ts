@@ -133,6 +133,8 @@ const APPROVED_PROMPTS: Record<string, string> = {
     'Medium shot of a yak standing in gentle wind with thick fur, on a high mountain slope. Slow push-in, 50mm lens, crisp cool light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Yaks live on mountains!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Zebra:
     'Medium shot of a zebra trotting with crisp black-and-white stripes, on a grassy plain. Slow tracking, 50mm lens, warm daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Zebras have stripes!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "Handsome Xaven":
+    'Medium shot of a cheerful friendly cartoon prince mascot — a little boy prince with a small gold crown, waving and smiling warmly, in a bright sparkly storybook castle scene. Soft 3D-animation look, gentle push-in, soft even light. Clean and playful for young children, single clear subject, stylized cartoon (not a real person). Audio: a happy young child voice says brightly, "Hello Handsome Xaven!" — no background music, natural ambient sound only. Mood: happy, warm, wholesome. No on-screen text, no captions. 8 seconds, 16:9.',
 };
 
 function collectTargets(only: string[]): Target[] {
