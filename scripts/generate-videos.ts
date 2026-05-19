@@ -14,14 +14,46 @@
  */
 import { mkdir, writeFile, access, readFile, readdir } from "node:fs/promises";
 import { constants as FS } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { alphabetData } from "../src/lib/alphabet-data.ts";
 import { ANIMAL_INFO } from "../src/lib/animal-info.ts";
 
+// Gemini API uses veo-3.1 preview; Vertex uses the GA veo-3.1-generate-001
+// (the -preview id 404s on Vertex for this project). Both generate audio.
 const MODEL = "veo-3.1-generate-preview";
+const VERTEX_MODEL = process.env.VERTEX_MODEL || "veo-3.1-generate-001";
 const VIDEO_DIR = path.join(process.cwd(), "public", "assets", "videos");
 const MANIFEST = path.join(process.cwd(), "src", "lib", "animal-videos.ts");
-const BASE = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+// Provider: "vertex" uses Vertex AI (GCP project quota, no free-tier
+// daily cap) via ADC; anything else uses the Gemini API key.
+const USE_VERTEX =
+  process.argv.includes("--vertex") || process.env.VIDEO_PROVIDER === "vertex";
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "us-central1";
+let VERTEX_PROJECT = process.env.VERTEX_PROJECT || "";
+
+function gcloud(args: string[]): string {
+  return execFileSync("gcloud", args, { encoding: "utf8" }).trim();
+}
+
+function vertexBase(): string {
+  return `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_MODEL}`;
+}
+
+function vertexHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${vertexToken()}`,
+    "X-Goog-User-Project": VERTEX_PROJECT,
+  };
+}
+
+// ADC tokens last ~1h; batches can run longer, so fetch fresh per job.
+function vertexToken(): string {
+  return gcloud(["auth", "application-default", "print-access-token"]);
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -105,60 +137,110 @@ interface VeoOperation {
   name?: string;
   done?: boolean;
   error?: { message?: string };
+  // Gemini API shape
   response?: {
     generateVideoResponse?: {
       generatedSamples?: Array<{ video?: { uri?: string } }>;
     };
+    // Vertex shape
+    videos?: Array<{ bytesBase64Encoded?: string; gcsUri?: string }>;
   };
 }
 
-async function startJob(apiKey: string, prompt: string): Promise<string> {
-  const r = await fetch(`${BASE}/models/${MODEL}:predictLongRunning?key=${apiKey}`, {
+// ---- Gemini API provider --------------------------------------------------
+
+async function geminiStart(apiKey: string, prompt: string): Promise<string> {
+  const r = await fetch(`${GEMINI_BASE}/models/${MODEL}:predictLongRunning?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      instances: [{ prompt }],
-      parameters: { aspectRatio: "16:9" },
-    }),
+    body: JSON.stringify({ instances: [{ prompt }], parameters: { aspectRatio: "16:9" } }),
   });
-  if (!r.ok) {
-    const msg = await r.text();
-    throw new Error(`veo start ${r.status}: ${msg.slice(0, 240)}`);
-  }
+  if (!r.ok) throw new Error(`veo start ${r.status}: ${(await r.text()).slice(0, 240)}`);
   const json = (await r.json()) as VeoOperation;
   if (!json.name) throw new Error(`veo start: no operation name`);
   return json.name;
 }
 
-async function pollJob(apiKey: string, opName: string): Promise<string> {
-  // Veo clips take a few minutes. Poll every 15s up to ~12 min.
+async function geminiRun(apiKey: string, prompt: string, dest: string) {
+  const opName = await geminiStart(apiKey, prompt);
   for (let i = 0; i < 48; i += 1) {
     await sleep(15000);
-    const r = await fetch(`${BASE}/${opName}?key=${apiKey}`);
-    if (!r.ok) {
-      const msg = await r.text();
-      throw new Error(`veo poll ${r.status}: ${msg.slice(0, 200)}`);
-    }
+    const r = await fetch(`${GEMINI_BASE}/${opName}?key=${apiKey}`);
+    if (!r.ok) throw new Error(`veo poll ${r.status}: ${(await r.text()).slice(0, 200)}`);
     const op = (await r.json()) as VeoOperation;
     if (op.error) throw new Error(`veo job error: ${op.error.message}`);
     if (op.done) {
-      const uri =
-        op.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+      const uri = op.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
       if (!uri) throw new Error(`veo done but no video uri`);
-      return uri;
+      const url = uri.includes("key=") ? uri : `${uri}${uri.includes("?") ? "&" : "?"}key=${apiKey}`;
+      const dl = await fetch(url);
+      if (!dl.ok) throw new Error(`veo download ${dl.status}`);
+      await writeFile(dest, Buffer.from(await dl.arrayBuffer()));
+      return;
     }
     process.stdout.write(".");
   }
   throw new Error(`veo poll timed out`);
 }
 
-async function download(apiKey: string, uri: string, dest: string) {
-  // The file URI needs the API key appended for download.
-  const url = uri.includes("key=") ? uri : `${uri}${uri.includes("?") ? "&" : "?"}key=${apiKey}`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`veo download ${r.status}`);
-  const buf = Buffer.from(await r.arrayBuffer());
-  await writeFile(dest, buf);
+// ---- Vertex AI provider ---------------------------------------------------
+
+async function vertexRun(prompt: string, dest: string) {
+  const startRes = await fetch(`${vertexBase()}:predictLongRunning`, {
+    method: "POST",
+    headers: vertexHeaders(),
+    body: JSON.stringify({
+      instances: [{ prompt }],
+      parameters: { aspectRatio: "16:9", sampleCount: 1, generateAudio: true },
+    }),
+  });
+  if (!startRes.ok) {
+    throw new Error(`vertex start ${startRes.status}: ${(await startRes.text()).slice(0, 240)}`);
+  }
+  const { name } = (await startRes.json()) as VeoOperation;
+  if (!name) throw new Error(`vertex start: no operation name`);
+
+  for (let i = 0; i < 60; i += 1) {
+    await sleep(15000);
+    const pr = await fetch(`${vertexBase()}:fetchPredictOperation`, {
+      method: "POST",
+      headers: vertexHeaders(),
+      body: JSON.stringify({ operationName: name }),
+    });
+    if (!pr.ok) throw new Error(`vertex poll ${pr.status}: ${(await pr.text()).slice(0, 200)}`);
+    const op = (await pr.json()) as VeoOperation;
+    if (op.error) throw new Error(`vertex job error: ${op.error.message}`);
+    if (op.done) {
+      const v = op.response?.videos?.[0];
+      if (v?.bytesBase64Encoded) {
+        await writeFile(dest, Buffer.from(v.bytesBase64Encoded, "base64"));
+        return;
+      }
+      if (v?.gcsUri) {
+        const obj = v.gcsUri.replace("gs://", "");
+        const dl = await fetch(
+          `https://storage.googleapis.com/storage/v1/b/${obj.slice(0, obj.indexOf("/"))}/o/${encodeURIComponent(obj.slice(obj.indexOf("/") + 1))}?alt=media`,
+          {
+            headers: {
+              Authorization: `Bearer ${vertexToken()}`,
+              "X-Goog-User-Project": VERTEX_PROJECT,
+            },
+          }
+        );
+        if (!dl.ok) throw new Error(`vertex gcs download ${dl.status}`);
+        await writeFile(dest, Buffer.from(await dl.arrayBuffer()));
+        return;
+      }
+      throw new Error(`vertex done but no video payload`);
+    }
+    process.stdout.write(".");
+  }
+  throw new Error(`vertex poll timed out`);
+}
+
+async function runJob(apiKey: string, prompt: string, dest: string) {
+  if (USE_VERTEX) return vertexRun(prompt, dest);
+  return geminiRun(apiKey, prompt, dest);
 }
 
 async function writeManifest() {
@@ -190,14 +272,32 @@ ${entries.join("\n")}
 
 async function main() {
   await loadDotEnvLocal();
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("[veo] GEMINI_API_KEY not set. Aborting.");
-    process.exit(1);
+  const apiKey = process.env.GEMINI_API_KEY || "";
+
+  if (USE_VERTEX) {
+    if (!VERTEX_PROJECT) {
+      try {
+        VERTEX_PROJECT = gcloud(["config", "get-value", "project"]);
+      } catch {
+        /* handled below */
+      }
+    }
+    if (!VERTEX_PROJECT) {
+      console.error("[veo] Vertex mode: set VERTEX_PROJECT or `gcloud config set project`.");
+      process.exit(1);
+    }
+    console.log(`[veo] provider=vertex project=${VERTEX_PROJECT} location=${VERTEX_LOCATION}`);
+  } else {
+    if (!apiKey) {
+      console.error("[veo] GEMINI_API_KEY not set. Aborting.");
+      process.exit(1);
+    }
+    console.log(`[veo] provider=gemini-api`);
   }
 
   await mkdir(VIDEO_DIR, { recursive: true });
-  const only = process.argv.slice(2);
+  // Strip flags so they aren't treated as word filters.
+  const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));
   const targets = collectTargets(only);
   console.log(`[veo] ${targets.length} animal(s) to consider`);
 
@@ -213,9 +313,7 @@ async function main() {
     }
     try {
       console.log(`\n[veo] generating: ${t.word}`);
-      const op = await startJob(apiKey, t.prompt);
-      const uri = await pollJob(apiKey, op);
-      await download(apiKey, uri, dest);
+      await runJob(apiKey, t.prompt, dest);
       made++;
       console.log(`\n[veo] saved ${t.slug}.mp4`);
     } catch (err) {
