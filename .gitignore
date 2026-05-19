@@ -43,6 +43,11 @@ yarn-error.log*
 # Generated TTS audio: tracked in git so Vercel builds stay fast (script
 # only generates the missing files). To regen, delete and run tts:generate.
 
+# Veo video clips live on Vercel Blob (public CDN), not git. Regenerate
+# with videos:generate, upload with videos:upload — manifest in
+# src/lib/animal-videos.ts holds the Blob URLs.
+/public/assets/videos/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

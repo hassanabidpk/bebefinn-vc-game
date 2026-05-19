@@ -6,12 +6,14 @@
     "dev": "next dev",
     "tts:generate": "tsx scripts/generate-tts.ts",
     "videos:generate": "tsx scripts/generate-videos.ts",
+    "videos:upload": "tsx scripts/upload-videos-blob.ts",
     "prebuild": "npm run tts:generate",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@vercel/blob": "^2.4.0",
     "framer-motion": "^11.15.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
