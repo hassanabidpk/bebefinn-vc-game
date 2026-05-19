@@ -82,44 +82,65 @@ interface Target {
   prompt: string;
 }
 
-// Scene by animal: aquarium for sea creatures, safari for wild land
-// animals, zoo for everything else. Keeps clips informative + fun.
-const AQUARIUM = new Set(["Fish", "Jellyfish", "Octopus", "Shark", "Turtle", "Whale"]);
-const SAFARI = new Set([
-  "Lion", "Elephant", "Gorilla", "Zebra", "Kangaroo",
-  "Alpaca", "Yak", "Bear", "Hippo", "Vulture",
-]);
-
-function sceneFor(word: string): string {
-  if (AQUARIUM.has(word)) return "a big bright aquarium with families of children watching through the glass";
-  if (SAFARI.has(word)) return "a sunny safari park with a gentle tour vehicle nearby";
-  return "a friendly, well-kept zoo enclosure with happy young visitors";
-}
-
-/** Veo 3.1 honours quoted speech for spoken audio. Keep the scene simple,
- *  bright and toddler-safe; one short narrated sentence. */
-function buildPrompt(word: string, enInfo: string): string {
-  return [
-    `A bright, cheerful, photorealistic close-up of a friendly ${word.toLowerCase()} at ${sceneFor(word)}.`,
-    `Soft daylight, gentle camera movement, wholesome children's nature-show style — informative and entertaining for young kids.`,
-    `A warm, friendly female narrator says clearly: "${enInfo}"`,
-    `Happy, calm mood. No text or captions on screen. 8 seconds.`,
-  ].join(" ");
-}
+// Human-approved, per-word Veo 3.1 prompts (reviewed 2026-05-19). The
+// quoted line is the spoken narration (matches src/lib/animal-info.ts).
+// Words intentionally absent (Mommy, Renee, Handsome Xaven) keep their
+// existing Blob clips and are NOT regenerated.
+const APPROVED_PROMPTS: Record<string, string> = {
+  Alpaca:
+    'Medium shot of a fluffy alpaca chewing with ears perking, soft thick coat, in a green Andean meadow. Slow dolly-in, 50mm lens, warm soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Alpacas are fluffy!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Bear:
+    'Wide-to-medium shot of a friendly brown bear ambling and sniffing toward a honey log, in a sunlit forest clearing. Slow tracking, 35mm lens, golden dappled light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Bears love honey!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Cat:
+    'Close-up of a cute cat meowing, whiskers twitching, on a cozy sunlit windowsill indoors, free and relaxed, no cage. Gentle push-in, 50mm lens, soft warm light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Cats say meow!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Dog:
+    'Medium shot of a happy dog barking with tail wagging, in a grassy backyard. Soft follow camera, 35mm lens, bright daylight. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Dogs say woof!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Elephant:
+    'Wide shot of an elephant curling its long trunk and flapping ears, at a savanna waterhole. Slow dolly, 35mm lens, warm late-afternoon light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Elephants have long trunks!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Fish:
+    'Close-up of a bright tropical fish darting with shimmering scales, in a colorful coral reef aquarium. Slow drift, macro lens, clear blue light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Fish swim in water!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Gorilla:
+    'Medium shot of a calm gorilla gently beating its chest, steady gaze, in a leafy jungle enclosure. Slow push-in, 50mm lens, soft green light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Gorillas are strong!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Hippo:
+    'Wide shot of a hippo wading and gently splashing, in river shallows. Slow tracking, 35mm lens, bright daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Hippos love the water!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "Ice Cream":
+    'Macro shot of a scoop of ice cream on a cone with a slow gentle melt drip, in a bright pastel kitchen. Slow rotate, macro lens, soft even light. Clean and vibrant for young children, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Ice cream is yummy!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Jellyfish:
+    'Close-up of a translucent jellyfish pulsing with trailing soft tentacles, in a deep-blue aquarium. Slow drift, macro lens, soft glowing light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Jellyfish are wobbly!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Kangaroo:
+    'Wide shot of a kangaroo hopping high across open Australian outback. Slow tracking pan, 35mm lens, warm daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Kangaroos hop high!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Lion:
+    'Medium tracking shot of a male lion, head raised with mane drifting in the breeze giving a low gentle roar, in golden savanna at sunrise. Slow dolly-in, 50mm lens, warm soft backlight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Lions roar loud!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Nest:
+    'Close-up of small eggs in a twig nest with a gentle breeze stirring, on a tree branch. Slow drift, macro lens, soft morning light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Birds live in nests!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Octopus:
+    'Close-up of an octopus curling its eight arms gracefully, on a rocky aquarium floor. Slow drifting camera, macro lens, soft blue light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Octopuses have eight arms!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Panda:
+    'Medium shot of a panda sitting and munching bamboo, in a bamboo grove. Slow push-in, 50mm lens, soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Pandas eat bamboo!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Quokka:
+    'Close-up of a smiling quokka nibbling a leaf, on a grassy island. Gentle push-in, 50mm lens, warm light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Quokkas always smile!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Shark:
+    'Medium shot of a sleek shark gliding with a smooth turn, in an open blue aquarium. Slow tracking, 35mm lens, cool clear light. Photorealistic for young children, vibrant and clean, single clear subject, friendly not scary. Audio: a warm friendly female narrator says cheerfully, "Sharks have sharp teeth!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Turtle:
+    'Close-up of a turtle slowly walking and blinking, in sandy shallow water. Slow low tracking, macro lens, soft daylight. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Turtles walk slowly!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Unicorn:
+    'Medium shot of a gentle unicorn trotting with a flowing rainbow mane and soft magical sparkles, in an enchanted meadow. Slow tracking, 50mm lens, dreamy soft light. Stylized 3D-animation look for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Unicorns are magic!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Vulture:
+    'Wide shot of a vulture soaring and circling high, in a canyon sky. Slow aerial pan, 35mm lens, bright daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject, friendly not scary. Audio: a warm friendly female narrator says cheerfully, "Vultures fly very high!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Whale:
+    'Wide shot of a whale breaching with a gentle water spout, in the open ocean. Slow tracking, 35mm lens, bright soft light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Whales are huge!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Yak:
+    'Medium shot of a yak standing in gentle wind with thick fur, on a high mountain slope. Slow push-in, 50mm lens, crisp cool light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Yaks live on mountains!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Zebra:
+    'Medium shot of a zebra trotting with crisp black-and-white stripes, on a grassy plain. Slow tracking, 50mm lens, warm daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Zebras have stripes!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+};
 
 function collectTargets(only: string[]): Target[] {
   const wanted = new Set(only.map((w) => w.toLowerCase()));
   const out: Target[] = [];
-  for (const entry of alphabetData) {
-    if (!/^[A-Z]$/.test(entry.letter)) continue;
-    const info = ANIMAL_INFO[entry.word];
-    if (!info) continue;
-    if (wanted.size && !wanted.has(entry.word.toLowerCase())) continue;
-    out.push({
-      word: entry.word,
-      slug: fileSlug(entry.word),
-      prompt: buildPrompt(entry.word, info.en),
-    });
+  for (const [word, prompt] of Object.entries(APPROVED_PROMPTS)) {
+    if (wanted.size && !wanted.has(word.toLowerCase())) continue;
+    out.push({ word, slug: fileSlug(word), prompt });
   }
   return out;
 }

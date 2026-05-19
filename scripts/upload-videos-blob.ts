@@ -35,10 +35,18 @@ function fileSlug(word: string): string {
   return word.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+// Blob paths are stable + cached `immutable` for a year, so overwriting
+// a clip in place won't reach clients. Bump VIDEO_REV to append ?v=REV
+// to the manifest URLs — that changes the CDN/browser cache key and
+// forces the new bytes to load. --manifest-only re-emits the manifest
+// (with the new rev) without re-uploading unchanged blobs.
+const VIDEO_REV = process.env.VIDEO_REV || "1";
+const MANIFEST_ONLY = process.argv.includes("--manifest-only");
+
 async function main() {
   await loadDotEnvLocal();
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
+  if (!token && !MANIFEST_ONLY) {
     console.error("[blob] BLOB_READ_WRITE_TOKEN missing in .env.local. Aborting.");
     process.exit(1);
   }
@@ -63,18 +71,26 @@ async function main() {
       console.warn(`[blob] skip ${f} — no matching lesson word`);
       continue;
     }
-    const data = await readFile(path.join(VIDEO_DIR, f));
-    const blob = await put(`videos/${f}`, data, {
-      access: "public",
-      token,
-      contentType: "video/mp4",
-      // Stable, overwrite-on-rerun path so the manifest URL is durable.
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      cacheControlMaxAge: 31536000,
-    });
-    urlByWord.set(word, blob.url);
-    console.log(`[blob] uploaded ${f} -> ${blob.url}`);
+    let url: string;
+    if (MANIFEST_ONLY) {
+      // Reuse the known stable path; just refresh the cache-bust rev.
+      url = `https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/${f}`;
+    } else {
+      const data = await readFile(path.join(VIDEO_DIR, f));
+      const blob = await put(`videos/${f}`, data, {
+        access: "public",
+        token: token as string,
+        contentType: "video/mp4",
+        // Stable, overwrite-on-rerun path so the manifest URL is durable.
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        cacheControlMaxAge: 31536000,
+      });
+      url = blob.url;
+    }
+    const versioned = `${url}?v=${VIDEO_REV}`;
+    urlByWord.set(word, versioned);
+    console.log(`[blob] ${MANIFEST_ONLY ? "linked" : "uploaded"} ${f} -> ${versioned}`);
   }
 
   const entries = [...urlByWord.entries()]
