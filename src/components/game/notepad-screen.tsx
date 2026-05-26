@@ -53,8 +53,16 @@ interface Stroke {
 export function NotepadScreen({ onHome }: NotepadScreenProps) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const nextId = useRef(1);
+  const paperRef = useRef<HTMLDivElement | null>(null);
   const { speak } = useSpeech();
   const { playTap } = useGameAudio();
+
+  // Keep the latest character in view as the page fills up.
+  useEffect(() => {
+    const p = paperRef.current;
+    if (!p) return;
+    p.scrollTo({ top: p.scrollHeight, behavior: "smooth" });
+  }, [strokes.length]);
 
   const speakChar = (ch: string) => {
     const word = SPOKEN[ch] ?? ch;
@@ -139,7 +147,12 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
         </button>
       </header>
 
-      <div className="notepad-paper" role="region" aria-label="Notepad page">
+      <div
+        className="notepad-paper"
+        role="region"
+        aria-label="Notepad page"
+        ref={paperRef}
+      >
         {strokes.length === 0 ? (
           <div className="notepad-placeholder">Tap a letter or number to start!</div>
         ) : (
