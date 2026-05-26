@@ -1031,6 +1031,43 @@ html, body {
 }
 
 /* ---- NOTEPAD ---- */
+/* Header buttons inherit the lesson style (white-on-ocean). Notepad has
+ * a warm pastel background, so white pills wash out — tint them ocean
+ * blue and add a soft header bar for contrast. */
+.notepad-screen .lesson-header {
+  background: rgba(14, 82, 116, 0.10);
+  border: 1px solid rgba(14, 82, 116, 0.16);
+  border-radius: 24px;
+  padding: 8px 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 16px rgba(14, 82, 116, 0.12);
+}
+.notepad-screen .icon-btn {
+  background: rgba(14, 82, 116, 0.16);
+  color: #0E5274;
+  border-color: rgba(14, 82, 116, 0.28);
+  box-shadow: 0 6px 14px rgba(14, 82, 116, 0.18);
+}
+.notepad-screen .icon-btn:hover { background: rgba(14, 82, 116, 0.24); }
+.notepad-screen .icon-btn.coral {
+  background: linear-gradient(180deg, #ff7a8c 0%, #ff5b78 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+.notepad-screen .icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.notepad-screen .progress-pill {
+  background: rgba(14, 82, 116, 0.14);
+  color: #0E5274;
+}
+.notepad-screen .progress-letter,
+.notepad-screen .progress-count {
+  color: #0E5274;
+  text-shadow: none;
+}
+
 .notepad-screen {
   position: absolute; inset: 0; z-index: 10;
   padding: 16px 20px 20px;
