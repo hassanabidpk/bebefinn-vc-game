@@ -8,8 +8,9 @@ import { HomeScreen } from "@/components/game/home-screen";
 import { LessonScreen, type LetterCase } from "@/components/game/lesson-screen";
 import { ListenScreen } from "@/components/game/listen-screen";
 import { PlayScreen } from "@/components/game/play-screen";
+import { NotepadScreen } from "@/components/game/notepad-screen";
 
-type Screen = "home" | "lesson" | "listen" | "play";
+type Screen = "home" | "lesson" | "listen" | "play" | "notepad";
 
 interface Route {
   screen: Screen;
@@ -53,11 +54,18 @@ export default function Home() {
     startBackgroundMusic();
     setRoute({ screen: "play", index: 0 });
   };
+  const goNotepad = () => {
+    playStart();
+    warmUp();
+    // No background music on notepad — letter speech needs to be clearly heard.
+    setRoute({ screen: "notepad", index: 0 });
+  };
 
-  const onMode = (mode: "lesson" | "listen" | "play") => {
+  const onMode = (mode: "lesson" | "listen" | "play" | "notepad") => {
     if (mode === "lesson") goLesson(0);
     else if (mode === "listen") goListen();
-    else goPlay();
+    else if (mode === "play") goPlay();
+    else goNotepad();
   };
 
   return (
@@ -81,6 +89,7 @@ export default function Home() {
       {route.screen === "play" ? (
         <PlayScreen onHome={goHome} letterCase={letterCase} />
       ) : null}
+      {route.screen === "notepad" ? <NotepadScreen onHome={goHome} /> : null}
     </IpadShell>
   );
 }

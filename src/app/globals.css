@@ -1023,7 +1023,116 @@ html, body {
 .letter-picker-tile,
 .info-pip,
 .prompt-speak,
+.notepad-key,
+.notepad-char,
 .letter-picker-close {
   -webkit-touch-callout: none;
   touch-action: manipulation;
+}
+
+/* ---- NOTEPAD ---- */
+.notepad-screen {
+  position: absolute; inset: 0; z-index: 10;
+  padding: 16px 20px 20px;
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(circle at 30% 10%, #ffe066 0%, transparent 38%),
+    radial-gradient(circle at 70% 90%, #b3e0ff 0%, transparent 42%),
+    linear-gradient(180deg, #fff6d5 0%, #ffe5ec 60%, #d9efff 100%);
+}
+.notepad-paper {
+  flex: 1; min-height: 0;
+  margin: 14px auto 14px;
+  width: 100%; max-width: 960px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 60px, rgba(14,82,116,0.10) 60px 61px),
+    #fffdf6;
+  border: 4px solid #fff;
+  border-radius: 28px;
+  box-shadow:
+    0 18px 36px rgba(14,82,116,0.18),
+    inset 0 0 0 1px rgba(255,255,255,0.7);
+  padding: 22px 26px;
+  overflow: auto;
+  position: relative;
+}
+.notepad-placeholder {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  font-family: 'Fredoka', sans-serif; font-weight: 700;
+  font-size: 26px; color: rgba(14,82,116,0.55);
+  padding: 16px;
+  pointer-events: none;
+}
+.notepad-strokes {
+  display: flex; flex-wrap: wrap; gap: 6px 10px;
+  align-content: flex-start;
+}
+@keyframes notepad-pop {
+  0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+  60%  { transform: scale(1.18) rotate(3deg);  opacity: 1; }
+  100% { transform: scale(1)    rotate(0);     opacity: 1; }
+}
+.notepad-char {
+  font-family: 'Fredoka', sans-serif; font-weight: 800;
+  font-size: 96px; line-height: 1;
+  background: transparent; border: none; cursor: pointer;
+  padding: 0 4px;
+  text-shadow:
+    4px 6px 0 rgba(0,0,0,0.10),
+    0 2px 0 rgba(255,255,255,0.7);
+  animation: notepad-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+  transition: transform 0.12s;
+}
+.notepad-char:hover  { transform: translateY(-2px) scale(1.04); }
+.notepad-char:active { transform: translateY(2px)  scale(0.96); }
+
+.notepad-keyboard {
+  display: flex; flex-direction: column; gap: 10px;
+  width: 100%; max-width: 1080px;
+  margin: 0 auto;
+}
+.notepad-row {
+  display: grid; gap: 10px;
+}
+.notepad-row-letters {
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+}
+.notepad-row-digits {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  max-width: 760px;
+  margin: 0 auto;
+}
+.notepad-key {
+  font-family: 'Fredoka', sans-serif; font-weight: 800;
+  font-size: 30px; line-height: 1;
+  background: linear-gradient(180deg, #ffffff 0%, #f4faff 100%);
+  border: 3px solid #fff;
+  border-radius: 18px;
+  padding: 14px 6px;
+  box-shadow:
+    0 6px 0 rgba(0,0,0,0.12),
+    0 0 0 3px var(--key-color, transparent) inset;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+  user-select: none;
+}
+.notepad-key:hover  { transform: translateY(-2px); }
+.notepad-key:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 2px 0 rgba(0,0,0,0.12),
+    0 0 0 3px var(--key-color, transparent) inset;
+}
+.notepad-key-digit {
+  font-size: 34px;
+  background: linear-gradient(180deg, #ffffff 0%, #fff4f7 100%);
+}
+@media (max-width: 720px) {
+  .notepad-char { font-size: 64px; }
+  .notepad-key { font-size: 22px; padding: 12px 4px; border-radius: 14px; }
+  .notepad-key-digit { font-size: 26px; }
+  .notepad-row-letters { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .notepad-row-digits  { grid-template-columns: repeat(10, minmax(0, 1fr)); }
 }
