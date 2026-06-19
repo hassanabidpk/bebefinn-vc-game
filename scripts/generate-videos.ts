@@ -1,5 +1,5 @@
 /**
- * Veo 3.1 animal video generator. For every real-animal lesson it asks
+ * Veo 3.1 lesson video generator. For every configured lesson it asks
  * Veo to produce a short, kid-friendly clip where a warm narrator speaks
  * the English info line, then downloads the MP4 to
  * /public/assets/videos/{word}.mp4 and rewrites src/lib/animal-videos.ts.
@@ -9,6 +9,7 @@
  *
  *   npx tsx scripts/generate-videos.ts                # all missing
  *   npx tsx scripts/generate-videos.ts Lion Whale     # only these words
+ *   npx tsx scripts/generate-videos.ts 1 2 3          # only these numbers
  *
  * Re-running skips words whose MP4 already exists, so it is resumable.
  */
@@ -19,10 +20,10 @@ import path from "node:path";
 import { alphabetData } from "../src/lib/alphabet-data.ts";
 import { ANIMAL_INFO } from "../src/lib/animal-info.ts";
 
-// Gemini API uses veo-3.1 preview; Vertex uses the GA veo-3.1-generate-001
-// (the -preview id 404s on Vertex for this project). Both generate audio.
-const MODEL = "veo-3.1-generate-preview";
-const VERTEX_MODEL = process.env.VERTEX_MODEL || "veo-3.1-generate-001";
+// Gemini API currently documents the Fast preview model ID for API-key use;
+// Vertex/Agent Platform documents the GA Fast model ID.
+const MODEL = process.env.VIDEO_MODEL || "veo-3.1-fast-generate-preview";
+const VERTEX_MODEL = process.env.VERTEX_MODEL || "veo-3.1-fast-generate-001";
 const VIDEO_DIR = path.join(process.cwd(), "public", "assets", "videos");
 const MANIFEST = path.join(process.cwd(), "src", "lib", "animal-videos.ts");
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
@@ -135,6 +136,26 @@ const APPROVED_PROMPTS: Record<string, string> = {
     'Medium shot of a zebra trotting with crisp black-and-white stripes, on a grassy plain. Slow tracking, 50mm lens, warm daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Zebras have stripes!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   "Handsome Xaven":
     'Medium shot of a cheerful friendly cartoon prince mascot — a little boy prince with a small gold crown, waving and smiling warmly, in a bright sparkly storybook castle scene. Soft 3D-animation look, gentle push-in, soft even light. Clean and playful for young children, single clear subject, stylized cartoon (not a real person). Audio: a happy young child voice says brightly, "Hello Handsome Xaven!" — no background music, natural ambient sound only. Mood: happy, warm, wholesome. No on-screen text, no captions. 8 seconds, 16:9.',
+  "1":
+    'Medium shot of one bright red starfish gently swaying on soft sand in a cheerful shallow ocean scene. Slow push-in, soft clear blue light, colorful toddler-friendly 3D-animation look, single clear subject, easy to count. Audio: a warm friendly female narrator says cheerfully, "One!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "2":
+    'Medium shot of two colorful seashells rocking gently side by side on soft beach sand beside sparkling shallow water. Slow push-in, soft clear daylight, colorful toddler-friendly 3D-animation look, exactly two clear objects, easy to count. Audio: a warm friendly female narrator says cheerfully, "Two!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "3":
+    'Medium shot of three smiling toy-like sea stars arranged clearly on a bright coral reef floor, gently bobbing in the water. Slow push-in, soft clear blue light, colorful toddler-friendly 3D-animation look, exactly three clear objects, easy to count. Audio: a warm friendly female narrator says cheerfully, "Three!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "4":
+    'Medium shot of four round colorful bubbles floating upward in a clear underwater scene, spaced apart so each bubble is easy to count. Slow drift camera, bright ocean-blue light, colorful toddler-friendly 3D-animation look, exactly four clear objects. Audio: a warm friendly female narrator says cheerfully, "Four!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "5":
+    'Medium shot of five small friendly fish swimming in a gentle line across a colorful reef, moving slowly so each fish is easy to count. Slow tracking camera, bright clear blue water, colorful toddler-friendly 3D-animation look, exactly five clear fish. Audio: a warm friendly female narrator says cheerfully, "Five!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "6":
+    'Medium shot of six colorful pearls resting clearly inside open shells on a sandy ocean floor, sparkling softly. Slow push-in, soft clear blue light, colorful toddler-friendly 3D-animation look, exactly six clear objects, easy to count. Audio: a warm friendly female narrator says cheerfully, "Six!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "7":
+    'Medium shot of seven bright coral flowers gently waving underwater, arranged in a neat arc with space between each one. Slow drift camera, soft clear ocean light, colorful toddler-friendly 3D-animation look, exactly seven clear objects, easy to count. Audio: a warm friendly female narrator says cheerfully, "Seven!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "8":
+    'Medium shot of eight shiny treasure coins laid out clearly on soft sand near a small friendly treasure chest, each coin visible and easy to count. Slow push-in, warm sparkling underwater light, colorful toddler-friendly 3D-animation look, exactly eight clear objects. Audio: a warm friendly female narrator says cheerfully, "Eight!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "9":
+    'Medium shot of nine pastel bubbles floating slowly in a tidy group underwater, each bubble separated and easy to count. Slow upward drift camera, bright clear blue water, colorful toddler-friendly 3D-animation look, exactly nine clear bubbles. Audio: a warm friendly female narrator says cheerfully, "Nine!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  "10":
+    'Medium shot of ten tiny colorful fish swimming slowly in two neat rows of five across a bright coral reef, each fish separated and easy to count. Slow tracking camera, soft clear ocean light, colorful toddler-friendly 3D-animation look, exactly ten clear fish. Audio: a warm friendly female narrator says cheerfully, "Ten!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
 };
 
 function collectTargets(only: string[]): Target[] {
@@ -322,7 +343,7 @@ async function main() {
   // Strip flags so they aren't treated as word filters.
   const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));
   const targets = collectTargets(only);
-  console.log(`[veo] ${targets.length} animal(s) to consider`);
+  console.log(`[veo] ${targets.length} lesson(s) to consider`);
 
   let made = 0;
   let skipped = 0;
