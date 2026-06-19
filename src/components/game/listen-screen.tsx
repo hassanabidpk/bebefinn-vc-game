@@ -30,7 +30,7 @@ export function ListenScreen({ onHome, letterCase }: ListenScreenProps) {
 
   useEffect(() => {
     if (!playing) return;
-    speak(`${item.letter}. ${item.word}`);
+    speak(`${item.letter}. ${item.spokenWord ?? item.word}`);
     stepTimer.current = setTimeout(() => {
       setIdx((i) => (i + 1) % TOTAL);
     }, 2200);

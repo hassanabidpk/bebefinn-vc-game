@@ -1,6 +1,7 @@
 export interface AlphabetEntry {
   letter: string;
   word: string;
+  spokenWord?: string;
   emoji: string;
   color: string;
 }
@@ -29,7 +30,7 @@ export const alphabetData: AlphabetEntry[] = [
   { letter: "U", word: "Unicorn", emoji: "🦄", color: "#A569BD" },
   { letter: "V", word: "Vulture", emoji: "🦅", color: "#7D6608" },
   { letter: "W", word: "Whale", emoji: "🐋", color: "#2980B9" },
-  { letter: "X", word: "Handsome Xaven", emoji: "🤴", color: "#E74C3C" },
+  { letter: "X", word: "Handsome Xaven", spokenWord: "Handsome Zaven", emoji: "🤴", color: "#E74C3C" },
   { letter: "Y", word: "Yak", emoji: "🐃", color: "#5D4037" },
   { letter: "Z", word: "Zebra", emoji: "🦓", color: "#2C3E50" },
   { letter: "1", word: "1", emoji: "1️⃣", color: "#FF6B6B" },

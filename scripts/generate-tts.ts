@@ -86,18 +86,18 @@ function parseAudioMime(mime: string) {
   return { rate, channels };
 }
 
-function buildRevealPhrase(letter: string, word: string): string {
+function buildRevealPhrase(letter: string, word: string, spokenWord = word): string {
   const isNumber = /^[0-9]+$/.test(letter);
-  return isNumber ? `${letter} for ${word}!` : `${letter}! ${letter} for ${word}!`;
+  return isNumber ? `${letter} for ${spokenWord}!` : `${letter}! ${letter} for ${spokenWord}!`;
 }
 
 function collectPhrases(): Phrase[] {
   const out: Phrase[] = [];
   for (const entry of alphabetData) {
-    out.push({ text: buildRevealPhrase(entry.letter, entry.word), voice: "Leda" });
+    out.push({ text: buildRevealPhrase(entry.letter, entry.word, entry.spokenWord), voice: "Leda" });
     const info = ANIMAL_INFO[entry.word];
     if (info) {
-      out.push({ text: info.en, voice: "Leda" });
+      out.push({ text: info.spokenEn ?? info.en, voice: "Leda" });
       out.push({ text: info.zh, voice: "Aoede" });
     }
   }
