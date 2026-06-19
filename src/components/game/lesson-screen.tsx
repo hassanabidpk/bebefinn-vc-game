@@ -48,6 +48,7 @@ export function LessonScreen({
   const guessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animalSoundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoVideoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak, speakBilingual, stop } = useSpeech();
@@ -60,12 +61,18 @@ export function LessonScreen({
 
   const buildRevealPhrase = (entry: typeof item) => {
     const isNumber = /^[0-9]+$/.test(entry.letter);
+    const spokenWord = entry.spokenWord ?? entry.word;
     return isNumber
-      ? `${entry.letter} for ${entry.word}!`
-      : `${entry.letter}! ${entry.letter} for ${entry.word}!`;
+      ? `${entry.letter} for ${spokenWord}!`
+      : `${entry.letter}! ${entry.letter} for ${spokenWord}!`;
   };
-  const speakReveal = (phrase: string) => {
-    geminiPlay(phrase, { voice: "Leda" }).catch(() => speak(phrase));
+  const playVideoAfterSpeech = () => {
+    if (!hasAnimalVideo(item.word)) return;
+    autoVideoTimer.current = setTimeout(() => setVideoOpen(true), 180);
+  };
+
+  const speakReveal = (phrase: string, onEnd?: () => void) => {
+    geminiPlay(phrase, { voice: "Leda", onEnd }).catch(() => speak(phrase, { onEnd }));
   };
   const { playAnimalSound } = useGameAudio();
 
@@ -81,7 +88,15 @@ export function LessonScreen({
   const overlay = `radial-gradient(circle at 50% 10%, ${item.color}55 0%, transparent 32%), linear-gradient(180deg, ${item.color}33 0%, #0495d9 48%, #005580 100%)`;
 
   const clearAllTimers = () => {
-    [guessTimer, speechTimer, animalSoundTimer, confettiTimer, speakOffTimer, flipBackTimer].forEach((ref) => {
+    [
+      guessTimer,
+      speechTimer,
+      animalSoundTimer,
+      autoVideoTimer,
+      confettiTimer,
+      speakOffTimer,
+      flipBackTimer,
+    ].forEach((ref) => {
       if (ref.current) {
         clearTimeout(ref.current);
         ref.current = null;
@@ -151,9 +166,9 @@ export function LessonScreen({
       const hasPhoto = hasAnimalPhoto(item.word);
       if (hasPhoto) {
         playAnimalSound(item.word.toLowerCase());
-        speechTimer.current = setTimeout(() => speakReveal(phrase), 900);
+        speechTimer.current = setTimeout(() => speakReveal(phrase, playVideoAfterSpeech), 900);
       } else {
-        speakReveal(phrase);
+        speakReveal(phrase, playVideoAfterSpeech);
       }
 
       setShowConfetti(true);
@@ -164,6 +179,7 @@ export function LessonScreen({
     return () => {
       clearAllTimers();
       stop();
+      stopGemini();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
@@ -175,9 +191,9 @@ export function LessonScreen({
     const phrase = buildRevealPhrase(item);
     if (hasPhoto) {
       playAnimalSound(item.word.toLowerCase());
-      speechTimer.current = setTimeout(() => speakReveal(phrase), 900);
+      speechTimer.current = setTimeout(() => speakReveal(phrase, playVideoAfterSpeech), 900);
     } else {
-      speakReveal(phrase);
+      speakReveal(phrase, playVideoAfterSpeech);
     }
     speakOffTimer.current = setTimeout(() => setIsSpeaking(false), 3200);
   };
@@ -334,7 +350,7 @@ export function LessonScreen({
                     e.stopPropagation();
                     const info = getAnimalInfo(item.word);
                     if (!info) {
-                      speak(item.word);
+                      speak(item.spokenWord ?? item.word);
                       return;
                     }
                     stop();
@@ -346,8 +362,9 @@ export function LessonScreen({
                     };
                     // Prefer Gemini studio voice; fall back to browser TTS
                     // if the API or network fails (e.g. offline).
-                    geminiBilingual(info.en, info.zh, onDone).catch(() => {
-                      speakBilingual(info.en, info.zh, onDone);
+                    const spokenEn = info.spokenEn ?? info.en;
+                    geminiBilingual(spokenEn, info.zh, onDone).catch(() => {
+                      speakBilingual(spokenEn, info.zh, onDone);
                     });
                   }}
                   aria-label="Show info"
@@ -362,6 +379,7 @@ export function LessonScreen({
                   onClick={(e) => {
                     e.stopPropagation();
                     stop();
+                    stopGemini();
                     setVideoOpen(true);
                   }}
                   aria-label="Play video"
