@@ -14,7 +14,7 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile, access, readFile } from "node:fs/promises";
 import { constants as FS } from "node:fs";
 import path from "node:path";
-import { alphabetData } from "../src/lib/alphabet-data.ts";
+import { getAlphabetEntriesWithVariants } from "../src/lib/alphabet-data.ts";
 import { ANIMAL_INFO } from "../src/lib/animal-info.ts";
 
 // Load GEMINI_API_KEY from .env.local for local runs. Vercel injects env
@@ -93,7 +93,7 @@ function buildRevealPhrase(letter: string, word: string, spokenWord = word): str
 
 function collectPhrases(): Phrase[] {
   const out: Phrase[] = [];
-  for (const entry of alphabetData) {
+  for (const entry of getAlphabetEntriesWithVariants()) {
     out.push({ text: buildRevealPhrase(entry.letter, entry.word, entry.spokenWord), voice: "Leda" });
     const info = ANIMAL_INFO[entry.word];
     if (info) {

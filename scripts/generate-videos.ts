@@ -17,13 +17,13 @@ import { mkdir, writeFile, access, readFile, readdir } from "node:fs/promises";
 import { constants as FS } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { alphabetData } from "../src/lib/alphabet-data.ts";
+import { getAlphabetEntriesWithVariants } from "../src/lib/alphabet-data.ts";
 import { ANIMAL_INFO } from "../src/lib/animal-info.ts";
 
-// Gemini API currently documents the Fast preview model ID for API-key use;
-// Vertex/Agent Platform documents the GA Fast model ID.
-const MODEL = process.env.VIDEO_MODEL || "veo-3.1-fast-generate-preview";
-const VERTEX_MODEL = process.env.VERTEX_MODEL || "veo-3.1-fast-generate-001";
+// Gemini API uses the standard Veo 3.1 preview by default; Vertex uses
+// the GA standard Veo 3.1 model ID.
+const MODEL = process.env.VIDEO_MODEL || "veo-3.1-generate-preview";
+const VERTEX_MODEL = process.env.VERTEX_MODEL || "veo-3.1-generate-001";
 const VIDEO_DIR = path.join(process.cwd(), "public", "assets", "videos");
 const MANIFEST = path.join(process.cwd(), "src", "lib", "animal-videos.ts");
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
@@ -88,18 +88,28 @@ interface Target {
 // Words intentionally absent (Mommy, Renee, Handsome Xaven) keep their
 // existing Blob clips and are NOT regenerated.
 const APPROVED_PROMPTS: Record<string, string> = {
+  Alligator:
+    'Medium shot of a friendly alligator resting near a sunny pond, slowly swishing its big tail and blinking calmly. Slow push-in, 50mm lens, warm soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject, friendly not scary. Audio: a warm friendly female narrator says cheerfully, "Alligators have big tails!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Alpaca:
     'Medium shot of a fluffy alpaca chewing with ears perking, soft thick coat, in a green Andean meadow. Slow dolly-in, 50mm lens, warm soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Alpacas are fluffy!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Bear:
     'Wide-to-medium shot of a friendly brown bear ambling and sniffing toward a honey log, in a sunlit forest clearing. Slow tracking, 35mm lens, golden dappled light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Bears love honey!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Butterfly:
+    'Close-up of a colorful butterfly gently flapping its wings on a bright flower in a sunny garden. Slow macro push-in, soft warm daylight, vibrant and clean, single clear subject. Photorealistic nature documentary for young children. Audio: a warm friendly female narrator says cheerfully, "Butterflies flap their wings!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Cat:
     'Close-up of a cute cat meowing, whiskers twitching, on a cozy sunlit windowsill indoors, free and relaxed, no cage. Gentle push-in, 50mm lens, soft warm light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Cats say meow!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Cow:
+    'Medium shot of a gentle cow standing in a sunny green pasture, slowly chewing grass and looking calm. Slow push-in, 50mm lens, soft daylight. Photorealistic farm documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Cows say moo!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Dog:
     'Medium shot of a happy dog barking with tail wagging, in a grassy backyard. Soft follow camera, 35mm lens, bright daylight. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Dogs say woof!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Dolphin:
+    'Wide-to-medium shot of a playful dolphin jumping and splashing in bright blue ocean water, friendly and graceful. Slow tracking camera, 35mm lens, clear sunny daylight. Photorealistic ocean documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Dolphins jump and splash!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Elephant:
     'Wide shot of an elephant curling its long trunk and flapping ears, at a savanna waterhole. Slow dolly, 35mm lens, warm late-afternoon light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Elephants have long trunks!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Fish:
     'Close-up of a bright tropical fish darting with shimmering scales, in a colorful coral reef aquarium. Slow drift, macro lens, clear blue light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Fish swim in water!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Frog:
+    'Medium close-up of a bright green frog hopping gently on a lily pad beside calm pond water. Slow low push-in, macro lens, soft daylight. Photorealistic nature documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Frogs hop high!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Gorilla:
     'Medium shot of a calm gorilla gently beating its chest, steady gaze, in a leafy jungle enclosure. Slow push-in, 50mm lens, soft green light. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Gorillas are strong!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Hippo:
@@ -116,8 +126,12 @@ const APPROVED_PROMPTS: Record<string, string> = {
     'Close-up of small eggs in a twig nest with a gentle breeze stirring, on a tree branch. Slow drift, macro lens, soft morning light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Birds live in nests!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Octopus:
     'Close-up of an octopus curling its eight arms gracefully, on a rocky aquarium floor. Slow drifting camera, macro lens, soft blue light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Octopuses have eight arms!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Otter:
+    'Medium shot of a cute otter floating on its back in calm water, gently paddling and looking playful. Slow tracking camera, 50mm lens, soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Otters float on water!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Panda:
     'Medium shot of a panda sitting and munching bamboo, in a bamboo grove. Slow push-in, 50mm lens, soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Pandas eat bamboo!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Penguin:
+    'Medium shot of a friendly penguin waddling on clean white ice, flippers out, with soft blue sky in the background. Slow low tracking camera, 50mm lens, bright soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Penguins waddle on ice!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Quokka:
     'Close-up of a smiling quokka nibbling a leaf, on a grassy island. Gentle push-in, 50mm lens, warm light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Quokkas always smile!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Shark:
@@ -291,7 +305,7 @@ async function writeManifest() {
   const files = (await readdir(VIDEO_DIR)).filter((f) => f.endsWith(".mp4"));
   // Map slug back to the canonical lesson word.
   const bySlug = new Map<string, string>();
-  for (const entry of alphabetData) {
+  for (const entry of getAlphabetEntriesWithVariants()) {
     if (ANIMAL_INFO[entry.word]) bySlug.set(fileSlug(entry.word), entry.word);
   }
   const entries: string[] = [];
