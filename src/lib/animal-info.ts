@@ -24,7 +24,7 @@ export const ANIMAL_INFO: Record<string, AnimalInfo> = {
   Frog: { en: "Frogs hop high!", zh: "青蛙跳得高！", pinyin: "Qīng wā tiào de gāo" },
   Gorilla: { en: "Gorillas are strong!", zh: "大猩猩很强壮！", pinyin: "Dà xīng xīng hěn qiáng zhuàng" },
   "Handsome Zaven": { en: "Zaven is the best!", zh: "泽文最棒！", pinyin: "Zé wén zuì bàng" },
-  "Handsome Xaven": { en: "Hello Handsome Xaven!", spokenEn: "Hello Handsome Zaven!", zh: "你好，Handsome Xaven！", pinyin: "Nǐ hǎo, Handsome Xaven" },
+  "Handsome Xaven": { en: "Hi Handsome Xaven!", spokenEn: "Hi Handsome Zaven!", zh: "你好，Handsome Xaven！", pinyin: "Nǐ hǎo, Handsome Xaven" },
   Hippo: { en: "Hippos love the water!", zh: "河马爱玩水！", pinyin: "Hé mǎ ài wán shuǐ" },
   "Ice Cream": { en: "Ice cream is yummy!", zh: "冰淇淋真好吃！", pinyin: "Bīng qí lín zhēn hǎo chī" },
   Iguana: { en: "Iguanas climb trees!", zh: "鬣蜥会爬树！", pinyin: "Liè xī huì pá shù" },
