@@ -10,7 +10,7 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { put } from "@vercel/blob";
-import { alphabetData } from "../src/lib/alphabet-data.ts";
+import { getAlphabetEntriesWithVariants } from "../src/lib/alphabet-data.ts";
 import { ANIMAL_INFO } from "../src/lib/animal-info.ts";
 
 const VIDEO_DIR = path.join(process.cwd(), "public", "assets", "videos");
@@ -59,7 +59,7 @@ async function main() {
 
   // slug -> canonical lesson word
   const bySlug = new Map<string, string>();
-  for (const entry of alphabetData) {
+  for (const entry of getAlphabetEntriesWithVariants()) {
     if (ANIMAL_INFO[entry.word]) bySlug.set(fileSlug(entry.word), entry.word);
   }
 

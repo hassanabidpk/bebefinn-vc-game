@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
+import type { AlphabetEntry } from "@/lib/alphabet-data";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { useSpeech } from "@/hooks/use-speech";
 import { useGeminiTTS } from "@/hooks/use-gemini-tts";
@@ -17,6 +18,11 @@ const LETTERS = alphabetData.filter((entry) =>
   /^[A-Z]$|^[1-9]$|^10$/.test(entry.letter)
 );
 const TOTAL = LETTERS.length;
+
+function pickLessonEntry(entry: AlphabetEntry) {
+  const options = [entry, ...(entry.variants ?? [])];
+  return options[Math.floor(Math.random() * options.length)];
+}
 
 export type LetterCase = "upper" | "lower" | "both";
 
@@ -37,7 +43,8 @@ export function LessonScreen({
   isMusicPlaying,
   onToggleMusic,
 }: LessonScreenProps) {
-  const item = LETTERS[Math.max(0, Math.min(index, TOTAL - 1))];
+  const baseItem = LETTERS[Math.max(0, Math.min(index, TOTAL - 1))];
+  const [item, setItem] = useState<AlphabetEntry>(baseItem);
   const [isGuessing, setIsGuessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -75,6 +82,10 @@ export function LessonScreen({
     geminiPlay(phrase, { voice: "Leda", onEnd }).catch(() => speak(phrase, { onEnd }));
   };
   const { playAnimalSound } = useGameAudio();
+
+  useEffect(() => {
+    setItem(pickLessonEntry(baseItem));
+  }, [baseItem]);
 
   const display =
     letterCase === "lower"
@@ -182,7 +193,7 @@ export function LessonScreen({
       stopGemini();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
+  }, [item]);
 
   const handleReplay = () => {
     clearAllTimers();

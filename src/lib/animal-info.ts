@@ -11,12 +11,17 @@ export interface AnimalInfo {
 }
 
 export const ANIMAL_INFO: Record<string, AnimalInfo> = {
+  Alligator: { en: "Alligators have big tails!", zh: "短吻鳄尾巴大大！", pinyin: "Duǎn wěn è wěi ba dà dà" },
   Alpaca: { en: "Alpacas are fluffy!", zh: "羊驼毛茸茸！", pinyin: "Yáng tuó máo róng róng" },
   Bear: { en: "Bears love honey!", zh: "熊喜欢蜂蜜！", pinyin: "Xióng xǐ huān fēng mì" },
+  Butterfly: { en: "Butterflies flap their wings!", zh: "蝴蝶拍拍翅膀！", pinyin: "Hú dié pāi pāi chì bǎng" },
   Cat: { en: "Cats say meow!", zh: "猫咪喵喵叫！", pinyin: "Māo mī miāo miāo jiào" },
+  Cow: { en: "Cows say moo!", zh: "小牛哞哞叫！", pinyin: "Xiǎo niú mōu mōu jiào" },
   Dog: { en: "Dogs say woof!", zh: "小狗汪汪叫！", pinyin: "Xiǎo gǒu wāng wāng jiào" },
+  Dolphin: { en: "Dolphins jump and splash!", zh: "海豚跳起来！", pinyin: "Hǎi tún tiào qǐ lái" },
   Elephant: { en: "Elephants have long trunks!", zh: "大象鼻子长长！", pinyin: "Dà xiàng bí zi cháng cháng" },
   Fish: { en: "Fish swim in water!", zh: "小鱼水里游！", pinyin: "Xiǎo yú shuǐ lǐ yóu" },
+  Frog: { en: "Frogs hop high!", zh: "青蛙跳得高！", pinyin: "Qīng wā tiào de gāo" },
   Gorilla: { en: "Gorillas are strong!", zh: "大猩猩很强壮！", pinyin: "Dà xīng xīng hěn qiáng zhuàng" },
   "Handsome Zaven": { en: "Zaven is the best!", zh: "泽文最棒！", pinyin: "Zé wén zuì bàng" },
   "Handsome Xaven": { en: "Hello Handsome Xaven!", spokenEn: "Hello Handsome Zaven!", zh: "你好，Handsome Xaven！", pinyin: "Nǐ hǎo, Handsome Xaven" },
@@ -30,7 +35,9 @@ export const ANIMAL_INFO: Record<string, AnimalInfo> = {
   Nest: { en: "Birds live in nests!", zh: "小鸟住巢里！", pinyin: "Xiǎo niǎo zhù cháo lǐ" },
   Ouyiii: { en: "Hi Ouyiii!", zh: "你好欧伊！", pinyin: "Nǐ hǎo Ōu yī" },
   Octopus: { en: "Octopuses have eight arms!", zh: "章鱼有八只手！", pinyin: "Zhāng yú yǒu bā zhī shǒu" },
+  Otter: { en: "Otters float on water!", zh: "水獭水上漂！", pinyin: "Shuǐ tǎ shuǐ shàng piāo" },
   Panda: { en: "Pandas eat bamboo!", zh: "熊猫吃竹子！", pinyin: "Xióng māo chī zhú zi" },
+  Penguin: { en: "Penguins waddle on ice!", zh: "企鹅冰上走！", pinyin: "Qǐ é bīng shàng zǒu" },
   Quokka: { en: "Quokkas always smile!", zh: "短尾矮袋鼠爱笑！", pinyin: "Duǎn wěi ǎi dài shǔ ài xiào" },
   "Renee Princesse": { en: "Hello princess!", zh: "你好公主！", pinyin: "Nǐ hǎo gōng zhǔ" },
   Renee: { en: "Hi Renee, princess!", zh: "你好蕾妮公主！", pinyin: "Nǐ hǎo Léi nī gōng zhǔ" },
