@@ -85,8 +85,8 @@ interface Target {
 
 // Human-approved, per-word Veo 3.1 prompts (reviewed 2026-05-19). The
 // quoted line is the spoken narration (matches src/lib/animal-info.ts).
-// Words intentionally absent (Mommy, Renee, Handsome Xaven) keep their
-// existing Blob clips and are NOT regenerated.
+// Words intentionally absent (Mommy) keep their existing Blob clips and are
+// NOT regenerated.
 const APPROVED_PROMPTS: Record<string, string> = {
   Alligator:
     'Medium shot of a friendly alligator resting near a sunny pond, slowly swishing its big tail and blinking calmly. Slow push-in, 50mm lens, warm soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject, friendly not scary. Audio: a warm friendly female narrator says cheerfully, "Alligators have big tails!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
@@ -134,6 +134,8 @@ const APPROVED_PROMPTS: Record<string, string> = {
     'Medium shot of a friendly penguin waddling on clean white ice, flippers out, with soft blue sky in the background. Slow low tracking camera, 50mm lens, bright soft daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Penguins waddle on ice!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Quokka:
     'Close-up of a smiling quokka nibbling a leaf, on a grassy island. Gentle push-in, 50mm lens, warm light. Photorealistic for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Quokkas always smile!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
+  Renee:
+    'Medium shot of a cheerful friendly royal mascot character with a small sparkling crown, waving and smiling warmly in a bright storybook garden. Soft 3D-animation look, gentle push-in, soft even light. Clean and playful for young children, single clear subject, toy-like mascot character, no real people. Audio: a warm friendly female narrator says cheerfully, "Hi Renee, Princess!" — no background music, natural ambient sound only. Mood: happy, warm, wholesome. No on-screen text, no captions. 8 seconds, 16:9.',
   Shark:
     'Medium shot of a sleek shark gliding with a smooth turn, in an open blue aquarium. Slow tracking, 35mm lens, cool clear light. Photorealistic for young children, vibrant and clean, single clear subject, friendly not scary. Audio: a warm friendly female narrator says cheerfully, "Sharks have sharp teeth!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   Turtle:
@@ -149,7 +151,7 @@ const APPROVED_PROMPTS: Record<string, string> = {
   Zebra:
     'Medium shot of a zebra trotting with crisp black-and-white stripes, on a grassy plain. Slow tracking, 50mm lens, warm daylight. Photorealistic wildlife documentary for young children, vibrant and clean, single clear subject. Audio: a warm friendly female narrator says cheerfully, "Zebras have stripes!" — no background music, natural ambient sound only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   "Handsome Xaven":
-    'Medium shot of a cheerful friendly cartoon prince mascot — a little boy prince with a small gold crown, waving and smiling warmly, in a bright sparkly storybook castle scene. Soft 3D-animation look, gentle push-in, soft even light. Clean and playful for young children, single clear subject, stylized cartoon (not a real person). Audio: a happy young child voice says brightly, "Hello Handsome Xaven!" — no background music, natural ambient sound only. Mood: happy, warm, wholesome. No on-screen text, no captions. 8 seconds, 16:9.',
+    'Medium shot of a cheerful friendly cartoon prince mascot — a little boy prince with a small gold crown, waving and smiling warmly, in a bright sparkly storybook castle scene. Soft 3D-animation look, gentle push-in, soft even light. Clean and playful for young children, single clear subject, stylized cartoon (not a real person). Audio: a happy young child voice says brightly, "Hi Handsome Zaven!" — no background music, natural ambient sound only. Mood: happy, warm, wholesome. No on-screen text, no captions. 8 seconds, 16:9.',
   "1":
     'Medium shot of one bright red starfish gently swaying on soft sand in a cheerful shallow ocean scene. Slow push-in, soft clear blue light, colorful toddler-friendly 3D-animation look, single clear subject, easy to count. Audio: a warm friendly female narrator says cheerfully, "One!" — no background music, natural gentle water sounds only. Mood: happy, calm, wholesome. No on-screen text, no captions, no people. 8 seconds, 16:9.',
   "2":
