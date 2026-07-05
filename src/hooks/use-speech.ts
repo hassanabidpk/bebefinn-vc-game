@@ -123,7 +123,7 @@ export function useSpeech() {
   );
 
   const stop = useCallback(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     setIsSpeaking(false);
   }, []);
