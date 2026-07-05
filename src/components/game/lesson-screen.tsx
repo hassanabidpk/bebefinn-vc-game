@@ -19,9 +19,11 @@ const LETTERS = alphabetData.filter((entry) =>
 );
 const TOTAL = LETTERS.length;
 
-function pickLessonEntry(entry: AlphabetEntry) {
+function pickLessonEntry(entry: AlphabetEntry, previousWord?: string) {
   const options = [entry, ...(entry.variants ?? [])];
-  return options[Math.floor(Math.random() * options.length)];
+  const choices =
+    options.length > 1 ? options.filter((option) => option.word !== previousWord) : options;
+  return choices[Math.floor(Math.random() * choices.length)];
 }
 
 export type LetterCase = "upper" | "lower" | "both";
@@ -59,6 +61,7 @@ export function LessonScreen({
   const revealEndFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPickedWordByLetter = useRef<Record<string, string>>({});
   const { speak, speakBilingual, stop } = useSpeech();
   const {
     play: geminiPlay,
@@ -99,8 +102,15 @@ export function LessonScreen({
   };
   const { playAnimalSound } = useGameAudio();
 
+  const chooseLessonEntry = (entry: AlphabetEntry) => {
+    const picked = pickLessonEntry(entry, lastPickedWordByLetter.current[entry.letter]);
+    lastPickedWordByLetter.current[entry.letter] = picked.word;
+    return picked;
+  };
+
   useEffect(() => {
-    setItem(pickLessonEntry(baseItem));
+    setItem(chooseLessonEntry(baseItem));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseItem]);
 
   const display =
@@ -139,25 +149,37 @@ export function LessonScreen({
       const k = e.key.toLowerCase();
       if (k.length === 1 && k >= "a" && k <= "z") {
         const target = LETTERS.findIndex((it) => it.letter.toLowerCase() === k);
-        if (target >= 0 && target !== index) {
+        if (target >= 0) {
           e.preventDefault();
-          onIndex(target);
+          if (target === index) {
+            setItem(chooseLessonEntry(LETTERS[target]));
+          } else {
+            onIndex(target);
+          }
         }
         return;
       }
       if (k.length === 1 && k >= "1" && k <= "9") {
         const target = LETTERS.findIndex((it) => it.letter === k);
-        if (target >= 0 && target !== index) {
+        if (target >= 0) {
           e.preventDefault();
-          onIndex(target);
+          if (target === index) {
+            setItem(chooseLessonEntry(LETTERS[target]));
+          } else {
+            onIndex(target);
+          }
         }
         return;
       }
       if (k === "0") {
         const target = LETTERS.findIndex((it) => it.letter === "10");
-        if (target >= 0 && target !== index) {
+        if (target >= 0) {
           e.preventDefault();
-          onIndex(target);
+          if (target === index) {
+            setItem(chooseLessonEntry(LETTERS[target]));
+          } else {
+            onIndex(target);
+          }
         }
         return;
       }
@@ -307,7 +329,11 @@ export function LessonScreen({
                   }}
                   onClick={() => {
                     setPickerOpen(false);
-                    if (i !== index) onIndex(i);
+                    if (i === index) {
+                      setItem(chooseLessonEntry(it));
+                    } else {
+                      onIndex(i);
+                    }
                   }}
                   aria-label={`${it.letter} for ${it.word}`}
                 >
