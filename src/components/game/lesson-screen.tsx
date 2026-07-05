@@ -56,6 +56,7 @@ export function LessonScreen({
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animalSoundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoVideoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealEndFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak, speakBilingual, stop } = useSpeech();
@@ -79,7 +80,22 @@ export function LessonScreen({
   };
 
   const speakReveal = (phrase: string, onEnd?: () => void) => {
-    geminiPlay(phrase, { voice: "Leda", onEnd }).catch(() => speak(phrase, { onEnd }));
+    let didFinish = false;
+    const finish = () => {
+      if (didFinish) return;
+      didFinish = true;
+      if (revealEndFallbackTimer.current) {
+        clearTimeout(revealEndFallbackTimer.current);
+        revealEndFallbackTimer.current = null;
+      }
+      onEnd?.();
+    };
+
+    if (onEnd) {
+      revealEndFallbackTimer.current = setTimeout(finish, 3600);
+    }
+
+    geminiPlay(phrase, { voice: "Leda", onEnd: finish }).catch(() => speak(phrase, { onEnd: finish }));
   };
   const { playAnimalSound } = useGameAudio();
 
@@ -104,6 +120,7 @@ export function LessonScreen({
       speechTimer,
       animalSoundTimer,
       autoVideoTimer,
+      revealEndFallbackTimer,
       confettiTimer,
       speakOffTimer,
       flipBackTimer,
