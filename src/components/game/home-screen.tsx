@@ -17,7 +17,7 @@ export function HomeScreen({ onStart, onMode }: HomeScreenProps) {
 
       <div className="home-title-block">
         <p className="home-eyebrow">ABC Ocean</p>
-        <h1 className="home-title">BebeFinn</h1>
+        <h1 className="home-title">Ocean Buddy</h1>
         <p className="home-subtitle">Alphabet Adventure!</p>
       </div>
 

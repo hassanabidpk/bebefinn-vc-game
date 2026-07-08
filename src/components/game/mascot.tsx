@@ -6,7 +6,7 @@ interface MascotProps {
   onClick?: () => void;
 }
 
-/** BebeFinn mascot image with idle / talking animation. */
+/** Original AI-generated Ocean Buddy mascot with idle / talking animation. */
 export function Mascot({ size = 280, animation = "idle", onClick }: MascotProps) {
   return (
     <div
@@ -15,7 +15,7 @@ export function Mascot({ size = 280, animation = "idle", onClick }: MascotProps)
       onClick={onClick}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/assets/images/bebefinn.png" alt="BebeFinn" draggable={false} />
+      <img src="/assets/images/ocean-buddy.png" alt="Ocean Buddy" draggable={false} />
     </div>
   );
 }

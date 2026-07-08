@@ -1,10 +1,10 @@
-# BebeFinn — Alphabet Adventure 🦈🌊
+# Ocean Buddy — Alphabet Adventure 🌊
 
 A bright, toddler-friendly **alphabet, numbers, colors, and animals** game built for kids ages 2–6. Designed to be safe, simple, and joyful — no ads, no purchases, no text input, no fail states. Just tap, listen, learn, and giggle.
 
-> **Live demo:** https://bebefinn-vc-game.vercel.app
+> **Live demo:** use the configured Vercel production URL for this project.
 
-![BebeFinn](public/assets/images/bebefinn.png)
+![Ocean Buddy](public/assets/images/ocean-buddy.png)
 
 ---
 
@@ -65,7 +65,7 @@ npx tsc --noEmit
 ## 📁 Project Structure
 
 ```
-bebefinn-vc-game/
+ocean-buddy-alphabet-game/
 ├── AGENTS.md                  # Source of truth for agent instructions
 ├── CLAUDE.md                  # Pointer to AGENTS.md
 ├── public/
@@ -75,7 +75,7 @@ bebefinn-vc-game/
 │   ├── app/                   # Next.js App Router pages + globals.css
 │   ├── components/
 │   │   ├── ui/                # Reusable UI (buttons, modals, menus)
-│   │   └── game/              # Alphabet game, BebeFinn character, animal stage
+│   │   └── game/              # Alphabet game, original mascot, animal stage
 │   ├── hooks/                 # use-game-audio, use-speech
 │   └── lib/                   # Lesson data, shared utilities
 ├── next.config.ts
@@ -120,7 +120,7 @@ All animal recordings are sourced from [Wikimedia Commons](https://commons.wikim
 | Whale | `Humpback whale moo.ogg` |
 | Fish / Jellyfish / Turtle | `Water bubbles chortling.ogg` (these animals are near-silent in nature) |
 
-If you replace the bundled assets with licensed BebeFinn / Pinkfong audio for production, drop them into `public/sounds/<animal>.mp3` — the keys in `ANIMAL_SOUND_FILES` (in `use-game-audio.ts`) drive playback.
+If you replace the bundled generated assets with custom licensed audio for production, drop them into `public/sounds/<animal>.mp3` — the keys in `ANIMAL_SOUND_FILES` (in `use-game-audio.ts`) drive playback.
 
 ---
 
@@ -142,7 +142,7 @@ If you replace the bundled assets with licensed BebeFinn / Pinkfong audio for pr
 - Parent gate planned for settings/exit
 
 ### Visual Style
-- Saturated BebeFinn palette (ocean blues, coral pinks, sunny yellows)
+- Saturated ocean palette (ocean blues, coral pinks, sunny yellows)
 - Rounded corners everywhere
 - Large expressive sprites with looping idle animations
 - Underwater-themed backgrounds
@@ -193,8 +193,8 @@ For the canonical agent / contributor guide see [`AGENTS.md`](./AGENTS.md).
 
 Production is hosted on Vercel and auto-deploys on push to `main`:
 
-- **Production URL**: https://bebefinn-vc-game.vercel.app
-- **Repository**: https://github.com/hassanabidpk/bebefinn-vc-game
+- **Production URL**: configured in Vercel
+- **Repository**: configured in GitHub
 
 Manual deploy:
 
@@ -210,7 +210,7 @@ vercel --prod
 - [ ] Korean (primary) + English bilingual i18n
 - [ ] PWA / offline support so kids can play without Wi-Fi
 - [ ] More mini-games: Ocean Adventure, Music & Dance, Puzzle Time, Coloring Book, Memory Match
-- [ ] Replace placeholder character art with licensed BebeFinn / Pinkfong assets
+- [ ] Keep character art original or use properly licensed custom assets
 - [ ] Lottie or GLTF realistic animal animations (currently stylized procedural Three.js rigs)
 
 ---
@@ -219,7 +219,7 @@ vercel --prod
 
 Source code: MIT (or update as appropriate).
 Animal recordings: CC0 / CC-BY from Wikimedia Commons (see attribution table above).
-Character placeholder art belongs to its respective rightsholders and must be replaced before any production / commercial release.
+Character art is original for this project; replace only with properly licensed custom assets.
 
 ---
 

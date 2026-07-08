@@ -1,4 +1,4 @@
-# CLAUDE.md — BebeFinn Kids Game
+# CLAUDE.md — Ocean Buddy Kids Game
 
 Use `AGENTS.md` as the single source of truth for project context, coding conventions, gameplay behavior, commands, and safety/design guidance.
 
