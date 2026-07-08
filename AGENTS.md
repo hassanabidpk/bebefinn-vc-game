@@ -1,16 +1,14 @@
-# AGENTS.md — BebeFinn Kids Game
+# AGENTS.md — Ocean Buddy Kids Game
 
 ## Project Overview
 
-A fun, educational, and interactive game for young children (ages 2-6) featuring **BebeFinn** (아기상어 베베핀) characters. The game is designed to be simple, colorful, and safe for toddlers and preschoolers.
+A fun, educational, and interactive game for young children (ages 2-6) featuring original, non-infringing Ocean Buddy characters. The game is designed to be simple, colorful, and safe for toddlers and preschoolers.
 
 ## Characters
 
-- **BebeFinn (베베핀)** — The main baby shark character, playful and curious
-- **Brooklyn (브루클린)** — BebeFinn's older sister, helpful and adventurous
-- **Mommy Shark / Daddy Shark** — Supporting parent characters
-- **Pinkfong (핑크퐁)** — The pink fox companion
-- Other sea creature friends (turtles, octopus, starfish, etc.)
+- **Ocean Buddy** — The original otter-like ocean explorer mascot, playful and curious
+- **Original sea creature friends** — turtles, octopus, starfish, whales, and other properly licensed or generated animals
+- Do not use BebeFinn, Pinkfong, Baby Shark, or lookalike copyrighted/trademarked characters or assets.
 
 ## Tech Stack
 
@@ -26,7 +24,7 @@ A fun, educational, and interactive game for young children (ages 2-6) featuring
 ## Project Structure
 
 ```
-bebefinn-vc-game/
+ocean-buddy-alphabet-game/
 ├── AGENTS.md
 ├── CLAUDE.md              # Defers to AGENTS.md
 ├── public/
@@ -37,7 +35,7 @@ bebefinn-vc-game/
 │   ├── app/                # Next.js app router pages and globals.css
 │   ├── components/
 │   │   ├── ui/             # Reusable UI components (buttons, modals, menus)
-│   │   └── game/           # Alphabet game, BebeFinn character, Three.js animal stage
+│   │   └── game/           # Alphabet game, original mascot, Three.js animal stage
 │   ├── hooks/              # Custom React hooks
 │   └── lib/                # Shared utilities, constants, types
 ├── package.json
@@ -47,7 +45,7 @@ bebefinn-vc-game/
 
 ## Current Gameplay
 
-- The active experience is **BebeFinn Alphabet Adventure**, a toddler-friendly alphabet and numbers practice game.
+- The active experience is **Ocean Buddy Alphabet Adventure**, a toddler-friendly alphabet and numbers practice game.
 - Lessons are defined in `src/lib/alphabet-data.ts`. Keep custom family/person labels exactly as requested by the user unless asked to change them.
 - Keyboard shortcuts jump directly to lessons: `A-Z` for letters, `1-9` for numbers, and `0` for `10`.
 - Number lessons should speak simply as `1 for 1`, `2 for 2`, etc. Do not add a repeated leading number.
@@ -73,7 +71,7 @@ bebefinn-vc-game/
 - **Parent gate** — settings/exit behind a simple parent-only gate (e.g., hold two buttons simultaneously)
 
 ### Visual Style
-- Bright, saturated colors matching BebeFinn's palette (ocean blues, coral pinks, sunny yellows)
+- Bright, saturated ocean colors (ocean blues, coral pinks, sunny yellows)
 - Rounded corners on everything — soft, friendly shapes
 - Large character sprites with expressive animations
 - Ocean / underwater themed backgrounds
@@ -88,11 +86,11 @@ bebefinn-vc-game/
 
 ## Game Modes / Mini-Games
 
-1. **Learn & Play** — Alphabet, numbers, colors, shapes with BebeFinn
+1. **Learn & Play** — Alphabet, numbers, colors, shapes with Ocean Buddy
 2. **Ocean Adventure** — Tap-to-swim exploration collecting items
-3. **Music & Dance** — Rhythm/music game with BebeFinn songs
+3. **Music & Dance** — Rhythm/music game with original songs
 4. **Puzzle Time** — Simple jigsaw and matching puzzles
-5. **Coloring Book** — Digital coloring with BebeFinn characters
+5. **Coloring Book** — Digital coloring with original characters
 6. **Memory Match** — Card-flipping memory game with sea creatures
 
 ## Coding Conventions
@@ -163,7 +161,7 @@ Notes:
 
 ## Important Notes
 
-- **All character assets are placeholders during development.** Final art must come from licensed BebeFinn/Pinkfong assets or original illustrations matching the style.
+- **Character assets must be original or properly licensed.** Do not use BebeFinn, Pinkfong, Baby Shark, or lookalike copyrighted/trademarked characters.
 - **Bilingual support**: Korean (primary) and English. All user-facing strings should go through an i18n system.
 - **Mobile-first**: Design for phones/tablets first, desktop is secondary.
 - **Offline capable**: Consider PWA support so kids can play without internet.

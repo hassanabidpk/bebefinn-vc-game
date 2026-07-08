@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BebeFinn Alphabet Game",
-  description: "Learn the alphabet with BebeFinn! A fun educational game for kids.",
+  title: "Ocean Buddy Alphabet Game",
+  description: "Learn the alphabet with Ocean Buddy! A fun educational game for kids.",
 };
 
 export default function RootLayout({

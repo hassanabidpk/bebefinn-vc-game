@@ -37,8 +37,8 @@ const CARD_IMAGES: Record<string, string> = {
   Vulture: "/animals/vulture.jpeg",
   Yak: "/animals/yak.png",
   Zebra: "/animals/zebra.png",
-  // X for Handsome Xaven uses the BebeFinn mascot image.
-  "Handsome Xaven": "/assets/images/bebefinn.png",
+  // X for Handsome Xaven uses the original Ocean Buddy mascot image.
+  "Handsome Xaven": "/assets/images/ocean-buddy.png",
 };
 
 // Realistic Veo 3.1 clips under /public/assets/videos/, played on demand
@@ -92,7 +92,7 @@ export function hasAnimalPhoto(word: string) {
 }
 
 /** True only for entries with a real animal photo under /public/animals/.
- * Excludes the BebeFinn mascot stand-in and emoji-only stickers — used
+ * Excludes the mascot stand-in and emoji-only stickers — used
  * by the "Find the Animal" game where mismatched options would confuse. */
 export function isRealAnimal(word: string) {
   const url = CARD_IMAGES[word];
@@ -112,10 +112,10 @@ export function AnimalPhoto({ word, color, size = 220 }: AnimalPhotoProps) {
   const ring = color || "#ffffff";
   const animClass = ANIM_CLASS[word] || "a-bob";
   const isPhoto = Boolean(photoUrl);
-  // Only the BebeFinn mascot needs `contain` + tinted backdrop because
+  // Only the mascot needs `contain` + tinted backdrop because
   // it is a transparent character cutout. Animal photos are full-frame
   // shots that should center-crop to fill the square card edge to edge.
-  const isMascotPng = photoUrl === "/assets/images/bebefinn.png";
+  const isMascotImage = photoUrl === "/assets/images/ocean-buddy.png";
 
   return (
     <div
@@ -125,9 +125,9 @@ export function AnimalPhoto({ word, color, size = 220 }: AnimalPhotoProps) {
           width: size,
           height: size,
           ["--ring" as string]: ring,
-          // PNG mascot sits on a soft tinted backdrop instead of a white
+          // Mascot sits on a soft tinted backdrop instead of a white
           // square so transparency reads as part of the ring.
-          background: isMascotPng
+          background: isMascotImage
             ? `radial-gradient(circle at 50% 30%, ${ring}33 0%, ${ring}66 60%, ${ring}88 100%)`
             : "#fff",
         } as React.CSSProperties
@@ -142,7 +142,7 @@ export function AnimalPhoto({ word, color, size = 220 }: AnimalPhotoProps) {
           alt={word}
           draggable={false}
           loading="lazy"
-          style={isMascotPng ? { objectFit: "contain", padding: "6%" } : undefined}
+          style={isMascotImage ? { objectFit: "contain", padding: "6%" } : undefined}
         />
       ) : (
         <div
