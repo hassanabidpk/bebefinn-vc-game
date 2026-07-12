@@ -7,6 +7,7 @@ import { useGeminiTTS } from "@/hooks/use-gemini-tts";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto, isRealAnimal } from "./animal-photo";
+import { Confetti } from "./confetti";
 import type { LetterCase } from "./lesson-screen";
 
 // Only letters that have a real animal photo are eligible — the game
@@ -115,6 +116,7 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
   const [streak, setStreak] = useState(0);
   const [feedback, setFeedback] = useState<{ idx: number; correct: boolean } | null>(null);
   const [sparkAt, setSparkAt] = useState<{ x: number; y: number } | null>(null);
+  const [milestone, setMilestone] = useState(0);
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak } = useSpeech();
@@ -157,9 +159,17 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
       }
       // Animal sound first for instant tactile feedback, then narration.
       playAnimalSound(tile.word.toLowerCase());
-      setTimeout(() => speakPrompt(`${tile.letter}! ${tile.word}!`), 350);
       setScore((s) => s + 10 + streak * 2);
-      setStreak((s) => s + 1);
+      const newStreak = streak + 1;
+      setStreak(newStreak);
+      // Every 5 in a row, celebrate out loud — toddlers can't read the count.
+      if (newStreak % 5 === 0) {
+        setMilestone((m) => m + 1);
+        setTimeout(() => speakPrompt(`Amazing! ${newStreak} in a row!`), 350);
+        setTimeout(() => setMilestone(0), 2600);
+      } else {
+        setTimeout(() => speakPrompt(`${tile.letter}! ${tile.word}!`), 350);
+      }
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       feedbackTimer.current = setTimeout(() => {
         setFeedback(null);
@@ -234,6 +244,7 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
       </div>
 
       {sparkAt ? <Sparkles x={sparkAt.x} y={sparkAt.y} /> : null}
+      {milestone ? <Confetti key={`streak-${milestone}`} /> : null}
     </div>
   );
 }
