@@ -1,29 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSpellingRound,
-  DISTRACTOR_COUNT,
   spellingWords,
   type SpellingRound,
 } from "./spelling-data";
 
 describe("buildSpellingRound", () => {
-  it("builds a bank with every needed letter instance plus distractors", () => {
+  it("builds a bank of exactly the word's letters, in reading order", () => {
     for (let i = 0; i < 200; i += 1) {
       const round = buildSpellingRound();
-      expect(round.bank).toHaveLength(round.letters.length + DISTRACTOR_COUNT);
-
-      // Each slot has exactly one correct tile, matching the word letter.
-      round.letters.forEach((letter, slot) => {
-        const tiles = round.bank.filter((t) => t.slot === slot);
-        expect(tiles).toHaveLength(1);
-        expect(tiles[0].letter).toBe(letter);
-      });
-
-      // Distractors are not among the word's letters.
-      const needed = new Set(round.letters);
-      round.bank
-        .filter((t) => t.slot === null)
-        .forEach((t) => expect(needed.has(t.letter)).toBe(false));
+      // One tile per letter, no distractors.
+      expect(round.bank).toHaveLength(round.letters.length);
+      // Bank order matches the word's letter order (C, A, T — not shuffled).
+      expect(round.bank.map((t) => t.letter)).toEqual(round.letters);
+      round.bank.forEach((tile, i) => expect(tile.slot).toBe(i));
     }
   });
 

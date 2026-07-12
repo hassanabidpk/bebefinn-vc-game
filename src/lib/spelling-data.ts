@@ -58,10 +58,6 @@ export const spellingWords: SpellingWord[] = [
   { word: "Tengah", color: "#27AE60" },
 ];
 
-const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-/** Extra letters offered in the bank beyond the word's own letters. */
-export const DISTRACTOR_COUNT = 2;
-
 export interface Slot {
   /** Uppercase letter for a tappable slot, or " " for a word gap. */
   char: string;
@@ -73,8 +69,8 @@ export interface Slot {
 
 export interface BankTile {
   letter: string;
-  /** Index into the round's letters for a correct tile; null for distractors. */
-  slot: number | null;
+  /** Index into the round's letters this tile fills. */
+  slot: number;
   /** Stable id so identical letters render as distinct tiles. */
   id: number;
 }
@@ -89,20 +85,11 @@ export interface SpellingRound {
   key: number;
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const out = arr.slice();
-  for (let i = out.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
-
 /**
- * Pure round builder. Picks a word (never the previous one), splits it into
- * ordered slots (spaces become non-tappable gaps), and builds a shuffled bank
- * of the correct letters plus DISTRACTOR_COUNT random letters not already
- * needed by the word.
+ * Pure round builder. Picks a word (never the previous one) and splits it into
+ * ordered slots (spaces become non-tappable gaps). The bank holds exactly the
+ * word's letters in reading order — no distractors, no shuffle — so a toddler
+ * sees "C A T" under the slots, not a jumble, and matches left to right.
  */
 export function buildSpellingRound(prev?: SpellingRound): SpellingRound {
   let idx = Math.floor(Math.random() * spellingWords.length);
@@ -125,24 +112,17 @@ export function buildSpellingRound(prev?: SpellingRound): SpellingRound {
     });
   const letters = slots.filter((s) => !s.space).map((s) => s.char);
 
-  let nextId = 0;
-  const correctTiles: BankTile[] = letters.map((letter, slot) => ({
+  const bank: BankTile[] = letters.map((letter, slot) => ({
     letter,
     slot,
-    id: nextId++,
+    id: slot,
   }));
-
-  const needed = new Set(letters);
-  const pool = shuffle(ALPHABET.filter((l) => !needed.has(l)));
-  const distractors: BankTile[] = pool
-    .slice(0, DISTRACTOR_COUNT)
-    .map((letter) => ({ letter, slot: null, id: nextId++ }));
 
   return {
     word,
     slots,
     letters,
-    bank: shuffle([...correctTiles, ...distractors]),
+    bank,
     key: (prev?.key ?? 0) + 1,
   };
 }

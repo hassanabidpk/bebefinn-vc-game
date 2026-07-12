@@ -69,8 +69,19 @@ that step — the letter chant + confetti is the celebration.
 `buildSpellingRound` supports any word length and multi-word phrases: it
 splits the word into ordered `slots`, where spaces become non-tappable **gap
 slots** (auto-filled, no bank tile) so "CHICKEN RICE" reads as two words.
-`letters` (the tappable sequence) excludes gaps; bank = letters + 2
-distractors. Adding words is a data-only change.
+`letters` (the tappable sequence) excludes gaps. Adding words is a data-only
+change.
+
+The bank holds **exactly the word's letters in reading order — no distractors,
+no shuffle** — so a toddler sees "C A T" under the slots (not "T A C") and
+matches left to right. This is deliberately gentle for ages 3-4; distractors
+could return later as a harder mode.
+
+**Celebration.** Each correct letter plays a pop (`playTap`) and is spoken;
+the filled slot pops in. Completing the word fires a fanfare (`playCelebrate`),
+a green ✓ check + word banner + party emojis, confetti, a letter-by-letter
+chant then "You did it!", the animal sound, and a happy photo wiggle / slot
+bounce / star pop before auto-advancing. Honors `prefers-reduced-motion`.
 
 Image generation is a separate deliberate script (not wired into the build),
 matching the existing `generate-videos.ts` / `generate-tts.ts` pattern.
