@@ -10,7 +10,7 @@ import { AnimalPhoto } from "./animal-photo";
 import { Confetti } from "./confetti";
 
 const HINT_DELAY_MS = 8000;
-const ADVANCE_MS = 2600;
+const ADVANCE_MS = 3200;
 
 interface SpellingScreenProps {
   onHome: () => void;
@@ -30,7 +30,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
 
   const { speak } = useSpeech();
   const { play: geminiPlay, prefetch: geminiPrefetch } = useGeminiTTS();
-  const { playAnimalSound } = useGameAudio();
+  const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
 
   // Gemini Leda voice with browser-TTS fallback, matching play-screen.tsx.
   const say = useCallback(
@@ -100,13 +100,17 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
       setCelebrating(true);
       setStars((s) => s + 1);
       if (hintTimer.current) clearTimeout(hintTimer.current);
-      // Chant each letter, then the whole word, then the animal sound.
+      // Instant reward fanfare, then spell it back, praise, and the animal
+      // sound — a clear "you did it!" moment for the child.
+      playCelebrate();
       const chant = `${letters.join("… ")}… ${word}!`;
-      setTimeout(() => say(chant), 250);
-      setTimeout(() => playAnimalSound(word.toLowerCase()), 250 + letters.length * 700);
-      advanceTimer.current = setTimeout(advance, ADVANCE_MS + letters.length * 250);
+      setTimeout(() => say(chant), 300);
+      const afterChant = 300 + letters.length * 700;
+      setTimeout(() => playAnimalSound(word.toLowerCase()), afterChant);
+      setTimeout(() => say(`You did it! Great job!`), afterChant + 500);
+      advanceTimer.current = setTimeout(advance, ADVANCE_MS + letters.length * 300);
     },
-    [say, playAnimalSound, advance]
+    [say, playAnimalSound, playCelebrate, advance]
   );
 
   const onTile = useCallback(
@@ -118,6 +122,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
         setHintId(null);
         const nextPlaced = [...placed, tile.id];
         setPlaced(nextPlaced);
+        playTap();
         say(want);
         scheduleHint();
         if (nextPlaced.length >= round.letters.length) {
@@ -130,7 +135,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
         wrongTimer.current = setTimeout(() => setWrongId(null), 500);
       }
     },
-    [celebrating, placed, round, say, scheduleHint, finish]
+    [celebrating, placed, round, say, playTap, scheduleHint, finish]
   );
 
   // Keyboard parity: a letter key acts as a tap on the first matching,
@@ -150,7 +155,10 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   const overlay = `radial-gradient(circle at 50% 10%, ${color}55 0%, transparent 32%), linear-gradient(180deg, ${color}33 0%, #0495d9 48%, #005580 100%)`;
 
   return (
-    <div className="play-screen spelling-screen" style={{ backgroundColor: `${color}22` }}>
+    <div
+      className={`play-screen spelling-screen ${celebrating ? "celebrating" : ""}`}
+      style={{ backgroundColor: `${color}22` }}
+    >
       <div className="lesson-bg-overlay" style={{ background: overlay }} />
       <BubbleBackground />
 
@@ -162,59 +170,73 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
           </div>
         </div>
         <div />
-        <div className="score-pill">
+        <div className={`score-pill ${celebrating ? "pop" : ""}`}>
           <span className="star">⭐</span>
           {stars}
         </div>
       </header>
 
-      <div className="spelling-photo">
-        <AnimalPhoto word={round.word.word} color={color} size={200} />
-        <button
-          className="prompt-speak spelling-replay"
-          onClick={() => say(`Spell ${round.word.word}!`)}
-          aria-label="Say the word again"
-        >
-          🔊
-        </button>
+      <div className="spelling-body">
+        <div className="spelling-photo">
+          <AnimalPhoto word={round.word.word} color={color} size={240} />
+          <button
+            className="prompt-speak spelling-replay"
+            onClick={() => say(`Spell ${round.word.word}!`)}
+            aria-label="Say the word again"
+          >
+            🔊
+          </button>
+        </div>
+
+        <div className="spelling-slots" key={`slots-${round.key}`}>
+          {round.slots.map((slot, i) => {
+            if (slot.space) {
+              return <div key={i} className="spelling-slot space" aria-hidden />;
+            }
+            const filled = slot.tapIndex < placed.length;
+            const isNext = slot.tapIndex === placed.length && !complete;
+            return (
+              <div
+                key={i}
+                className={`spelling-slot ${filled ? "filled" : ""} ${isNext ? "next" : ""}`}
+                style={filled ? { color } : undefined}
+              >
+                {filled ? slot.char : ""}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="spelling-bank" key={`bank-${round.key}`}>
+          {round.bank.map((tile) => {
+            const used = placed.includes(tile.id);
+            return (
+              <button
+                key={tile.id}
+                className={`play-tile spelling-tile ${used ? "used" : ""} ${
+                  wrongId === tile.id ? "wrong" : ""
+                } ${hintId === tile.id ? "hint" : ""}`}
+                onClick={() => onTile(tile)}
+                disabled={used}
+                aria-label={tile.letter}
+              >
+                {tile.letter}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="spelling-slots" key={`slots-${round.key}`}>
-        {round.letters.map((letter, i) => {
-          const filled = i < placed.length;
-          const isNext = i === placed.length && !complete;
-          return (
-            <div
-              key={i}
-              className={`spelling-slot ${filled ? "filled" : ""} ${isNext ? "next" : ""}`}
-              style={filled ? { color } : undefined}
-            >
-              {filled ? letter : ""}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="spelling-bank" key={`bank-${round.key}`}>
-        {round.bank.map((tile) => {
-          const used = placed.includes(tile.id);
-          return (
-            <button
-              key={tile.id}
-              className={`play-tile spelling-tile ${used ? "used" : ""} ${
-                wrongId === tile.id ? "wrong" : ""
-              } ${hintId === tile.id ? "hint" : ""}`}
-              onClick={() => onTile(tile)}
-              disabled={used}
-              aria-label={tile.letter}
-            >
-              {tile.letter}
-            </button>
-          );
-        })}
-      </div>
-
-      {celebrating ? <Confetti key={`confetti-${round.key}`} /> : null}
+      {celebrating ? (
+        <>
+          <Confetti key={`confetti-${round.key}`} />
+          <div className="spelling-cheer" role="status">
+            <span className="spelling-cheer-check">✓</span>
+            <span className="spelling-cheer-text">{round.word.word}!</span>
+            <span className="spelling-cheer-stars">🎉 ⭐ 🎉</span>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
