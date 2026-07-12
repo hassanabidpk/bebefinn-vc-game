@@ -48,4 +48,24 @@ describe("buildSpellingRound", () => {
       expect(words.has(buildSpellingRound().word.word)).toBe(true);
     }
   });
+
+  it("models word gaps as non-tappable slots and excludes them from letters", () => {
+    for (let i = 0; i < 300; i += 1) {
+      const round = buildSpellingRound();
+      const letterSlots = round.slots.filter((s) => !s.space);
+      // Tappable letters line up with non-space slots, in order.
+      expect(letterSlots.map((s) => s.char)).toEqual(round.letters);
+      letterSlots.forEach((s, idx) => expect(s.tapIndex).toBe(idx));
+      // Gap slots carry a space, no tap index, and never a bank tile.
+      round.slots
+        .filter((s) => s.space)
+        .forEach((s) => {
+          expect(s.char).toBe(" ");
+          expect(s.tapIndex).toBe(-1);
+        });
+      // A multi-word entry keeps its display spaces as gap slots.
+      const spaces = round.word.word.split("").filter((c) => c === " ").length;
+      expect(round.slots.filter((s) => s.space)).toHaveLength(spaces);
+    }
+  });
 });

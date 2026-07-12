@@ -1,16 +1,17 @@
 export interface SpellingWord {
-  /** Title-case word, also the key passed to AnimalPhoto for art. */
+  /** Title-case word (or phrase), also the key passed to AnimalPhoto for art. */
   word: string;
   color: string;
 }
 
 /**
- * Short, picturable words for ages 3-4 — mostly animals and food. Every
- * word has a real picture: "Cat"/"Dog"/"Bear"/"Lion"/"Fish" reuse the
- * photos under /public/animals/, and the rest use generated cards under
- * /public/spelling/ (see scripts/generate-images.ts). All words map to a
- * key in animal-photo.tsx CARD_IMAGES. Three- and four-letter words are
- * mixed; the slot row and letter bank stay small for little fingers.
+ * Short, picturable words for ages 3-4 — mostly animals and food, plus a few
+ * family and Singapore words. Every word has a real picture:
+ * Cat/Dog/Bear/Lion/Fish/Whale/Shark/Elephant reuse the photos under
+ * /public/animals/, and the rest use generated cards under /public/spelling/
+ * (see scripts/generate-images.ts). All words map to a key in
+ * animal-photo.tsx CARD_IMAGES. Multi-word entries (e.g. "Chicken Rice")
+ * keep their space as a non-tappable gap slot.
  */
 export const spellingWords: SpellingWord[] = [
   // 3-letter
@@ -22,6 +23,7 @@ export const spellingWords: SpellingWord[] = [
   { word: "Sun", color: "#F39C12" },
   { word: "Bus", color: "#E74C3C" },
   { word: "Fox", color: "#E67E22" },
+  { word: "Zoo", color: "#6BCB77" },
   // 4-letter animals
   { word: "Bear", color: "#A0522D" },
   { word: "Lion", color: "#F39C12" },
@@ -32,21 +34,46 @@ export const spellingWords: SpellingWord[] = [
   { word: "Deer", color: "#B5651D" },
   { word: "Crab", color: "#E74C3C" },
   { word: "Seal", color: "#7F8C8D" },
-  // 4-letter food
+  // longer animals
+  { word: "Whale", color: "#2980B9" },
+  { word: "Shark", color: "#34495E" },
+  { word: "Elephant", color: "#95A5A6" },
+  // food
   { word: "Cake", color: "#FF6B8A" },
   { word: "Milk", color: "#74B9FF" },
   { word: "Corn", color: "#F1C40F" },
   { word: "Pear", color: "#6BCB77" },
   { word: "Eggs", color: "#F39C12" },
+  { word: "Apple", color: "#E74C3C" },
+  { word: "Banana", color: "#F1C40F" },
+  { word: "Noodles", color: "#F5B041" },
+  { word: "Cookies", color: "#A0522D" },
+  { word: "Chicken Rice", color: "#E8A33D" },
+  // family
+  { word: "Mommy", color: "#E056A0" },
+  { word: "Papa", color: "#4A90D9" },
+  { word: "Amma", color: "#C0785A" },
+  // places
+  { word: "Singapore", color: "#E74C3C" },
+  { word: "Tengah", color: "#27AE60" },
 ];
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 /** Extra letters offered in the bank beyond the word's own letters. */
 export const DISTRACTOR_COUNT = 2;
 
+export interface Slot {
+  /** Uppercase letter for a tappable slot, or " " for a word gap. */
+  char: string;
+  /** True for a non-tappable gap between words (auto-filled, no bank tile). */
+  space: boolean;
+  /** Index into the round's `letters` for a tappable slot; -1 for a gap. */
+  tapIndex: number;
+}
+
 export interface BankTile {
   letter: string;
-  /** Index into the word's letters for a correct tile; null for distractors. */
+  /** Index into the round's letters for a correct tile; null for distractors. */
   slot: number | null;
   /** Stable id so identical letters render as distinct tiles. */
   id: number;
@@ -54,7 +81,9 @@ export interface BankTile {
 
 export interface SpellingRound {
   word: SpellingWord;
-  /** Upper-case letters, one per slot, in order. */
+  /** Display sequence including word gaps. */
+  slots: Slot[];
+  /** Upper-case tappable letters, in order (gaps excluded). */
   letters: string[];
   bank: BankTile[];
   key: number;
@@ -71,8 +100,9 @@ function shuffle<T>(arr: T[]): T[] {
 
 /**
  * Pure round builder. Picks a word (never the previous one), splits it into
- * ordered letter slots, and builds a shuffled bank of the correct letters
- * plus DISTRACTOR_COUNT random letters not already needed by the word.
+ * ordered slots (spaces become non-tappable gaps), and builds a shuffled bank
+ * of the correct letters plus DISTRACTOR_COUNT random letters not already
+ * needed by the word.
  */
 export function buildSpellingRound(prev?: SpellingRound): SpellingRound {
   let idx = Math.floor(Math.random() * spellingWords.length);
@@ -82,7 +112,18 @@ export function buildSpellingRound(prev?: SpellingRound): SpellingRound {
     }
   }
   const word = spellingWords[idx];
-  const letters = word.word.toUpperCase().split("");
+
+  let tap = 0;
+  const slots: Slot[] = word.word
+    .toUpperCase()
+    .split("")
+    .map((ch) => {
+      const isLetter = ch >= "A" && ch <= "Z";
+      return isLetter
+        ? { char: ch, space: false, tapIndex: tap++ }
+        : { char: " ", space: true, tapIndex: -1 };
+    });
+  const letters = slots.filter((s) => !s.space).map((s) => s.char);
 
   let nextId = 0;
   const correctTiles: BankTile[] = letters.map((letter, slot) => ({
@@ -99,6 +140,7 @@ export function buildSpellingRound(prev?: SpellingRound): SpellingRound {
 
   return {
     word,
+    slots,
     letters,
     bank: shuffle([...correctTiles, ...distractors]),
     key: (prev?.key ?? 0) + 1,

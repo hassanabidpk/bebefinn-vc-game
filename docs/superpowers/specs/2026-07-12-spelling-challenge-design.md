@@ -57,15 +57,20 @@ picture: `Cat`/`Dog`/`Bear`/`Lion`/`Fish` reuse the photos under
 `/public/spelling/` (see `scripts/generate-images.ts`, model
 `gemini-2.5-flash-image`). All words map to a key in `CARD_IMAGES`.
 
-- 3-letter: CAT, DOG, COW, PIG, BEE, SUN, BUS, FOX
-- 4-letter animals: BEAR, LION, FISH, FROG, GOAT, DUCK, DEER, CRAB, SEAL
-- 4-letter food: CAKE, MILK, CORN, PEAR, EGGS
+- Animals: CAT, DOG, COW, PIG, BEE, FOX, BEAR, LION, FISH, FROG, GOAT, DUCK, DEER, CRAB, SEAL, WHALE, SHARK, ELEPHANT
+- Food: CAKE, MILK, CORN, PEAR, EGGS, APPLE, BANANA, NOODLES, COOKIES, CHICKEN RICE
+- Family: MOMMY, PAPA, AMMA
+- Places / other: ZOO, SUN, BUS, SINGAPORE, TENGAH
 
 Words with a matching entry in `ANIMAL_SOUND_FILES`/synth (cat, dog, bear,
-lion, fish, …) play their sound on completion; the rest simply skip that step
-— the letter chant + confetti is the celebration. `buildSpellingRound`
-supports any word length: slots = word length, bank = word letters + 2
-distractors, so adding words is a data-only change.
+lion, fish, whale, …) play their sound on completion; the rest simply skip
+that step — the letter chant + confetti is the celebration.
+
+`buildSpellingRound` supports any word length and multi-word phrases: it
+splits the word into ordered `slots`, where spaces become non-tappable **gap
+slots** (auto-filled, no bank tile) so "CHICKEN RICE" reads as two words.
+`letters` (the tappable sequence) excludes gaps; bank = letters + 2
+distractors. Adding words is a data-only change.
 
 Image generation is a separate deliberate script (not wired into the build),
 matching the existing `generate-videos.ts` / `generate-tts.ts` pattern.

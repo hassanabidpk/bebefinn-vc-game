@@ -59,6 +59,18 @@ const CARD_IMAGES: Record<string, string> = {
   Corn: "/spelling/corn.png",
   Pear: "/spelling/pear.png",
   Eggs: "/spelling/eggs.png",
+  Apple: "/spelling/apple.png",
+  Banana: "/spelling/banana.png",
+  Noodles: "/spelling/noodles.png",
+  Cookies: "/spelling/cookies.png",
+  "Chicken Rice": "/spelling/chicken-rice.png",
+  Zoo: "/spelling/zoo.png",
+  Singapore: "/spelling/singapore.png",
+  Tengah: "/spelling/tengah.png",
+  // Family — "Mommy" also upgrades the alphabet M lesson from 👩 to a photo.
+  Mommy: "/spelling/mommy.png",
+  Papa: "/spelling/papa.png",
+  Amma: "/spelling/amma.png",
 };
 
 // Realistic Veo 3.1 clips under /public/assets/videos/, played on demand

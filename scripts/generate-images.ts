@@ -5,9 +5,9 @@
  *
  * NOT wired into the build — run deliberately:
  *
- *   npx tsx scripts/generate-images.ts            # all missing
- *   npx tsx scripts/generate-images.ts frog cake  # only these words
- *   FORCE=1 npx tsx scripts/generate-images.ts pig # overwrite existing
+ *   npx tsx scripts/generate-images.ts              # all missing
+ *   npx tsx scripts/generate-images.ts frog cake    # only these words
+ *   FORCE=1 npx tsx scripts/generate-images.ts pig  # overwrite existing
  *
  * Re-running skips words whose PNG already exists (unless FORCE=1), so it
  * is resumable.
@@ -19,6 +19,85 @@ import path from "node:path";
 const MODEL = process.env.IMAGE_MODEL || "gemini-2.5-flash-image";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const OUT_DIR = path.join(process.cwd(), "public", "spelling");
+
+// Shared trailer applied to every prompt — square, clean, and crucially
+// free of any text (the letters live in the game UI, not the picture).
+const SUFFIX =
+  "Square 1:1 composition, subject centered and filling most of the frame. " +
+  "Bright cheerful colors, soft gentle lighting, cute and friendly, not scary. " +
+  "Absolutely no text, no letters, no words, no numbers, no captions, no watermark.";
+
+// Per-word look. Objects/animals/food are single subjects with no people;
+// people are warm cartoon characters; scenes are simple cartoon settings.
+const STYLE = {
+  object:
+    "Photorealistic soft 3D-render style for a toddler app. Single clear subject on a soft plain pastel studio background, rounded friendly shapes. No people.",
+  person:
+    "Warm, friendly soft 3D cartoon character in the style of a wholesome children's animation. One smiling, kind person, head-and-shoulders, simple soft pastel background. Gentle and cute, not photorealistic.",
+  scene:
+    "Colorful, simple, cheerful cartoon scene for a toddler app, clean and uncluttered, soft pastel palette, rounded friendly shapes. No visible people.",
+} as const;
+
+type Style = keyof typeof STYLE;
+
+const PROMPTS: Record<string, { p: string; s: Style }> = {
+  // Animals (upgraded emoji cards + earlier 4-letter set)
+  Cow: { p: "A friendly spotted dairy cow standing and smiling gently.", s: "object" },
+  Pig: { p: "A cute happy pink pig with a curly tail.", s: "object" },
+  Bee: { p: "A cute friendly honeybee with a soft round fuzzy body and little wings.", s: "object" },
+  Fox: { p: "An adorable orange fox sitting with a fluffy tail.", s: "object" },
+  Frog: { p: "A cheerful bright green frog sitting on a lily pad.", s: "object" },
+  Goat: { p: "A friendly little white goat with small horns, standing.", s: "object" },
+  Duck: { p: "A cute yellow duckling standing and looking happy.", s: "object" },
+  Deer: { p: "A gentle brown baby deer (fawn) with soft white spots, standing.", s: "object" },
+  Crab: { p: "A cute bright red crab with friendly round eyes and small claws.", s: "object" },
+  Seal: { p: "An adorable smooth grey baby seal with big shiny eyes.", s: "object" },
+  Sun: { p: "A happy smiling golden sun with soft warm rays.", s: "object" },
+  Bus: { p: "A cute chunky yellow school bus, friendly cartoon style, side view.", s: "object" },
+  // Food
+  Cake: { p: "A cheerful slice of birthday cake with pink frosting and a cherry on top.", s: "object" },
+  Milk: { p: "A tall clear glass of fresh white milk.", s: "object" },
+  Corn: { p: "A bright yellow ear of corn with green husk leaves.", s: "object" },
+  Pear: { p: "A single fresh green pear, ripe and shiny.", s: "object" },
+  Eggs: { p: "Two sunny fried eggs on a small round white plate.", s: "object" },
+  Apple: { p: "A single shiny red apple with a small green leaf on top.", s: "object" },
+  Banana: { p: "A single ripe yellow banana.", s: "object" },
+  Noodles: { p: "A friendly bowl of noodle soup with a few vegetables, cute and appetizing.", s: "object" },
+  Cookies: { p: "A small stack of round golden chocolate-chip cookies.", s: "object" },
+  "Chicken Rice": {
+    p: "A plate of Singapore Hainanese chicken rice — sliced steamed chicken beside a mound of rice with a cucumber slice, cute and appetizing.",
+    s: "object",
+  },
+  // Places / scenes
+  Zoo: {
+    p: "A cheerful cartoon zoo entrance with a big friendly archway and a couple of cute animals (a giraffe and an elephant) peeking over a fence.",
+    s: "scene",
+  },
+  Singapore: {
+    p: "A cute cartoon Singapore skyline with the Marina Bay waterfront, a friendly Merlion statue spouting water, and a boat-shaped rooftop building, blue sky.",
+    s: "scene",
+  },
+  Tengah: {
+    p: "A cheerful green cartoon eco-town neighborhood with a few colorful low houses surrounded by lush trees and a small park, bright and leafy.",
+    s: "scene",
+  },
+  // Family
+  Mommy: { p: "A warm, loving cartoon mom with a kind smile, waving hello.", s: "person" },
+  Papa: { p: "A warm, friendly cartoon dad with a big happy smile, waving hello.", s: "person" },
+  Amma: {
+    p: "A warm, gentle cartoon grandmother with kind eyes and a loving smile, hair in a soft bun, waving hello.",
+    s: "person",
+  },
+};
+
+interface ImagePart {
+  inlineData?: { data?: string; mimeType?: string };
+  inline_data?: { data?: string; mime_type?: string };
+}
+interface GenResponse {
+  candidates?: Array<{ content?: { parts?: ImagePart[] } }>;
+  error?: { message?: string };
+}
 
 async function loadDotEnvLocal() {
   if (process.env.GEMINI_API_KEY) return;
@@ -39,46 +118,6 @@ function fileSlug(word: string): string {
   return word.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-const STYLE =
-  "Bright, cheerful, photorealistic 3D-render style for a toddler learning app. " +
-  "Single clear subject, centered, filling most of the square frame. " +
-  "Soft plain pastel studio background, gentle soft lighting, vibrant clean colors, " +
-  "rounded friendly shapes, cute and happy, not scary. " +
-  "Square 1:1 composition. Absolutely no text, no letters, no words, no captions, no watermark, no people.";
-
-// Per-word subject prompt; STYLE is appended to every one.
-const PROMPTS: Record<string, string> = {
-  // Animals (upgrading emoji cards + new 4-letter words)
-  Cow: "A friendly spotted dairy cow standing and smiling gently.",
-  Pig: "A cute happy pink pig with a curly tail.",
-  Bee: "A cute friendly honeybee with soft round fuzzy body and little wings.",
-  Fox: "An adorable orange fox sitting with a fluffy tail.",
-  Frog: "A cheerful bright green frog sitting on a lily pad.",
-  Goat: "A friendly little white goat with small horns, standing.",
-  Duck: "A cute yellow duckling standing and looking happy.",
-  Deer: "A gentle brown baby deer (fawn) with soft white spots, standing.",
-  Crab: "A cute bright red crab with friendly round eyes and small claws.",
-  Seal: "An adorable smooth grey baby seal with big shiny eyes.",
-  // Not-animal, not-food but simple and picturable
-  Sun: "A happy smiling golden sun with soft warm rays.",
-  Bus: "A cute chunky yellow school bus, friendly cartoon style, side view.",
-  // Food
-  Cake: "A cheerful slice of birthday cake with pink frosting and a cherry on top.",
-  Milk: "A tall clear glass of fresh white milk.",
-  Corn: "A bright yellow ear of corn with green husk leaves.",
-  Pear: "A single fresh green pear, ripe and shiny.",
-  Eggs: "Two sunny fried eggs on a small round white plate.",
-};
-
-interface ImagePart {
-  inlineData?: { data?: string; mimeType?: string };
-  inline_data?: { data?: string; mime_type?: string };
-}
-interface GenResponse {
-  candidates?: Array<{ content?: { parts?: ImagePart[] } }>;
-  error?: { message?: string };
-}
-
 async function fileExists(p: string): Promise<boolean> {
   try {
     await access(p, FS.F_OK);
@@ -88,12 +127,12 @@ async function fileExists(p: string): Promise<boolean> {
   }
 }
 
-async function generate(apiKey: string, prompt: string, dest: string) {
+async function generate(apiKey: string, text: string, dest: string) {
   const r = await fetch(`${GEMINI_BASE}/models/${MODEL}:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: `${prompt} ${STYLE}` }] }],
+      contents: [{ parts: [{ text }] }],
       generationConfig: { responseModalities: ["IMAGE"] },
     }),
   });
@@ -123,7 +162,7 @@ async function main() {
   const only = new Set(process.argv.slice(2).map((w) => w.toLowerCase()));
   const force = process.env.FORCE === "1";
   const words = Object.keys(PROMPTS).filter(
-    (w) => only.size === 0 || only.has(w.toLowerCase())
+    (w) => only.size === 0 || only.has(w.toLowerCase()) || only.has(fileSlug(w))
   );
   console.log(`[img] provider=gemini-api model=${MODEL} — ${words.length} word(s)`);
 
@@ -138,7 +177,8 @@ async function main() {
     }
     try {
       console.log(`[img] generating: ${word}`);
-      await generate(apiKey, PROMPTS[word], dest);
+      const { p, s } = PROMPTS[word];
+      await generate(apiKey, `${p} ${STYLE[s]} ${SUFFIX}`, dest);
       made++;
       console.log(`[img] saved ${fileSlug(word)}.png`);
     } catch (err) {

@@ -180,16 +180,19 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
       </div>
 
       <div className="spelling-slots" key={`slots-${round.key}`}>
-        {round.letters.map((letter, i) => {
-          const filled = i < placed.length;
-          const isNext = i === placed.length && !complete;
+        {round.slots.map((slot, i) => {
+          if (slot.space) {
+            return <div key={i} className="spelling-slot space" aria-hidden />;
+          }
+          const filled = slot.tapIndex < placed.length;
+          const isNext = slot.tapIndex === placed.length && !complete;
           return (
             <div
               key={i}
               className={`spelling-slot ${filled ? "filled" : ""} ${isNext ? "next" : ""}`}
               style={filled ? { color } : undefined}
             >
-              {filled ? letter : ""}
+              {filled ? slot.char : ""}
             </div>
           );
         })}
