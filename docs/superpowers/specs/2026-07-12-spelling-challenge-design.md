@@ -17,7 +17,7 @@ Also included: two small improvements to existing modes (see Improvements).
 
 ## Non-Goals
 
-- No difficulty progression / levels system (single pool of 3-letter words; 4-letter words can be added to the data file later without code changes).
+- No difficulty progression / levels system (single mixed pool of 3- and 4-letter words; more words are a data-only add).
 - No persistence of progress or scores across sessions.
 - No drag-and-drop (motor skill too demanding at 3; tap only).
 - No i18n work in this iteration (matches current codebase, which is English-only today despite the AGENTS.md bilingual note).
@@ -49,22 +49,26 @@ If no correct tap happens for 8 seconds, the correct tile in the bank pulses onc
 - 🔊 replay button re-speaks "Spell {word}!".
 - Keyboard: letter keys act as taps on matching bank tiles (parity with existing keyboard shortcuts; harmless for touch users).
 
-## Word Pool (initial)
+## Word Pool
 
-3-letter words whose pictures already exist in `animal-photo.tsx` or render well as emoji stickers:
+Mixed 3- and 4-letter words, mostly animals and food. Every word has a real
+picture: `Cat`/`Dog`/`Bear`/`Lion`/`Fish` reuse the photos under
+`/public/animals/`; the rest are Gemini-generated cards under
+`/public/spelling/` (see `scripts/generate-images.ts`, model
+`gemini-2.5-flash-image`). All words map to a key in `CARD_IMAGES`.
 
-| Word | Art | Animal sound |
-|------|-----|--------------|
-| CAT  | photo | yes |
-| DOG  | photo | yes |
-| BEE  | emoji 🐝 | yes (buzz, if available in `use-game-audio`, else skip) |
-| COW  | emoji 🐄 | yes |
-| PIG  | emoji 🐷 | yes |
-| SUN  | emoji ☀️ | no |
-| BUS  | emoji 🚌 | no |
-| FOX  | emoji 🦊 | no |
+- 3-letter: CAT, DOG, COW, PIG, BEE, SUN, BUS, FOX
+- 4-letter animals: BEAR, LION, FISH, FROG, GOAT, DUCK, DEER, CRAB, SEAL
+- 4-letter food: CAKE, MILK, CORN, PEAR, EGGS
 
-Exact art per word is verified at implementation time against `CARD_IMAGES`/`EMOJI_STICKERS`; any word without art gets a plain emoji added to `EMOJI_STICKERS`. Words with no generated animal sound simply skip that step — the chant + confetti is the celebration.
+Words with a matching entry in `ANIMAL_SOUND_FILES`/synth (cat, dog, bear,
+lion, fish, …) play their sound on completion; the rest simply skip that step
+— the letter chant + confetti is the celebration. `buildSpellingRound`
+supports any word length: slots = word length, bank = word letters + 2
+distractors, so adding words is a data-only change.
+
+Image generation is a separate deliberate script (not wired into the build),
+matching the existing `generate-videos.ts` / `generate-tts.ts` pattern.
 
 ## Architecture
 

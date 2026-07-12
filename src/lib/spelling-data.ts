@@ -1,26 +1,43 @@
 export interface SpellingWord {
   /** Title-case word, also the key passed to AnimalPhoto for art. */
   word: string;
-  /** Emoji sticker for words without a photo; ignored when a photo exists. */
-  emoji?: string;
   color: string;
 }
 
 /**
- * Short, picturable words for ages 3-4. "Cat"/"Dog" reuse the realistic
- * photos in animal-photo.tsx; the rest render as emoji stickers (their
- * keys are added to EMOJI_STICKERS there). All words are 3 letters so the
- * slot row and letter bank stay small enough for little fingers.
+ * Short, picturable words for ages 3-4 — mostly animals and food. Every
+ * word has a real picture: "Cat"/"Dog"/"Bear"/"Lion"/"Fish" reuse the
+ * photos under /public/animals/, and the rest use generated cards under
+ * /public/spelling/ (see scripts/generate-images.ts). All words map to a
+ * key in animal-photo.tsx CARD_IMAGES. Three- and four-letter words are
+ * mixed; the slot row and letter bank stay small for little fingers.
  */
 export const spellingWords: SpellingWord[] = [
+  // 3-letter
   { word: "Cat", color: "#FF9F43" },
   { word: "Dog", color: "#A0522D" },
-  { word: "Cow", emoji: "🐄", color: "#7F8C8D" },
-  { word: "Pig", emoji: "🐷", color: "#FF6B8A" },
-  { word: "Bee", emoji: "🐝", color: "#F1C40F" },
-  { word: "Sun", emoji: "☀️", color: "#F39C12" },
-  { word: "Bus", emoji: "🚌", color: "#E74C3C" },
-  { word: "Fox", emoji: "🦊", color: "#E67E22" },
+  { word: "Cow", color: "#7F8C8D" },
+  { word: "Pig", color: "#FF6B8A" },
+  { word: "Bee", color: "#F1C40F" },
+  { word: "Sun", color: "#F39C12" },
+  { word: "Bus", color: "#E74C3C" },
+  { word: "Fox", color: "#E67E22" },
+  // 4-letter animals
+  { word: "Bear", color: "#A0522D" },
+  { word: "Lion", color: "#F39C12" },
+  { word: "Fish", color: "#54A0FF" },
+  { word: "Frog", color: "#27AE60" },
+  { word: "Goat", color: "#95A5A6" },
+  { word: "Duck", color: "#F1C40F" },
+  { word: "Deer", color: "#B5651D" },
+  { word: "Crab", color: "#E74C3C" },
+  { word: "Seal", color: "#7F8C8D" },
+  // 4-letter food
+  { word: "Cake", color: "#FF6B8A" },
+  { word: "Milk", color: "#74B9FF" },
+  { word: "Corn", color: "#F1C40F" },
+  { word: "Pear", color: "#6BCB77" },
+  { word: "Eggs", color: "#F39C12" },
 ];
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
