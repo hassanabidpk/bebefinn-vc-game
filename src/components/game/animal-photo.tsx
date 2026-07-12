@@ -57,6 +57,13 @@ export function hasAnimalVideo(word: string) {
  *  Renee Princesse — Disney IP can't be redistributed). */
 const EMOJI_STICKERS: Record<string, string> = {
   Renee: "👸",
+  // Spelling Challenge words without a photo (see spelling-data.ts).
+  Cow: "🐄",
+  Pig: "🐷",
+  Bee: "🐝",
+  Sun: "☀️",
+  Bus: "🚌",
+  Fox: "🦊",
 };
 
 const ANIM_CLASS: Record<string, string> = {
