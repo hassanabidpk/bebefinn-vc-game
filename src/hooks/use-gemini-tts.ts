@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /**
  * Fetches WAV audio from /api/tts (server-side Gemini TTS) and plays it
@@ -45,6 +45,7 @@ export interface PlayOptions {
 
 export function useGeminiTTS() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackIdRef = useRef(0);
 
   const ensureAudio = () => {
     if (!audioRef.current) {
@@ -55,6 +56,7 @@ export function useGeminiTTS() {
   };
 
   const stop = useCallback(() => {
+    playbackIdRef.current += 1;
     const a = audioRef.current;
     if (!a) return;
     a.onended = null;
@@ -64,28 +66,46 @@ export function useGeminiTTS() {
   }, []);
 
   const play = useCallback(async (text: string, opts: PlayOptions = {}): Promise<void> => {
+    const playbackId = ++playbackIdRef.current;
+    const currentAudio = audioRef.current;
+    if (currentAudio) {
+      currentAudio.onended = null;
+      currentAudio.onerror = null;
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+
     const voice = opts.voice ?? "Puck";
     const key = `${voice}|${text}`;
 
     let entry = blobCache.get(key);
     if (!entry) {
-      // Prefer the pre-generated static asset baked at build time.
-      let blob = await fetchStaticTTS(voice, text);
-      if (!blob) {
-        const r = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, voice }),
-        });
-        if (!r.ok) {
-          const msg = await r.text();
-          throw new Error(`tts ${r.status}: ${msg}`);
+      try {
+        // Prefer the pre-generated static asset baked at build time.
+        let blob = await fetchStaticTTS(voice, text);
+        if (!blob) {
+          const r = await fetch("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, voice }),
+          });
+          if (!r.ok) {
+            const msg = await r.text();
+            throw new Error(`tts ${r.status}: ${msg}`);
+          }
+          blob = await r.blob();
         }
-        blob = await r.blob();
+        entry = { url: URL.createObjectURL(blob), voice };
+        blobCache.set(key, entry);
+      } catch (error) {
+        // Cancellation is not a playback failure and must not start fallback TTS.
+        if (playbackId !== playbackIdRef.current) return;
+        throw error;
       }
-      entry = { url: URL.createObjectURL(blob), voice };
-      blobCache.set(key, entry);
     }
+
+    // A screen change or newer prompt may have happened while audio loaded.
+    if (playbackId !== playbackIdRef.current) return;
 
     const audio = ensureAudio();
     audio.onended = null;
@@ -107,11 +127,16 @@ export function useGeminiTTS() {
     });
   }, []);
 
+  useEffect(() => stop, [stop]);
+
   /** Speak English (Leda, female), short pause, then Chinese (Aoede). */
   const playBilingual = useCallback(
     async (en: string, zh: string, onAllDone?: () => void) => {
+      const englishPlaybackId = playbackIdRef.current + 1;
       await play(en, { voice: "Leda" });
+      if (playbackIdRef.current !== englishPlaybackId) return;
       await new Promise((r) => setTimeout(r, 250));
+      if (playbackIdRef.current !== englishPlaybackId) return;
       await play(zh, { voice: "Aoede", onEnd: onAllDone });
     },
     [play]

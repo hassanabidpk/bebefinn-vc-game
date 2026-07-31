@@ -7,17 +7,12 @@ function chooseFriendlyVoice(voices: SpeechSynthesisVoice[]) {
     voices.find(
       (voice) =>
         voice.lang === "en-US" &&
-        (voice.name.includes("Samantha") ||
-          voice.name.includes("Google US English") ||
-          voice.name.includes("Microsoft Aria"))
+        /samantha|google us english|microsoft (aria|jenny)|natural/i.test(voice.name)
     ) ??
     voices.find(
       (voice) =>
         voice.lang.startsWith("en") &&
-        (voice.name.includes("Karen") ||
-          voice.name.includes("Moira") ||
-          voice.name.includes("Female") ||
-          voice.name.includes("Natural"))
+        /karen|moira|female|natural|premium|enhanced/i.test(voice.name)
     ) ??
     voices.find((voice) => voice.lang.startsWith("en")) ??
     null
@@ -73,9 +68,9 @@ export function useSpeech() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = opts.rate ?? 0.72;
-    utterance.pitch = 1.2;
-    utterance.volume = 0.95;
+    utterance.rate = opts.rate ?? 0.82;
+    utterance.pitch = 1.06;
+    utterance.volume = 1;
 
     const voices = voicesRef.current.length
       ? voicesRef.current

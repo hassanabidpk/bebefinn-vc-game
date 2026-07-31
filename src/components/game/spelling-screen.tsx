@@ -1,23 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { buildSpellingRound, type BankTile, type SpellingRound } from "@/lib/spelling-data";
+import {
+  buildSpellingRound,
+  spellingMaxLettersForStars,
+  type BankTile,
+  type SpellingRound,
+} from "@/lib/spelling-data";
 import { useSpeech } from "@/hooks/use-speech";
-import { useGeminiTTS } from "@/hooks/use-gemini-tts";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto } from "./animal-photo";
 import { Confetti } from "./confetti";
 
 const HINT_DELAY_MS = 8000;
-const ADVANCE_MS = 3200;
+const CELEBRATION_FALLBACK_MS = 12000;
 
 interface SpellingScreenProps {
   onHome: () => void;
 }
 
 export function SpellingScreen({ onHome }: SpellingScreenProps) {
-  const [round, setRound] = useState<SpellingRound>(() => buildSpellingRound());
+  const [round, setRound] = useState<SpellingRound>(() =>
+    buildSpellingRound(undefined, spellingMaxLettersForStars(0))
+  );
   const [placed, setPlaced] = useState<number[]>([]);
   const [wrongId, setWrongId] = useState<number | null>(null);
   const [hintId, setHintId] = useState<number | null>(null);
@@ -27,17 +33,19 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrongTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const narrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const celebrationId = useRef(0);
 
   const { speak } = useSpeech();
-  const { play: geminiPlay, prefetch: geminiPrefetch } = useGeminiTTS();
   const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
 
-  // Gemini Leda voice with browser-TTS fallback, matching play-screen.tsx.
+  // Interactive spelling must respond instantly, even when cloud TTS is unavailable.
   const say = useCallback(
-    (text: string) => {
-      geminiPlay(text, { voice: "Leda" }).catch(() => speak(text));
+    (text: string, onEnd?: () => void) => {
+      speak(text, { onEnd });
     },
-    [geminiPlay, speak]
+    [speak]
   );
 
   const nextSlot = placed.length;
@@ -54,8 +62,9 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
             const tile = r.bank.find((t) => t.letter === want && !p.includes(t.id));
             if (tile) {
               setHintId(tile.id);
-              say(`Find the ${want}!`);
-              setTimeout(() => setHintId(null), 1200);
+              say(`Can you find ${want}?`);
+              if (hintOffTimer.current) clearTimeout(hintOffTimer.current);
+              hintOffTimer.current = setTimeout(() => setHintId(null), 1400);
             }
           }
           return p;
@@ -68,8 +77,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
 
   // New round: speak the prompt, prefetch, and start the idle-hint clock.
   useEffect(() => {
-    const phrase = `Spell ${round.word.word}!`;
-    geminiPrefetch(phrase, "Leda");
+    const phrase = `Let's spell ${round.word.word}. Tap the letters in order.`;
     const t = setTimeout(() => say(phrase), 250);
     scheduleHint();
     return () => {
@@ -84,33 +92,55 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
       if (hintTimer.current) clearTimeout(hintTimer.current);
       if (advanceTimer.current) clearTimeout(advanceTimer.current);
       if (wrongTimer.current) clearTimeout(wrongTimer.current);
+      if (hintOffTimer.current) clearTimeout(hintOffTimer.current);
+      if (narrationTimer.current) clearTimeout(narrationTimer.current);
+      celebrationId.current += 1;
     };
   }, []);
 
-  const advance = useCallback(() => {
+  const advance = useCallback((completedStars: number) => {
     setCelebrating(false);
     setPlaced([]);
     setWrongId(null);
     setHintId(null);
-    setRound((r) => buildSpellingRound(r));
+    setRound((r) => buildSpellingRound(r, spellingMaxLettersForStars(completedStars)));
   }, []);
 
   const finish = useCallback(
     (letters: string[], word: string) => {
+      const id = ++celebrationId.current;
+      const completedStars = stars + 1;
       setCelebrating(true);
-      setStars((s) => s + 1);
+      setStars(completedStars);
       if (hintTimer.current) clearTimeout(hintTimer.current);
-      // Instant reward fanfare, then spell it back, praise, and the animal
-      // sound — a clear "you did it!" moment for the child.
       playCelebrate();
-      const chant = `${letters.join("… ")}… ${word}!`;
-      setTimeout(() => say(chant), 300);
-      const afterChant = 300 + letters.length * 700;
-      setTimeout(() => playAnimalSound(word.toLowerCase()), afterChant);
-      setTimeout(() => say(`You did it! Great job!`), afterChant + 500);
-      advanceTimer.current = setTimeout(advance, ADVANCE_MS + letters.length * 300);
+      const chant = `${letters.join(". ")}. ${word}!`;
+
+      const goNext = () => {
+        if (id !== celebrationId.current) return;
+        celebrationId.current += 1;
+        if (advanceTimer.current) clearTimeout(advanceTimer.current);
+        advance(completedStars);
+      };
+
+      // Advance from real audio completion, not a word-length estimate.
+      narrationTimer.current = setTimeout(() => {
+        say(chant, () => {
+          if (id !== celebrationId.current) return;
+          playAnimalSound(word.toLowerCase());
+          narrationTimer.current = setTimeout(() => {
+            say("Wonderful spelling!", () => {
+              if (advanceTimer.current) clearTimeout(advanceTimer.current);
+              advanceTimer.current = setTimeout(goNext, 650);
+            });
+          }, 300);
+        });
+      }, 250);
+
+      // A failed browser/audio completion event must never trap the child.
+      advanceTimer.current = setTimeout(goNext, CELEBRATION_FALLBACK_MS);
     },
-    [say, playAnimalSound, playCelebrate, advance]
+    [stars, say, playAnimalSound, playCelebrate, advance]
   );
 
   const onTile = useCallback(
@@ -130,7 +160,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
         }
       } else {
         setWrongId(tile.id);
-        say("Try again!");
+        say("Almost! Try again.");
         if (wrongTimer.current) clearTimeout(wrongTimer.current);
         wrongTimer.current = setTimeout(() => setWrongId(null), 500);
       }
@@ -166,7 +196,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
         <div className="progress-pill">
           <div className="progress-pill-row">
-            <span className="progress-letter">🔤 Spelling</span>
+            <span className="progress-letter">🔤 Spell</span>
           </div>
         </div>
         <div />
@@ -181,7 +211,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
           <AnimalPhoto word={round.word.word} color={color} size={240} />
           <button
             className="prompt-speak spelling-replay"
-            onClick={() => say(`Spell ${round.word.word}!`)}
+            onClick={() => say(`Let's spell ${round.word.word}.`)}
             aria-label="Say the word again"
           >
             🔊

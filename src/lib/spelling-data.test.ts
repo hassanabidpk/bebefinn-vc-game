@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSpellingRound,
+  spellingMaxLettersForStars,
   spellingWords,
   type SpellingRound,
 } from "./spelling-data";
@@ -29,6 +30,18 @@ describe("buildSpellingRound", () => {
       const next = buildSpellingRound(prev);
       expect(next.word.word).not.toBe(prev.word.word);
       prev = next;
+    }
+  });
+
+  it("starts with short words and unlocks longer words gradually", () => {
+    expect(spellingMaxLettersForStars(0)).toBe(3);
+    expect(spellingMaxLettersForStars(3)).toBe(4);
+    expect(spellingMaxLettersForStars(7)).toBe(6);
+    expect(spellingMaxLettersForStars(11)).toBe(Number.POSITIVE_INFINITY);
+
+    for (let i = 0; i < 100; i += 1) {
+      const round = buildSpellingRound(undefined, spellingMaxLettersForStars(0));
+      expect(round.letters.length).toBeLessThanOrEqual(3);
     }
   });
 

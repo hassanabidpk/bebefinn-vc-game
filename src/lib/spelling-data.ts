@@ -85,20 +85,34 @@ export interface SpellingRound {
   key: number;
 }
 
+export function spellingMaxLettersForStars(stars: number) {
+  if (stars < 3) return 3;
+  if (stars < 7) return 4;
+  if (stars < 11) return 6;
+  return Number.POSITIVE_INFINITY;
+}
+
 /**
  * Pure round builder. Picks a word (never the previous one) and splits it into
  * ordered slots (spaces become non-tappable gaps). The bank holds exactly the
  * word's letters in reading order — no distractors, no shuffle — so a toddler
  * sees "C A T" under the slots, not a jumble, and matches left to right.
  */
-export function buildSpellingRound(prev?: SpellingRound): SpellingRound {
-  let idx = Math.floor(Math.random() * spellingWords.length);
-  if (prev && spellingWords.length > 1) {
-    while (spellingWords[idx].word === prev.word.word) {
-      idx = Math.floor(Math.random() * spellingWords.length);
+export function buildSpellingRound(
+  prev?: SpellingRound,
+  maxLetters = Number.POSITIVE_INFINITY
+): SpellingRound {
+  const eligible = spellingWords.filter(
+    (entry) => entry.word.replace(/[^A-Za-z]/g, "").length <= maxLetters
+  );
+  const pool = eligible.length ? eligible : spellingWords;
+  let idx = Math.floor(Math.random() * pool.length);
+  if (prev && pool.length > 1) {
+    while (pool[idx].word === prev.word.word) {
+      idx = Math.floor(Math.random() * pool.length);
     }
   }
-  const word = spellingWords[idx];
+  const word = pool[idx];
 
   let tap = 0;
   const slots: Slot[] = word.word
