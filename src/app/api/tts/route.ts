@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import crypto from "node:crypto";
 import { generateGeminiSpeech, isGeminiSpendingCapError } from "@/lib/gemini-tts";
+import { TTS_CACHE_VERSION } from "@/lib/tts-config";
 import { isAllowedTtsPhrase } from "@/lib/tts-phrases";
 
 /**
@@ -40,7 +41,10 @@ export async function POST(req: NextRequest) {
   if (voice !== "Leda" && voice !== "Aoede") {
     return new Response("voice not allowed", { status: 400 });
   }
-  const cacheKey = crypto.createHash("sha256").update(`${voice}|${text}`).digest("hex");
+  const cacheKey = crypto
+    .createHash("sha256")
+    .update(`${TTS_CACHE_VERSION}|${voice}|${text}`)
+    .digest("hex");
 
   const cached = cache.get(cacheKey);
   if (cached) {
