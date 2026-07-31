@@ -14,6 +14,8 @@ interface CacheEntry {
 }
 
 const blobCache = new Map<string, CacheEntry>();
+const entryLoads = new Map<string, Promise<CacheEntry>>();
+let apiUnavailableUntil = 0;
 
 /** sha256(voice|text) → first 16 hex chars. Matches scripts/generate-tts.ts. */
 async function hashKey(voice: string, text: string): Promise<string> {
@@ -37,8 +39,50 @@ async function fetchStaticTTS(voice: string, text: string): Promise<Blob | null>
   }
 }
 
+async function loadEntry(text: string, voice: string): Promise<CacheEntry> {
+  const key = `${voice}|${text}`;
+  const cached = blobCache.get(key);
+  if (cached) return cached;
+
+  const pending = entryLoads.get(key);
+  if (pending) return pending;
+
+  const load = (async () => {
+    let blob = await fetchStaticTTS(voice, text);
+    if (!blob) {
+      if (Date.now() < apiUnavailableUntil) throw new Error("tts api temporarily unavailable");
+      const r = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voice }),
+      });
+      if (!r.ok) {
+        const retryAfter = Number(r.headers.get("Retry-After") ?? 30);
+        if (r.status >= 500 || r.status === 429) {
+          apiUnavailableUntil = Date.now() + Math.max(30, retryAfter) * 1000;
+        }
+        const msg = await r.text();
+        throw new Error(`tts ${r.status}: ${msg}`);
+      }
+      blob = await r.blob();
+    }
+
+    const entry = { url: URL.createObjectURL(blob), voice };
+    blobCache.set(key, entry);
+    return entry;
+  })();
+
+  entryLoads.set(key, load);
+  try {
+    return await load;
+  } finally {
+    entryLoads.delete(key);
+  }
+}
+
 export interface PlayOptions {
   voice?: string;
+  onStart?: () => void;
   onEnd?: () => void;
   onError?: (err: unknown) => void;
 }
@@ -75,33 +119,16 @@ export function useGeminiTTS() {
       currentAudio.currentTime = 0;
     }
 
-    const voice = opts.voice ?? "Puck";
+    const voice = opts.voice ?? "Leda";
     const key = `${voice}|${text}`;
 
-    let entry = blobCache.get(key);
-    if (!entry) {
-      try {
-        // Prefer the pre-generated static asset baked at build time.
-        let blob = await fetchStaticTTS(voice, text);
-        if (!blob) {
-          const r = await fetch("/api/tts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, voice }),
-          });
-          if (!r.ok) {
-            const msg = await r.text();
-            throw new Error(`tts ${r.status}: ${msg}`);
-          }
-          blob = await r.blob();
-        }
-        entry = { url: URL.createObjectURL(blob), voice };
-        blobCache.set(key, entry);
-      } catch (error) {
-        // Cancellation is not a playback failure and must not start fallback TTS.
-        if (playbackId !== playbackIdRef.current) return;
-        throw error;
-      }
+    let entry: CacheEntry;
+    try {
+      entry = await loadEntry(text, voice);
+    } catch (error) {
+      // Cancellation is not a playback failure and must not start fallback TTS.
+      if (playbackId !== playbackIdRef.current) return;
+      throw error;
     }
 
     // A screen change or newer prompt may have happened while audio loaded.
@@ -123,7 +150,12 @@ export function useGeminiTTS() {
         opts.onError?.(err);
         reject(err);
       };
-      audio.play().catch(reject);
+      audio
+        .play()
+        .then(() => {
+          if (playbackId === playbackIdRef.current) opts.onStart?.();
+        })
+        .catch(reject);
     });
   }, []);
 
@@ -147,20 +179,8 @@ export function useGeminiTTS() {
    * the WAV is in memory by the time the user actually needs to hear it.
    */
   const prefetch = useCallback(async (text: string, voice = "Leda") => {
-    const key = `${voice}|${text}`;
-    if (blobCache.has(key)) return;
     try {
-      let blob = await fetchStaticTTS(voice, text);
-      if (!blob) {
-        const r = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, voice }),
-        });
-        if (!r.ok) return;
-        blob = await r.blob();
-      }
-      blobCache.set(key, { url: URL.createObjectURL(blob), voice });
+      await loadEntry(text, voice);
     } catch {
       // Network blip — caller will fall back to browser TTS.
     }

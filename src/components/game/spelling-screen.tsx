@@ -7,7 +7,7 @@ import {
   type BankTile,
   type SpellingRound,
 } from "@/lib/spelling-data";
-import { useSpeech } from "@/hooks/use-speech";
+import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto } from "./animal-photo";
@@ -37,7 +37,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   const narrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const celebrationId = useRef(0);
 
-  const { speak } = useSpeech();
+  const { speak, prefetch } = useFriendlySpeech();
   const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
 
   // Interactive spelling must respond instantly, even when cloud TTS is unavailable.
@@ -78,6 +78,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   // New round: speak the prompt, prefetch, and start the idle-hint clock.
   useEffect(() => {
     const phrase = `Let's spell ${round.word.word}. Tap the letters in order.`;
+    prefetch(phrase);
     const t = setTimeout(() => say(phrase), 250);
     scheduleHint();
     return () => {
@@ -85,7 +86,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
       if (hintTimer.current) clearTimeout(hintTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round.key]);
+  }, [round.key, prefetch, say, scheduleHint, round.word.word]);
 
   useEffect(() => {
     return () => {

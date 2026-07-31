@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
-import { useSpeech } from "@/hooks/use-speech";
+import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { BubbleBackground } from "./ocean-stage";
 
@@ -54,7 +54,7 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const nextId = useRef(1);
   const paperRef = useRef<HTMLDivElement | null>(null);
-  const { speak } = useSpeech();
+  const { speak } = useFriendlySpeech();
   const { playTap } = useGameAudio();
 
   // Keep the latest character in view as the page fills up.

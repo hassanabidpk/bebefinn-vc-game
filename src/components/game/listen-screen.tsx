@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
-import { useSpeech } from "@/hooks/use-speech";
+import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { BubbleBackground } from "./ocean-stage";
 import type { LetterCase } from "./lesson-screen";
 
@@ -19,7 +19,7 @@ export function ListenScreen({ onHome, letterCase }: ListenScreenProps) {
   const [playing, setPlaying] = useState(true);
   const stepTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { speak, stop } = useSpeech();
+  const { speak, stop, prefetch } = useFriendlySpeech();
   const item = LETTERS[idx];
   const display =
     letterCase === "lower"
@@ -39,6 +39,7 @@ export function ListenScreen({ onHome, letterCase }: ListenScreenProps) {
       stepTimer.current = setTimeout(() => setIdx((i) => (i + 1) % TOTAL), 650);
     };
     const phrase = `${item.letter}. ${item.spokenWord ?? item.word}.`;
+    prefetch(phrase);
     speak(phrase, { onEnd: next });
     speechFallbackTimer.current = setTimeout(next, 5000);
     return () => {
@@ -47,7 +48,7 @@ export function ListenScreen({ onHome, letterCase }: ListenScreenProps) {
       stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, playing]);
+  }, [idx, item, playing, prefetch, speak, stop]);
 
   const togglePlaying = () => {
     setPlaying((p) => {
