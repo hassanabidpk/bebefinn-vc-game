@@ -152,8 +152,10 @@ async function main() {
   let skipped = 0;
   let failed = 0;
 
-  const concurrency = Math.max(1, Number(process.env.TTS_CONCURRENCY ?? 4));
-  const throttleMs = Math.max(0, Number(process.env.TTS_THROTTLE_MS ?? 500));
+  // Conservative defaults fit low-quota keys. Paid projects can opt into
+  // parallel generation with TTS_CONCURRENCY and a lower TTS_THROTTLE_MS.
+  const concurrency = Math.max(1, Number(process.env.TTS_CONCURRENCY ?? 1));
+  const throttleMs = Math.max(0, Number(process.env.TTS_THROTTLE_MS ?? 13000));
   let cursor = 0;
   let aborted = false;
 
