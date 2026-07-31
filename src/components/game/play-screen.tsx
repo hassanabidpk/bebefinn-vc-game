@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
 import { useSpeech } from "@/hooks/use-speech";
-import { useGeminiTTS } from "@/hooks/use-gemini-tts";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto, isRealAnimal } from "./animal-photo";
@@ -119,27 +118,33 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
   const [milestone, setMilestone] = useState(0);
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const narrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const milestoneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak } = useSpeech();
-  const { play: geminiPlay, prefetch: geminiPrefetch } = useGeminiTTS();
   const { playAnimalSound } = useGameAudio();
 
-  // Speak the prompt with Gemini Leda; fall back to browser TTS on
-  // network errors so kids always hear something.
+  // Immediate device speech keeps tap feedback responsive when cloud TTS is unavailable.
   const speakPrompt = (text: string) => {
-    geminiPlay(text, { voice: "Leda" }).catch(() => speak(text));
+    speak(text);
   };
 
   useEffect(() => {
     if (promptTimer.current) clearTimeout(promptTimer.current);
     const phrase = `Find the ${round.target.word}!`;
-    // Prefetch ahead of any later replays.
-    geminiPrefetch(phrase, "Leda");
     promptTimer.current = setTimeout(() => speakPrompt(phrase), 250);
     return () => {
       if (promptTimer.current) clearTimeout(promptTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round.key]);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+      if (narrationTimer.current) clearTimeout(narrationTimer.current);
+      if (milestoneTimer.current) clearTimeout(milestoneTimer.current);
+    };
+  }, []);
 
   const onTile = (e: React.MouseEvent<HTMLButtonElement>, i: number) => {
     if (feedback) return;
@@ -165,19 +170,25 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
       // Every 5 in a row, celebrate out loud — toddlers can't read the count.
       if (newStreak % 5 === 0) {
         setMilestone((m) => m + 1);
-        setTimeout(() => speakPrompt(`Amazing! ${newStreak} in a row!`), 350);
-        setTimeout(() => setMilestone(0), 2600);
+        narrationTimer.current = setTimeout(
+          () => speakPrompt(`Amazing! ${newStreak} in a row!`),
+          350
+        );
+        milestoneTimer.current = setTimeout(() => setMilestone(0), 3000);
       } else {
-        setTimeout(() => speakPrompt(`${tile.letter}! ${tile.word}!`), 350);
+        narrationTimer.current = setTimeout(
+          () => speakPrompt(`${tile.letter}! ${tile.word}!`),
+          350
+        );
       }
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       feedbackTimer.current = setTimeout(() => {
         setFeedback(null);
         setSparkAt(null);
         setRound((rr) => buildRound(rr));
-      }, 1500);
+      }, 2400);
     } else {
-      speakPrompt("Try again!");
+      speakPrompt("Almost! Try again.");
       setStreak(0);
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       feedbackTimer.current = setTimeout(() => setFeedback(null), 700);

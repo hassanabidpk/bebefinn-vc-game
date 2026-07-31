@@ -849,8 +849,12 @@ html, body {
   transition: transform 0.1s;
 }
 .prompt-speak:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--coral-shadow); }
-.play-prompt-row { display: flex; justify-content: center; margin: 14px 0 6px; }
+.play-prompt-row {
+  position: relative; z-index: 10;
+  display: flex; justify-content: center; margin: 14px 0 6px;
+}
 .play-grid {
+  position: relative; z-index: 10;
   flex: 1; display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(2, 1fr);
@@ -1181,6 +1185,7 @@ html, body {
 /* Center picture + slots + bank in the space under the header, so there is
    no big empty gap and everything reads as one clear top-to-bottom column. */
 .spelling-body {
+  position: relative; z-index: 10;
   flex: 1; width: 100%;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;

@@ -18,6 +18,7 @@ export function ListenScreen({ onHome, letterCase }: ListenScreenProps) {
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
   const stepTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speechFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak, stop } = useSpeech();
   const item = LETTERS[idx];
   const display =
@@ -30,12 +31,19 @@ export function ListenScreen({ onHome, letterCase }: ListenScreenProps) {
 
   useEffect(() => {
     if (!playing) return;
-    speak(`${item.letter}. ${item.spokenWord ?? item.word}`);
-    stepTimer.current = setTimeout(() => {
-      setIdx((i) => (i + 1) % TOTAL);
-    }, 2200);
+    let finished = false;
+    const next = () => {
+      if (finished) return;
+      finished = true;
+      if (speechFallbackTimer.current) clearTimeout(speechFallbackTimer.current);
+      stepTimer.current = setTimeout(() => setIdx((i) => (i + 1) % TOTAL), 650);
+    };
+    const phrase = `${item.letter}. ${item.spokenWord ?? item.word}.`;
+    speak(phrase, { onEnd: next });
+    speechFallbackTimer.current = setTimeout(next, 5000);
     return () => {
       if (stepTimer.current) clearTimeout(stepTimer.current);
+      if (speechFallbackTimer.current) clearTimeout(speechFallbackTimer.current);
       stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
