@@ -3,7 +3,7 @@
  * existing alphabet/info data and produces /public/tts/{hash}.wav so
  * the deployed app never needs to hit the Gemini API at runtime.
  *
- * Filename = first 16 hex chars of sha256(voice|text), matching the
+ * Filename = first 16 hex chars of sha256(version|voice|text), matching the
  * client-side helper in src/hooks/use-gemini-tts.ts. Skips files that
  * already exist on disk so reruns are cheap.
  *
@@ -99,8 +99,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function generateOne(
   apiKey: string,
   phrase: Phrase,
+  isAborted: () => boolean,
   attempt = 0
 ): Promise<{ skipped: boolean }> {
+  if (isAborted()) throw Object.assign(new Error("tts batch aborted"), { aborted: true });
   const hash = hashKey(phrase.voice, phrase.text);
   const dest = path.join(OUT_DIR, `${hash}.wav`);
   if (await fileExists(dest)) return { skipped: true };
@@ -129,7 +131,8 @@ async function generateOne(
     const wait = [5000, 15000, 30000, 60000, 90000][attempt];
     process.stdout.write(`(transient error -> backoff ${wait / 1000}s) `);
     await sleep(wait);
-    return generateOne(apiKey, phrase, attempt + 1);
+    if (isAborted()) throw Object.assign(new Error("tts batch aborted"), { aborted: true });
+    return generateOne(apiKey, phrase, isAborted, attempt + 1);
   }
 }
 
@@ -159,7 +162,7 @@ async function main() {
       const phrase = phrases[cursor++];
       if (!phrase) return;
       try {
-        const { skipped: didSkip } = await generateOne(apiKey, phrase);
+        const { skipped: didSkip } = await generateOne(apiKey, phrase, () => aborted);
         if (didSkip) {
           skipped++;
           continue;
@@ -168,6 +171,7 @@ async function main() {
         process.stdout.write(".");
         await sleep(throttleMs);
       } catch (err) {
+        if ((err as Error & { aborted?: boolean }).aborted === true) return;
         failed++;
         const fatal = (err as Error & { fatal?: boolean }).fatal === true;
         console.warn(`\n[tts] failed: ${phrase.voice} | ${phrase.text}`, err);
