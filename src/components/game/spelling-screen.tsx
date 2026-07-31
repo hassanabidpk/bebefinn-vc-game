@@ -39,13 +39,17 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
 
   const { speak, prefetch } = useFriendlySpeech();
   const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
+  const speakRef = useRef(speak);
+  const prefetchRef = useRef(prefetch);
+  speakRef.current = speak;
+  prefetchRef.current = prefetch;
 
   // Interactive spelling must respond instantly, even when cloud TTS is unavailable.
   const say = useCallback(
     (text: string, onEnd?: () => void) => {
-      speak(text, { onEnd });
+      speakRef.current(text, { onEnd });
     },
-    [speak]
+    []
   );
 
   const nextSlot = placed.length;
@@ -78,15 +82,14 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   // New round: speak the prompt, prefetch, and start the idle-hint clock.
   useEffect(() => {
     const phrase = `Let's spell ${round.word.word}. Tap the letters in order.`;
-    prefetch(phrase);
+    prefetchRef.current(phrase);
     const t = setTimeout(() => say(phrase), 250);
     scheduleHint();
     return () => {
       clearTimeout(t);
       if (hintTimer.current) clearTimeout(hintTimer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round.key, prefetch, say, scheduleHint, round.word.word]);
+  }, [round.key, round.word.word, say, scheduleHint]);
 
   useEffect(() => {
     return () => {
