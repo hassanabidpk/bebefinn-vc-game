@@ -3,7 +3,7 @@
  * existing alphabet/info data and produces /public/tts/{hash}.wav so
  * the deployed app never needs to hit the Gemini API at runtime.
  *
- * Filename = first 16 hex chars of sha256(voice|text), matching the
+ * Filename = first 16 hex chars of sha256(version|voice|text), matching the
  * client-side helper in src/hooks/use-gemini-tts.ts. Skips files that
  * already exist on disk so reruns are cheap.
  *
@@ -16,6 +16,15 @@ import { constants as FS } from "node:fs";
 import path from "node:path";
 import { getAlphabetEntriesWithVariants } from "../src/lib/alphabet-data.ts";
 import { ANIMAL_INFO } from "../src/lib/animal-info.ts";
+import { TTS_CACHE_VERSION } from "../src/lib/tts-config.ts";
+import {
+  generateGeminiSpeech,
+  isGeminiSpendingCapError,
+} from "../src/lib/gemini-tts.ts";
+import {
+  getCoreGameTtsPhrases,
+  getTtsVoiceForPhrase,
+} from "../src/lib/tts-phrases.ts";
 
 // Load GEMINI_API_KEY from .env.local for local runs. Vercel injects env
 // vars directly, so this is a no-op there.
@@ -34,7 +43,6 @@ async function loadDotEnvLocal() {
   }
 }
 
-const MODEL = "gemini-3.1-flash-tts-preview";
 const OUT_DIR = path.join(process.cwd(), "public", "tts");
 
 interface Phrase {
@@ -42,48 +50,11 @@ interface Phrase {
   voice: string;
 }
 
-interface InlineData {
-  mimeType?: string;
-  data?: string;
-}
-
-interface GeminiPart {
-  inlineData?: InlineData;
-}
-
-interface GeminiResponse {
-  candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
-  error?: { message?: string };
-}
-
 function hashKey(voice: string, text: string): string {
-  return createHash("sha256").update(`${voice}|${text}`).digest("hex").slice(0, 16);
-}
-
-function wavHeader(pcmBytes: number, sampleRate: number, channels: number, bps: number): Buffer {
-  const byteRate = sampleRate * channels * (bps / 8);
-  const blockAlign = channels * (bps / 8);
-  const buf = Buffer.alloc(44);
-  buf.write("RIFF", 0);
-  buf.writeUInt32LE(36 + pcmBytes, 4);
-  buf.write("WAVE", 8);
-  buf.write("fmt ", 12);
-  buf.writeUInt32LE(16, 16);
-  buf.writeUInt16LE(1, 20);
-  buf.writeUInt16LE(channels, 22);
-  buf.writeUInt32LE(sampleRate, 24);
-  buf.writeUInt32LE(byteRate, 28);
-  buf.writeUInt16LE(blockAlign, 32);
-  buf.writeUInt16LE(bps, 34);
-  buf.write("data", 36);
-  buf.writeUInt32LE(pcmBytes, 40);
-  return buf;
-}
-
-function parseAudioMime(mime: string) {
-  const rate = Number(/rate=(\d+)/.exec(mime)?.[1] ?? 24000);
-  const channels = Number(/channels=(\d+)/.exec(mime)?.[1] ?? 1);
-  return { rate, channels };
+  return createHash("sha256")
+    .update(`${TTS_CACHE_VERSION}|${voice}|${text}`)
+    .digest("hex")
+    .slice(0, 16);
 }
 
 function buildRevealPhrase(letter: string, word: string, spokenWord = word): string {
@@ -100,6 +71,9 @@ function collectPhrases(): Phrase[] {
       out.push({ text: info.spokenEn ?? info.en, voice: "Leda" });
       out.push({ text: info.zh, voice: "Aoede" });
     }
+  }
+  for (const text of getCoreGameTtsPhrases()) {
+    out.push({ text, voice: getTtsVoiceForPhrase(text) });
   }
   // Dedup — same hash collapses to one entry.
   const seen = new Set<string>();
@@ -125,61 +99,41 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function generateOne(
   apiKey: string,
   phrase: Phrase,
+  isAborted: () => boolean,
   attempt = 0
 ): Promise<{ skipped: boolean }> {
+  if (isAborted()) throw Object.assign(new Error("tts batch aborted"), { aborted: true });
   const hash = hashKey(phrase.voice, phrase.text);
   const dest = path.join(OUT_DIR, `${hash}.wav`);
   if (await fileExists(dest)) return { skipped: true };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: phrase.text }] }],
-      generationConfig: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: phrase.voice } },
-        },
-      },
-    }),
-  });
+  try {
+    const wav = await generateGeminiSpeech(apiKey, phrase.text, phrase.voice);
+    await writeFile(dest, wav);
+    return { skipped: false };
+  } catch (error) {
+    if (isGeminiSpendingCapError(error)) {
+      (error as Error & { fatal?: boolean }).fatal = true;
+      throw error;
+    }
 
-  if (r.status === 429 || r.status === 503) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/API key not valid|401|403|PERMISSION_DENIED|UNAUTHENTICATED/i.test(message)) {
+      (error as Error & { fatal?: boolean }).fatal = true;
+      throw error;
+    }
+    const transient = /429|503|RESOURCE_EXHAUSTED|UNAVAILABLE/i.test(message);
+    if (!transient) throw error;
     if (attempt >= 5) {
-      const msg = await r.text();
-      throw new Error(`gemini ${r.status} after 5 retries: ${msg.slice(0, 200)}`);
+      throw new Error(`gemini tts failed after 5 retries: ${message.slice(0, 200)}`);
     }
     // Exponential backoff: 5s, 15s, 30s, 60s, 90s.
     const wait = [5000, 15000, 30000, 60000, 90000][attempt];
-    process.stdout.write(`(429 → backoff ${wait / 1000}s) `);
+    process.stdout.write(`(transient error -> backoff ${wait / 1000}s) `);
     await sleep(wait);
-    return generateOne(apiKey, phrase, attempt + 1);
+    if (isAborted()) throw Object.assign(new Error("tts batch aborted"), { aborted: true });
+    return generateOne(apiKey, phrase, isAborted, attempt + 1);
   }
-
-  if (r.status === 400 || r.status === 401 || r.status === 403) {
-    const msg = await r.text();
-    const err = new Error(`gemini auth ${r.status}: ${msg.slice(0, 200)}`);
-    (err as Error & { fatal?: boolean }).fatal = true;
-    throw err;
-  }
-
-  if (!r.ok) {
-    const msg = await r.text();
-    throw new Error(`gemini ${r.status}: ${msg.slice(0, 200)}`);
-  }
-
-  const json = (await r.json()) as GeminiResponse;
-  const inline = json.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-  if (!inline?.data || !inline.mimeType) {
-    throw new Error(`no audio in response for "${phrase.text}"`);
-  }
-  const pcm = Buffer.from(inline.data, "base64");
-  const { rate, channels } = parseAudioMime(inline.mimeType);
-  const wav = Buffer.concat([wavHeader(pcm.length, rate, channels, 16), pcm]);
-  await writeFile(dest, wav);
-  return { skipped: false };
 }
 
 async function main() {
@@ -198,32 +152,42 @@ async function main() {
   let skipped = 0;
   let failed = 0;
 
-  // Sequential + throttled to respect free-tier RPM. Free tier on the
-  // 3.1-flash-tts preview is currently ~5 req/min, so 13s between calls
-  // keeps us safely under without bursting.
-  const THROTTLE_MS = 13000;
-  for (const phrase of phrases) {
-    try {
-      const { skipped: didSkip } = await generateOne(apiKey, phrase);
-      if (didSkip) {
-        skipped++;
-        continue; // No API call happened, no throttle needed.
+  // Conservative defaults fit low-quota keys. Paid projects can opt into
+  // parallel generation with TTS_CONCURRENCY and a lower TTS_THROTTLE_MS.
+  const concurrency = Math.max(1, Number(process.env.TTS_CONCURRENCY ?? 1));
+  const throttleMs = Math.max(0, Number(process.env.TTS_THROTTLE_MS ?? 13000));
+  let cursor = 0;
+  let aborted = false;
+
+  const worker = async () => {
+    while (!aborted) {
+      const phrase = phrases[cursor++];
+      if (!phrase) return;
+      try {
+        const { skipped: didSkip } = await generateOne(apiKey, phrase, () => aborted);
+        if (didSkip) {
+          skipped++;
+          continue;
+        }
+        made++;
+        process.stdout.write(".");
+        await sleep(throttleMs);
+      } catch (err) {
+        if ((err as Error & { aborted?: boolean }).aborted === true) return;
+        failed++;
+        const fatal = (err as Error & { fatal?: boolean }).fatal === true;
+        console.warn(`\n[tts] failed: ${phrase.voice} | ${phrase.text}`, err);
+        if (fatal) {
+          aborted = true;
+          console.warn("[tts] account unavailable — aborting batch. Existing audio and device fallback remain active.");
+          return;
+        }
+        await sleep(throttleMs);
       }
-      made++;
-      process.stdout.write(`.`);
-      await sleep(THROTTLE_MS);
-    } catch (err) {
-      failed++;
-      const fatal = (err as Error & { fatal?: boolean }).fatal === true;
-      console.warn(`\n[tts] failed: ${phrase.voice} | ${phrase.text}`, err);
-      if (fatal) {
-        console.warn("[tts] auth error — aborting batch. Build continues; runtime /api/tts will fill gaps.");
-        break;
-      }
-      // Pace down on transient failures.
-      await sleep(THROTTLE_MS);
     }
-  }
+  };
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
   console.log(`\n[tts] done — made=${made} skipped=${skipped} failed=${failed}`);
 }
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
-import { useSpeech } from "@/hooks/use-speech";
+import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto, isRealAnimal } from "./animal-photo";
@@ -120,23 +120,24 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const narrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const milestoneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { speak } = useSpeech();
+  const { speak, prefetch } = useFriendlySpeech();
   const { playAnimalSound } = useGameAudio();
 
   // Immediate device speech keeps tap feedback responsive when cloud TTS is unavailable.
-  const speakPrompt = (text: string) => {
+  const speakPrompt = useCallback((text: string) => {
     speak(text);
-  };
+  }, [speak]);
 
   useEffect(() => {
     if (promptTimer.current) clearTimeout(promptTimer.current);
     const phrase = `Find the ${round.target.word}!`;
+    prefetch(phrase);
     promptTimer.current = setTimeout(() => speakPrompt(phrase), 250);
     return () => {
       if (promptTimer.current) clearTimeout(promptTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round.key]);
+  }, [prefetch, round.key, round.target.word, speakPrompt]);
 
   useEffect(() => {
     return () => {

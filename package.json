@@ -2,6 +2,9 @@
   "name": "ocean-buddy-alphabet-game",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "tts:generate": "tsx scripts/generate-tts.ts",
@@ -14,6 +17,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/genai": "^2.15.0",
     "@vercel/blob": "^2.4.0",
     "framer-motion": "^11.15.0",
     "next": "^15.1.0",
