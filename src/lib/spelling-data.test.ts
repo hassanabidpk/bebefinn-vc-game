@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSpellingRound,
+  buildSpellingSlots,
   spellingMaxLettersForStars,
   spellingWords,
   type SpellingRound,
@@ -52,23 +53,29 @@ describe("buildSpellingRound", () => {
     }
   });
 
+  it("uses the approved foods and countries", () => {
+    const words = spellingWords.map((entry) => entry.word);
+    expect(words).toEqual(expect.arrayContaining([
+      "Chicken",
+      "Rice",
+      "Noodles",
+      "Singapore",
+      "Thailand",
+      "Taiwan",
+      "China",
+    ]));
+    expect(words).not.toContain("Chicken Rice");
+    expect(words).not.toContain("Tengah");
+  });
+
   it("models word gaps as non-tappable slots and excludes them from letters", () => {
-    for (let i = 0; i < 300; i += 1) {
-      const round = buildSpellingRound();
-      const letterSlots = round.slots.filter((s) => !s.space);
-      // Tappable letters line up with non-space slots, in order.
-      expect(letterSlots.map((s) => s.char)).toEqual(round.letters);
-      letterSlots.forEach((s, idx) => expect(s.tapIndex).toBe(idx));
-      // Gap slots carry a space, no tap index, and never a bank tile.
-      round.slots
-        .filter((s) => s.space)
-        .forEach((s) => {
-          expect(s.char).toBe(" ");
-          expect(s.tapIndex).toBe(-1);
-        });
-      // A multi-word entry keeps its display spaces as gap slots.
-      const spaces = round.word.word.split("").filter((c) => c === " ").length;
-      expect(round.slots.filter((s) => s.space)).toHaveLength(spaces);
-    }
+    const { slots, letters } = buildSpellingSlots("Chicken Rice");
+    const letterSlots = slots.filter((slot) => !slot.space);
+    expect(letterSlots.map((slot) => slot.char)).toEqual(letters);
+    letterSlots.forEach((slot, idx) => expect(slot.tapIndex).toBe(idx));
+
+    const gapSlots = slots.filter((slot) => slot.space);
+    expect(gapSlots).toHaveLength(1);
+    expect(gapSlots[0]).toEqual({ char: " ", space: true, tapIndex: -1 });
   });
 });
