@@ -64,8 +64,12 @@ const PROMPTS: Record<string, { p: string; s: Style }> = {
   Banana: { p: "A single ripe yellow banana.", s: "object" },
   Noodles: { p: "A friendly bowl of noodle soup with a few vegetables, cute and appetizing.", s: "object" },
   Cookies: { p: "A small stack of round golden chocolate-chip cookies.", s: "object" },
-  "Chicken Rice": {
-    p: "A plate of Singapore Hainanese chicken rice — sliced steamed chicken beside a mound of rice with a cucumber slice, cute and appetizing.",
+  Chicken: {
+    p: "One unmistakable golden-brown roasted chicken drumstick with a visible white bone handle, centered on a small plain plate. No bread, no potatoes, no rice, and no side dishes.",
+    s: "object",
+  },
+  Rice: {
+    p: "A single small bowl filled with fluffy cooked long-grain white rice. Show many clearly elongated rice grains with natural rice texture. No round balls, no pearls, no tapioca, and no other food.",
     s: "object",
   },
   // Places / scenes
@@ -77,8 +81,16 @@ const PROMPTS: Record<string, { p: string; s: Style }> = {
     p: "A cute cartoon Singapore skyline with the Marina Bay waterfront, a friendly Merlion statue spouting water, and a boat-shaped rooftop building, blue sky.",
     s: "scene",
   },
-  Tengah: {
-    p: "A cheerful green cartoon eco-town neighborhood with a few colorful low houses surrounded by lush trees and a small park, bright and leafy.",
+  Thailand: {
+    p: "A cheerful Thailand scene with a golden Thai temple, tropical greenery, and a small long-tail boat on calm blue water.",
+    s: "scene",
+  },
+  Taiwan: {
+    p: "A cheerful Taiwan scene with Taipei 101, green mountains, and pink cherry blossoms under a bright blue sky.",
+    s: "scene",
+  },
+  China: {
+    p: "A cheerful China scene with the Great Wall winding across green mountains beneath a bright blue sky.",
     s: "scene",
   },
   // Family

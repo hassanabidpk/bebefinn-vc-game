@@ -1233,7 +1233,7 @@ html, body {
   background: rgba(255,255,255,0.42);
   animation: slot-pulse 1.1s ease-in-out infinite;
 }
-/* Word gap in multi-word entries (e.g. "Chicken Rice") — a narrow, empty,
+/* Word gap in any future multi-word entry — a narrow, empty,
    non-interactive space so the two words read as separate. */
 .spelling-slot.space {
   width: 34px;

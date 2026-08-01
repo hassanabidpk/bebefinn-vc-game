@@ -6,12 +6,12 @@ export interface SpellingWord {
 
 /**
  * Short, picturable words for ages 3-4 — mostly animals and food, plus a few
- * family and Singapore words. Every word has a real picture:
+ * family and country words. Every word has a real picture:
  * Cat/Dog/Bear/Lion/Fish/Whale/Shark/Elephant reuse the photos under
  * /public/animals/, and the rest use generated cards under /public/spelling/
  * (see scripts/generate-images.ts). All words map to a key in
- * animal-photo.tsx CARD_IMAGES. Multi-word entries (e.g. "Chicken Rice")
- * keep their space as a non-tappable gap slot.
+ * animal-photo.tsx CARD_IMAGES. Multi-word entries keep their spaces as
+ * non-tappable gap slots.
  */
 export const spellingWords: SpellingWord[] = [
   // 3-letter
@@ -48,14 +48,17 @@ export const spellingWords: SpellingWord[] = [
   { word: "Banana", color: "#F1C40F" },
   { word: "Noodles", color: "#F5B041" },
   { word: "Cookies", color: "#A0522D" },
-  { word: "Chicken Rice", color: "#E8A33D" },
+  { word: "Chicken", color: "#E8A33D" },
+  { word: "Rice", color: "#F4E7C1" },
   // family
   { word: "Mommy", color: "#E056A0" },
   { word: "Papa", color: "#4A90D9" },
   { word: "Amma", color: "#C0785A" },
-  // places
+  // countries
   { word: "Singapore", color: "#E74C3C" },
-  { word: "Tengah", color: "#27AE60" },
+  { word: "Thailand", color: "#4A90D9" },
+  { word: "Taiwan", color: "#27AE60" },
+  { word: "China", color: "#E74C3C" },
 ];
 
 export interface Slot {
@@ -83,6 +86,24 @@ export interface SpellingRound {
   letters: string[];
   bank: BankTile[];
   key: number;
+}
+
+export function buildSpellingSlots(word: string) {
+  let tap = 0;
+  const slots: Slot[] = word
+    .toUpperCase()
+    .split("")
+    .map((ch) => {
+      const isLetter = ch >= "A" && ch <= "Z";
+      return isLetter
+        ? { char: ch, space: false, tapIndex: tap++ }
+        : { char: " ", space: true, tapIndex: -1 };
+    });
+
+  return {
+    slots,
+    letters: slots.filter((slot) => !slot.space).map((slot) => slot.char),
+  };
 }
 
 export function spellingMaxLettersForStars(stars: number) {
@@ -114,17 +135,7 @@ export function buildSpellingRound(
   }
   const word = pool[idx];
 
-  let tap = 0;
-  const slots: Slot[] = word.word
-    .toUpperCase()
-    .split("")
-    .map((ch) => {
-      const isLetter = ch >= "A" && ch <= "Z";
-      return isLetter
-        ? { char: ch, space: false, tapIndex: tap++ }
-        : { char: " ", space: true, tapIndex: -1 };
-    });
-  const letters = slots.filter((s) => !s.space).map((s) => s.char);
+  const { slots, letters } = buildSpellingSlots(word.word);
 
   const bank: BankTile[] = letters.map((letter, slot) => ({
     letter,
