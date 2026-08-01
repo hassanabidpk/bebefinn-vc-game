@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
+import { getStandaloneLetterSpeech } from "@/lib/tts-phrases";
 import { BubbleBackground } from "./ocean-stage";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -66,7 +67,7 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
 
   const speakChar = (ch: string) => {
     const word = SPOKEN[ch] ?? ch;
-    speak(`${word}!`);
+    speak(/^[A-Z]$/.test(ch) ? getStandaloneLetterSpeech(ch) : `${word}!`);
   };
 
   const append = (ch: string) => {

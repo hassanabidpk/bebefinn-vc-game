@@ -11,6 +11,11 @@ function add(...phrases: Array<string | undefined>) {
   }
 }
 
+export function getStandaloneLetterSpeech(letter: string) {
+  const normalized = letter.toUpperCase();
+  return normalized === "A" ? "Letter A!" : `${normalized}!`;
+}
+
 for (const entry of getAlphabetEntriesWithVariants()) {
   const spokenWord = entry.spokenWord ?? entry.word;
   const isNumber = /^[0-9]+$/.test(entry.letter);
@@ -29,7 +34,7 @@ for (const entry of getAlphabetEntriesWithVariants()) {
 }
 
 for (const letter of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
-  add(`${letter}!`, `Can you find ${letter}?`);
+  add(getStandaloneLetterSpeech(letter), `Can you find ${letter}?`);
 }
 
 for (const number of ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]) {
@@ -69,7 +74,7 @@ for (const entry of alphabetData.filter((item) => /^[A-Z]$/.test(item.letter))) 
 }
 
 for (const letter of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
-  coreGamePhrases.add(`${letter}!`);
+  coreGamePhrases.add(getStandaloneLetterSpeech(letter));
   coreGamePhrases.add(`Can you find ${letter}?`);
 }
 for (const number of ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]) {
