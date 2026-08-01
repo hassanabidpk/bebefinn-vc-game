@@ -3,13 +3,25 @@ import { GoogleGenAI } from "@google/genai";
 export const GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
 
 export function buildPreschoolVoicePrompt(text: string) {
-  return [
+  const directions = [
     "Speak warmly, sweetly, and playfully to a preschool child aged three to six.",
     "Use a gentle smile, clear pronunciation, natural rhythm, and an unhurried pace.",
     "Keep the delivery encouraging, never exaggerated or loud.",
+  ];
+
+  if (/^[A-Z][!.]?$/.test(text.trim())) {
+    directions.push(
+      "The transcript is one English alphabet character. Say only its letter name.",
+      "For example, A is pronounced ay, H is pronounced aitch, and U is pronounced you.",
+      "Do not add words such as letter, the letter, or is."
+    );
+  }
+
+  directions.push(
     "Speak only the transcript below and do not read these directions aloud.",
-    `Transcript: ${text}`,
-  ].join("\n");
+    `Transcript: ${text}`
+  );
+  return directions.join("\n");
 }
 
 function wavHeader(pcmBytes: number, sampleRate: number, channels: number, bitsPerSample: number) {

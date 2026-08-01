@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import crypto from "node:crypto";
 import { generateGeminiSpeech, isGeminiSpendingCapError } from "@/lib/gemini-tts";
-import { TTS_CACHE_VERSION } from "@/lib/tts-config";
+import { getTtsCacheKeySource } from "@/lib/tts-config";
 import { isAllowedTtsPhrase } from "@/lib/tts-phrases";
 
 /**
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   }
   const cacheKey = crypto
     .createHash("sha256")
-    .update(`${TTS_CACHE_VERSION}|${voice}|${text}`)
+    .update(getTtsCacheKeySource(voice, text))
     .digest("hex");
 
   const cached = cache.get(cacheKey);
