@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { TTS_CACHE_VERSION } from "@/lib/tts-config";
+import { getTtsCacheKeySource } from "@/lib/tts-config";
 
 /**
  * Fetches WAV audio from /api/tts (server-side Gemini TTS) and plays it
@@ -20,7 +20,7 @@ let apiUnavailableUntil = 0;
 
 /** Versioned sha256 key. Matches scripts/generate-tts.ts. */
 async function hashKey(voice: string, text: string): Promise<string> {
-  const data = new TextEncoder().encode(`${TTS_CACHE_VERSION}|${voice}|${text}`);
+  const data = new TextEncoder().encode(getTtsCacheKeySource(voice, text));
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))

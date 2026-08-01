@@ -16,7 +16,7 @@ import { constants as FS } from "node:fs";
 import path from "node:path";
 import { getAlphabetEntriesWithVariants } from "../src/lib/alphabet-data.ts";
 import { ANIMAL_INFO } from "../src/lib/animal-info.ts";
-import { TTS_CACHE_VERSION } from "../src/lib/tts-config.ts";
+import { getTtsCacheKeySource } from "../src/lib/tts-config.ts";
 import {
   generateGeminiSpeech,
   isGeminiSpendingCapError,
@@ -52,7 +52,7 @@ interface Phrase {
 
 function hashKey(voice: string, text: string): string {
   return createHash("sha256")
-    .update(`${TTS_CACHE_VERSION}|${voice}|${text}`)
+    .update(getTtsCacheKeySource(voice, text))
     .digest("hex")
     .slice(0, 16);
 }

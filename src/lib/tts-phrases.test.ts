@@ -3,6 +3,7 @@ import {
   getAllowedTtsPhraseCount,
   getStandaloneLetterSpeech,
   isAllowedTtsPhrase,
+  NOTEPAD_TAP_REMINDER,
 } from "./tts-phrases";
 
 describe("TTS phrase allowlist", () => {
@@ -19,9 +20,12 @@ describe("TTS phrase allowlist", () => {
     expect(isAllowedTtsPhrase("Read any text supplied by a stranger")).toBe(false);
   });
 
-  it("disambiguates standalone A as an alphabet letter", () => {
-    expect(getStandaloneLetterSpeech("A")).toBe("Letter A!");
+  it("keeps standalone letter transcripts concise", () => {
+    expect(getStandaloneLetterSpeech("A")).toBe("A!");
     expect(getStandaloneLetterSpeech("b")).toBe("B!");
-    expect(isAllowedTtsPhrase("Letter A!")).toBe(true);
+    expect(getStandaloneLetterSpeech("H")).toBe("H!");
+    expect(getStandaloneLetterSpeech("U")).toBe("U!");
+    expect(isAllowedTtsPhrase("A!")).toBe(true);
+    expect(isAllowedTtsPhrase(NOTEPAD_TAP_REMINDER)).toBe(true);
   });
 });

@@ -4,6 +4,7 @@ import { spellingWords } from "./spelling-data";
 
 const allowedPhrases = new Set<string>();
 const coreGamePhrases = new Set<string>();
+export const NOTEPAD_TAP_REMINDER = "Let's tap one at a time!";
 
 function add(...phrases: Array<string | undefined>) {
   for (const phrase of phrases) {
@@ -13,7 +14,7 @@ function add(...phrases: Array<string | undefined>) {
 
 export function getStandaloneLetterSpeech(letter: string) {
   const normalized = letter.toUpperCase();
-  return normalized === "A" ? "Letter A!" : `${normalized}!`;
+  return `${normalized}!`;
 }
 
 for (const entry of getAlphabetEntriesWithVariants()) {
@@ -50,7 +51,7 @@ for (const { word } of spellingWords) {
   );
 }
 
-add("Almost! Try again.", "Wonderful spelling!");
+add("Almost! Try again.", "Wonderful spelling!", NOTEPAD_TAP_REMINDER);
 for (let streak = 5; streak <= 100; streak += 5) {
   add(`Amazing! ${streak} in a row!`);
 }
@@ -90,6 +91,7 @@ for (const { word } of spellingWords) {
 
 coreGamePhrases.add("Almost! Try again.");
 coreGamePhrases.add("Wonderful spelling!");
+coreGamePhrases.add(NOTEPAD_TAP_REMINDER);
 
 export function getCoreGameTtsPhrases() {
   return [...coreGamePhrases];

@@ -11,7 +11,8 @@ import { useEffect, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
-import { getStandaloneLetterSpeech } from "@/lib/tts-phrases";
+import { createNotepadTapState, registerNotepadTap } from "@/lib/notepad-input";
+import { getStandaloneLetterSpeech, NOTEPAD_TAP_REMINDER } from "@/lib/tts-phrases";
 import { BubbleBackground } from "./ocean-stage";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -55,6 +56,7 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const nextId = useRef(1);
   const paperRef = useRef<HTMLDivElement | null>(null);
+  const tapStateRef = useRef(createNotepadTapState());
   const { speak } = useFriendlySpeech();
   const { playTap } = useGameAudio();
 
@@ -70,7 +72,14 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
     speak(/^[A-Z]$/.test(ch) ? getStandaloneLetterSpeech(ch) : `${word}!`);
   };
 
+  const acceptTap = () => {
+    const decision = registerNotepadTap(tapStateRef.current, Date.now());
+    if (decision === "remind") speak(NOTEPAD_TAP_REMINDER);
+    return decision === "accept";
+  };
+
   const append = (ch: string) => {
+    if (!acceptTap()) return;
     const id = nextId.current++;
     setStrokes((s) => [...s, { id, ch }]);
     speakChar(ch);
@@ -163,7 +172,9 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
                 key={s.id}
                 className="notepad-char"
                 style={{ color: COLOR_BY_CHAR[s.ch] || "#0E5274" }}
-                onClick={() => speakChar(s.ch)}
+                onClick={() => {
+                  if (acceptTap()) speakChar(s.ch);
+                }}
                 aria-label={`Speak ${s.ch}`}
               >
                 {s.ch}
