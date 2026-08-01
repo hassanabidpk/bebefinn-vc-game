@@ -9,6 +9,7 @@ import {
 } from "@/lib/spelling-data";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
+import { getStandaloneLetterSpeech } from "@/lib/tts-phrases";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto } from "./animal-photo";
 import { Confetti } from "./confetti";
@@ -157,7 +158,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
         const nextPlaced = [...placed, tile.id];
         setPlaced(nextPlaced);
         playTap();
-        say(want);
+        say(getStandaloneLetterSpeech(want));
         scheduleHint();
         if (nextPlaced.length >= round.letters.length) {
           finish(round.letters, round.word.word);
