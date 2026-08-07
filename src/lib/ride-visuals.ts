@@ -263,6 +263,99 @@ export function latheBody(profile: [number, number][], segments = 24): THREE.Buf
   return new THREE.LatheGeometry(points, segments);
 }
 
+/** Preload the animal photos for a ride as sRGB Three textures. */
+export async function loadRideTextures(
+  photos: Record<string, string>
+): Promise<Record<string, THREE.Texture>> {
+  const loader = new THREE.TextureLoader();
+  const entries = await Promise.all(
+    Object.entries(photos).map(async ([word, url]) => {
+      const texture = await loader.loadAsync(url);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+      return [word, texture] as const;
+    })
+  );
+  return Object.fromEntries(entries);
+}
+
+/**
+ * Safari photo standee: a big wildlife photo board on two wooden posts,
+ * angled like a real safari-park viewpoint sign. The photo material is
+ * unlit and un-tonemapped so the real image stays bright and true.
+ */
+export function photoBoard(texture: THREE.Texture, size = 5.2): THREE.Group {
+  const group = new THREE.Group();
+  const frameDepth = 0.16;
+
+  for (const side of [-1, 1]) {
+    part(
+      group,
+      new THREE.CylinderGeometry(0.16, 0.2, 2.2, 10),
+      { color: 0x7d5433, roughness: 1 },
+      side * (size / 2 - 0.4),
+      1.1,
+      -0.12
+    );
+  }
+  // Wooden frame slab behind the photo.
+  part(
+    group,
+    new THREE.BoxGeometry(size + 0.5, size + 0.5, frameDepth),
+    { color: 0x8a5f38, roughness: 0.9 },
+    0,
+    2 + size / 2,
+    -0.1
+  );
+  const photo = new THREE.Mesh(
+    new THREE.PlaneGeometry(size, size),
+    new THREE.MeshBasicMaterial({ map: texture, toneMapped: false })
+  );
+  photo.position.set(0, 2 + size / 2, 0);
+  group.add(photo);
+  return group;
+}
+
+/**
+ * Ocean photo porthole: the photo inside a ring frame, like looking at
+ * the real animal through a big brass window floating in the water.
+ */
+export function photoPorthole(texture: THREE.Texture, radius = 2.7): THREE.Group {
+  const group = new THREE.Group();
+  const ring = part(
+    group,
+    new THREE.TorusGeometry(radius, 0.24, 14, 40),
+    { color: 0xd8a72c, roughness: 0.3, metalness: 0.65, shadows: false },
+    0,
+    radius + 1.2,
+    0
+  );
+  ring.name = "porthole-ring";
+  const photo = new THREE.Mesh(
+    new THREE.CircleGeometry(radius, 40),
+    new THREE.MeshBasicMaterial({ map: texture, toneMapped: false, side: THREE.DoubleSide })
+  );
+  photo.position.set(0, radius + 1.2, 0);
+  group.add(photo);
+  // A few fixed decorative bubbles hugging the frame.
+  const bubblePositions: [number, number][] = [
+    [-0.85, 0.9],
+    [0.75, 1.05],
+    [1, -0.55],
+  ];
+  for (const [bx, by] of bubblePositions) {
+    part(
+      group,
+      new THREE.SphereGeometry(0.16, 10, 8),
+      { color: 0xdff2fc, roughness: 0.1, opacity: 0.4, shadows: false },
+      bx * radius,
+      radius + 1.2 + by * radius,
+      0.2
+    );
+  }
+  return group;
+}
+
 /** Tapered limb/tentacle along a gentle curve. */
 export function taperedLimb(
   from: THREE.Vector3,

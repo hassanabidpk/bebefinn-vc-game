@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Texture } from "three";
 import { RideEngine, type RideInput, type RideMode } from "@/lib/ride-engine";
 import { RIDE_CONFIGS, type RideWorldId } from "@/lib/ride-data";
 import { buildSafariWorld } from "@/lib/safari-world";
 import { buildOceanWorld } from "@/lib/ocean-world";
+import { loadRideTextures } from "@/lib/ride-visuals";
 import { getAnimalInfo } from "@/lib/animal-info";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
@@ -35,6 +37,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   const config = RIDE_CONFIGS[worldId];
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<RideEngine | null>(null);
+  const [textures, setTextures] = useState<Record<string, Texture> | null>(null);
   const [mode, setMode] = useState<RideMode>("auto");
   const [encounter, setEncounter] = useState<string | null>(null);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
@@ -52,6 +55,19 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     timersRef.current.add(timer);
   }, []);
 
+  // Photos must be on the GPU before the ride starts (AGENTS: preload).
+  useEffect(() => {
+    let cancelled = false;
+    setTextures(null);
+    const photos = Object.fromEntries(config.animals.map((a) => [a.word, a.photo]));
+    loadRideTextures(photos).then((loaded) => {
+      if (!cancelled) setTextures(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config]);
+
   // Callbacks handed to the engine read fresh state through this ref.
   const meetAnimalRef = useRef<(word: string) => void>(() => {});
   meetAnimalRef.current = (word: string) => {
@@ -59,7 +75,8 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     if (!spec) return;
     setEncounter(word);
 
-    // Sound first for instant feedback (matches Find-the-Animal), voice after.
+    // Sound first for instant tactile feedback, then the voice line with
+    // the same fact the child sees on the panel.
     if (spec.soundKey) playAnimalSound(spec.soundKey);
     else playCelebrate();
     const fact = getAnimalInfo(word)?.en ?? "";
@@ -71,10 +88,10 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
       next.add(word);
       if (next.size === config.animals.length) {
         // Saw everyone this lap — big cheer, then start counting again.
-        later(3200, () => {
+        later(3600, () => {
           setCelebration((c) => c + 1);
           playCelebrate();
-          speak(`Amazing! You saw all the ${config.title === "Safari Ride" ? "safari" : "ocean"} animals!`);
+          speak(`Amazing! You saw all the ${config.id === "safari" ? "safari" : "ocean"} animals!`);
           setSeen(new Set());
         });
       }
@@ -84,13 +101,18 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !textures) return;
 
-    const engine = new RideEngine(container, WORLD_BUILDERS[worldId], {
-      onEncounter: (word) => meetAnimalRef.current(word),
-      onEncounterEnd: () => setEncounter(null),
-    });
+    const engine = new RideEngine(
+      container,
+      (scene) => WORLD_BUILDERS[worldId](scene, textures),
+      {
+        onEncounter: (word) => meetAnimalRef.current(word),
+        onEncounterEnd: () => setEncounter(null),
+      }
+    );
     engineRef.current = engine;
+    setMode("auto");
 
     const timers = timersRef.current;
     return () => {
@@ -100,15 +122,12 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
       timers.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worldId]);
+  }, [worldId, textures]);
 
-  const switchMode = useCallback(
-    (next: RideMode) => {
-      engineRef.current?.setMode(next);
-      setMode(next);
-    },
-    []
-  );
+  const switchMode = useCallback((next: RideMode) => {
+    engineRef.current?.setMode(next);
+    setMode(next);
+  }, []);
 
   const pressArrow = useCallback(
     (input: RideInput, down: boolean) => {
@@ -148,6 +167,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   const encounterSpec = encounter
     ? config.animals.find((a) => a.word === encounter)
     : null;
+  const encounterFact = encounter ? getAnimalInfo(encounter)?.en : null;
 
   const arrow = (input: RideInput, label: string, symbol: string) => (
     <button
@@ -169,16 +189,29 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     <div className={`ride-screen ride-${worldId}`}>
       <div ref={containerRef} className="ride-canvas" />
 
+      {!textures ? (
+        <div className="ride-loading" role="status" aria-label="Loading ride">
+          <span className="ride-loading-emoji">{config.vehicleEmoji}</span>
+        </div>
+      ) : null}
+
       <header className="ride-header">
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
-        <div className="progress-pill">
-          <div className="progress-pill-row">
-            <span className="progress-letter">
-              {config.titleEmoji} {config.title}
-            </span>
-            <span className="progress-count">
-              {seen.size} / {config.animals.length} friends
-            </span>
+        <div className="progress-pill ride-progress">
+          <span className="progress-letter">
+            {config.titleEmoji} {config.title}
+          </span>
+          <div className="ride-stickers" aria-label={`${seen.size} of ${config.animals.length} animals seen`}>
+            {config.animals.map((animal) => (
+              <span
+                key={animal.word}
+                className={`ride-sticker ${seen.has(animal.word) ? "earned" : ""}`}
+                style={{ borderColor: animal.color }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={animal.photo} alt="" draggable={false} />
+              </span>
+            ))}
           </div>
         </div>
         <div />
@@ -201,11 +234,32 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
       </header>
 
       {encounterSpec ? (
-        <div className="ride-card" style={{ borderColor: encounterSpec.color }}>
-          <span className="ride-card-emoji">{encounterSpec.emoji}</span>
-          <span className="ride-card-word" style={{ color: encounterSpec.color }}>
-            {encounterSpec.word}
-          </span>
+        <div className="ride-panel" style={{ borderColor: encounterSpec.color }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="ride-panel-photo"
+            src={encounterSpec.photo}
+            alt={encounterSpec.word}
+            style={{ borderColor: encounterSpec.color }}
+            draggable={false}
+          />
+          <div className="ride-panel-text">
+            <span className="ride-panel-word" style={{ color: encounterSpec.color }}>
+              {encounterSpec.emoji} {encounterSpec.word}
+            </span>
+            {encounterFact ? <span className="ride-panel-fact">{encounterFact}</span> : null}
+          </div>
+          <button
+            className="ride-panel-speak"
+            aria-label={`Hear about the ${encounterSpec.word} again`}
+            onClick={() =>
+              speak(
+                `Look! It's ${article(encounterSpec.word)} ${encounterSpec.word}! ${encounterFact ?? ""}`
+              )
+            }
+          >
+            🔊
+          </button>
         </div>
       ) : null}
 

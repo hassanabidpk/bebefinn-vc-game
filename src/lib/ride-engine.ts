@@ -49,7 +49,7 @@ const SIDE_SPEED = 5;
 const ENCOUNTER_RANGE = 5; // world units — announce inside this
 const SLOW_RANGE = 14; // auto mode starts braking here
 const RELEASE_RANGE = 9; // must leave this far before re-announcing
-const AUTO_DWELL_SECONDS = 5;
+const AUTO_DWELL_SECONDS = 6.5;
 
 type AutoPhase = "cruising" | "dwelling";
 
@@ -83,6 +83,7 @@ export class RideEngine {
   private activeEncounter: string | null = null;
   private highlight: THREE.Mesh;
   private animalBaseY = new Map<string, number>();
+  private lookTarget: THREE.Vector3 | null = null;
 
   constructor(
     container: HTMLElement,
@@ -311,10 +312,11 @@ export class RideEngine {
     this.world.animals.forEach((animal, index) => {
       const baseY = this.animalBaseY.get(animal.spec.word) ?? 0;
       const active = animal.spec.word === this.activeEncounter;
-      // Idle bob for everyone; the star of the moment hops higher.
+      // Gentle float for everyone; the star of the moment bobs a bit more.
+      // (Animals are photo boards now — big hops would look broken.)
       const bounce = active
-        ? Math.abs(Math.sin(time * 5)) * 0.9
-        : Math.sin(time * 1.6 + index * 1.3) * 0.15;
+        ? Math.abs(Math.sin(time * 3.2)) * 0.35
+        : Math.sin(time * 1.6 + index * 1.3) * 0.12;
       animal.group.position.y = baseY + bounce;
 
       if (active) {
@@ -343,6 +345,18 @@ export class RideEngine {
     this.camera.position.lerp(target, blend);
     const lookAt = point.clone().addScaledVector(tangent, 6);
     lookAt.y += 1.5;
-    this.camera.lookAt(lookAt);
+    // While meeting an animal, swing the view toward it so the child can
+    // actually look at the photo instead of the empty road ahead.
+    if (this.activeEncounter) {
+      const star = this.world.animals.find((a) => a.spec.word === this.activeEncounter);
+      if (star) {
+        const focus = star.group.position.clone();
+        focus.y += 3.2;
+        lookAt.lerp(focus, 0.6);
+      }
+    }
+    if (!this.lookTarget) this.lookTarget = lookAt.clone();
+    this.lookTarget.lerp(lookAt, Math.min(1, dt * 2.5));
+    this.camera.lookAt(this.lookTarget);
   }
 }

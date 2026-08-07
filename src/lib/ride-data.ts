@@ -11,6 +11,8 @@ export interface RideAnimalSpec {
   word: string;
   emoji: string;
   color: string;
+  /** Realistic photo shown in-world and on the encounter panel. */
+  photo: string;
   /** Position along the closed track, 0..1. */
   t: number;
   /** Which side of the track the animal stands on. */
@@ -33,12 +35,12 @@ export const SAFARI_RIDE: RideConfig = {
   titleEmoji: "🦁",
   vehicleEmoji: "🚙",
   animals: [
-    { word: "Lion", emoji: "🦁", color: "#E8A33D", t: 0.12, side: 1, soundKey: "lion" },
-    { word: "Elephant", emoji: "🐘", color: "#9B8FC7", t: 0.28, side: -1, soundKey: "elephant" },
-    { word: "Giraffe", emoji: "🦒", color: "#F4B350", t: 0.45, side: 1 },
-    { word: "Zebra", emoji: "🦓", color: "#5D6D7E", t: 0.62, side: -1, soundKey: "zebra" },
-    { word: "Monkey", emoji: "🐵", color: "#A0522D", t: 0.78, side: 1, soundKey: "gorilla" },
-    { word: "Hippo", emoji: "🦛", color: "#8E7CC3", t: 0.92, side: -1 },
+    { word: "Lion", emoji: "🦁", color: "#E8A33D", photo: "/animals/lion.png", t: 0.12, side: 1, soundKey: "lion" },
+    { word: "Elephant", emoji: "🐘", color: "#9B8FC7", photo: "/animals/elephant.png", t: 0.28, side: -1, soundKey: "elephant" },
+    { word: "Giraffe", emoji: "🦒", color: "#F4B350", photo: "/animals/giraffe.jpeg", t: 0.45, side: 1 },
+    { word: "Zebra", emoji: "🦓", color: "#5D6D7E", photo: "/animals/zebra.png", t: 0.62, side: -1, soundKey: "zebra" },
+    { word: "Monkey", emoji: "🐵", color: "#A0522D", photo: "/animals/monkey.jpeg", t: 0.78, side: 1, soundKey: "gorilla" },
+    { word: "Hippo", emoji: "🦛", color: "#8E7CC3", photo: "/animals/hippo.jpeg", t: 0.92, side: -1 },
   ],
 };
 
@@ -48,12 +50,12 @@ export const OCEAN_RIDE: RideConfig = {
   titleEmoji: "🐋",
   vehicleEmoji: "🛥️",
   animals: [
-    { word: "Whale", emoji: "🐋", color: "#3D7EA6", t: 0.12, side: 1, soundKey: "whale" },
-    { word: "Dolphin", emoji: "🐬", color: "#1ABCDB", t: 0.28, side: -1, soundKey: "fish" },
-    { word: "Turtle", emoji: "🐢", color: "#41A85F", t: 0.45, side: 1, soundKey: "turtle" },
-    { word: "Octopus", emoji: "🐙", color: "#E86FA4", t: 0.62, side: -1 },
-    { word: "Shark", emoji: "🦈", color: "#7F8FA6", t: 0.78, side: 1 },
-    { word: "Jellyfish", emoji: "🪼", color: "#C39BD3", t: 0.92, side: -1, soundKey: "jellyfish" },
+    { word: "Whale", emoji: "🐋", color: "#3D7EA6", photo: "/animals/whale.png", t: 0.12, side: 1, soundKey: "whale" },
+    { word: "Dolphin", emoji: "🐬", color: "#1ABCDB", photo: "/animals/dolphin.jpeg", t: 0.28, side: -1, soundKey: "fish" },
+    { word: "Turtle", emoji: "🐢", color: "#41A85F", photo: "/animals/turtle.png", t: 0.45, side: 1, soundKey: "turtle" },
+    { word: "Octopus", emoji: "🐙", color: "#E86FA4", photo: "/animals/octopus.jpeg", t: 0.62, side: -1 },
+    { word: "Shark", emoji: "🦈", color: "#7F8FA6", photo: "/animals/shark.png", t: 0.78, side: 1 },
+    { word: "Jellyfish", emoji: "🪼", color: "#C39BD3", photo: "/animals/jellyfish.png", t: 0.92, side: -1, soundKey: "jellyfish" },
   ],
 };
 
