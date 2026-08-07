@@ -10,8 +10,18 @@ import { ListenScreen } from "@/components/game/listen-screen";
 import { PlayScreen } from "@/components/game/play-screen";
 import { NotepadScreen } from "@/components/game/notepad-screen";
 import { SpellingScreen } from "@/components/game/spelling-screen";
+import { RideScreen } from "@/components/game/ride-screen";
+import type { RideWorldId } from "@/lib/ride-data";
 
-type Screen = "home" | "lesson" | "listen" | "play" | "notepad" | "spelling";
+type Screen =
+  | "home"
+  | "lesson"
+  | "listen"
+  | "play"
+  | "notepad"
+  | "spelling"
+  | "safari"
+  | "ocean";
 
 interface Route {
   screen: Screen;
@@ -67,12 +77,21 @@ export default function Home() {
     // No background music — letter chant needs to be clearly heard.
     setRoute({ screen: "spelling", index: 0 });
   };
+  const goRide = (world: RideWorldId) => {
+    playStart();
+    warmUp();
+    // No background music — animal announcements need to be clearly heard.
+    setRoute({ screen: world, index: 0 });
+  };
 
-  const onMode = (mode: "lesson" | "listen" | "play" | "notepad" | "spelling") => {
+  const onMode = (
+    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "safari" | "ocean"
+  ) => {
     if (mode === "lesson") goLesson(0);
     else if (mode === "listen") goListen();
     else if (mode === "play") goPlay();
     else if (mode === "spelling") goSpelling();
+    else if (mode === "safari" || mode === "ocean") goRide(mode);
     else goNotepad();
   };
 
@@ -99,6 +118,12 @@ export default function Home() {
       ) : null}
       {route.screen === "notepad" ? <NotepadScreen onHome={goHome} /> : null}
       {route.screen === "spelling" ? <SpellingScreen onHome={goHome} /> : null}
+      {route.screen === "safari" ? (
+        <RideScreen worldId="safari" onHome={goHome} />
+      ) : null}
+      {route.screen === "ocean" ? (
+        <RideScreen worldId="ocean" onHome={goHome} />
+      ) : null}
     </IpadShell>
   );
 }
