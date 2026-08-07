@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Group } from "three";
 import { RideEngine, type RideInput, type RideMode } from "@/lib/ride-engine";
 import { RIDE_CONFIGS, type RideWorldId } from "@/lib/ride-data";
-import { buildSafariWorld } from "@/lib/safari-world";
-import { buildOceanWorld } from "@/lib/ocean-world";
+import { buildSafariWorld, SAFARI_FIGURINES } from "@/lib/safari-world";
+import { buildOceanWorld, OCEAN_FIGURINES } from "@/lib/ocean-world";
+import { loadFigurine } from "@/lib/ride-photo-mesh";
 import { getAnimalInfo } from "@/lib/animal-info";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
@@ -14,6 +16,16 @@ const WORLD_BUILDERS = {
   safari: buildSafariWorld,
   ocean: buildOceanWorld,
 } as const;
+
+const FIGURINE_SPECS = {
+  safari: SAFARI_FIGURINES,
+  ocean: OCEAN_FIGURINES,
+} as const;
+
+/** Studio photos on white, keyed + extruded into 3D at runtime. */
+function cutoutUrl(word: string): string {
+  return `/animals/cutout/${word.toLowerCase()}.jpeg`;
+}
 
 const KEY_TO_INPUT: Record<string, RideInput> = {
   ArrowUp: "forward",
@@ -35,6 +47,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   const config = RIDE_CONFIGS[worldId];
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<RideEngine | null>(null);
+  const [figurines, setFigurines] = useState<Record<string, Group> | null>(null);
   const [mode, setMode] = useState<RideMode>("auto");
   const [encounter, setEncounter] = useState<string | null>(null);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
@@ -59,6 +72,24 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
       img.src = animal.photo;
     }
   }, [config]);
+
+  // Turn the real studio photos into 3D figurines before the ride starts.
+  useEffect(() => {
+    let cancelled = false;
+    setFigurines(null);
+    const specs = FIGURINE_SPECS[worldId];
+    Promise.all(
+      config.animals.map(async (animal) => {
+        const group = await loadFigurine(cutoutUrl(animal.word), specs[animal.word]);
+        return [animal.word, group] as const;
+      })
+    ).then((entries) => {
+      if (!cancelled) setFigurines(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config, worldId]);
 
   // Callbacks handed to the engine read fresh state through this ref.
   const meetAnimalRef = useRef<(word: string) => void>(() => {});
@@ -93,12 +124,16 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !figurines) return;
 
-    const engine = new RideEngine(container, WORLD_BUILDERS[worldId], {
-      onEncounter: (word) => meetAnimalRef.current(word),
-      onEncounterEnd: () => setEncounter(null),
-    });
+    const engine = new RideEngine(
+      container,
+      (scene) => WORLD_BUILDERS[worldId](scene, figurines),
+      {
+        onEncounter: (word) => meetAnimalRef.current(word),
+        onEncounterEnd: () => setEncounter(null),
+      }
+    );
     engineRef.current = engine;
     setMode("auto");
 
@@ -110,7 +145,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
       timers.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worldId]);
+  }, [worldId, figurines]);
 
   const switchMode = useCallback((next: RideMode) => {
     engineRef.current?.setMode(next);
@@ -176,6 +211,12 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   return (
     <div className={`ride-screen ride-${worldId}`}>
       <div ref={containerRef} className="ride-canvas" />
+
+      {!figurines ? (
+        <div className="ride-loading" role="status" aria-label="Loading ride">
+          <span className="ride-loading-emoji">{config.vehicleEmoji}</span>
+        </div>
+      ) : null}
 
       <header className="ride-header">
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
