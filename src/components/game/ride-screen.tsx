@@ -1,12 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Texture } from "three";
 import { RideEngine, type RideInput, type RideMode } from "@/lib/ride-engine";
 import { RIDE_CONFIGS, type RideWorldId } from "@/lib/ride-data";
 import { buildSafariWorld } from "@/lib/safari-world";
 import { buildOceanWorld } from "@/lib/ocean-world";
-import { loadRideTextures } from "@/lib/ride-visuals";
 import { getAnimalInfo } from "@/lib/animal-info";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
@@ -37,7 +35,6 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   const config = RIDE_CONFIGS[worldId];
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<RideEngine | null>(null);
-  const [textures, setTextures] = useState<Record<string, Texture> | null>(null);
   const [mode, setMode] = useState<RideMode>("auto");
   const [encounter, setEncounter] = useState<string | null>(null);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
@@ -55,17 +52,12 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     timersRef.current.add(timer);
   }, []);
 
-  // Photos must be on the GPU before the ride starts (AGENTS: preload).
+  // Warm the browser cache so panel/sticker photos appear instantly.
   useEffect(() => {
-    let cancelled = false;
-    setTextures(null);
-    const photos = Object.fromEntries(config.animals.map((a) => [a.word, a.photo]));
-    loadRideTextures(photos).then((loaded) => {
-      if (!cancelled) setTextures(loaded);
-    });
-    return () => {
-      cancelled = true;
-    };
+    for (const animal of config.animals) {
+      const img = new Image();
+      img.src = animal.photo;
+    }
   }, [config]);
 
   // Callbacks handed to the engine read fresh state through this ref.
@@ -101,16 +93,12 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !textures) return;
+    if (!container) return;
 
-    const engine = new RideEngine(
-      container,
-      (scene) => WORLD_BUILDERS[worldId](scene, textures),
-      {
-        onEncounter: (word) => meetAnimalRef.current(word),
-        onEncounterEnd: () => setEncounter(null),
-      }
-    );
+    const engine = new RideEngine(container, WORLD_BUILDERS[worldId], {
+      onEncounter: (word) => meetAnimalRef.current(word),
+      onEncounterEnd: () => setEncounter(null),
+    });
     engineRef.current = engine;
     setMode("auto");
 
@@ -122,7 +110,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
       timers.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worldId, textures]);
+  }, [worldId]);
 
   const switchMode = useCallback((next: RideMode) => {
     engineRef.current?.setMode(next);
@@ -188,12 +176,6 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   return (
     <div className={`ride-screen ride-${worldId}`}>
       <div ref={containerRef} className="ride-canvas" />
-
-      {!textures ? (
-        <div className="ride-loading" role="status" aria-label="Loading ride">
-          <span className="ride-loading-emoji">{config.vehicleEmoji}</span>
-        </div>
-      ) : null}
 
       <header className="ride-header">
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>

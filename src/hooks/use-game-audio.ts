@@ -697,6 +697,131 @@ export function useGameAudio() {
           });
         });
         break;
+      case "giraffe":
+        // gentle low hum with a soft bleat tail
+        playVibratoTone(audioContext, {
+          frequency: 190,
+          endFrequency: 230,
+          start: now,
+          duration: 0.5,
+          gain: 0.09,
+          type: "sine",
+          filterFrequency: 900,
+          vibratoRate: 5,
+          vibratoDepth: 8,
+        });
+        playVibratoTone(audioContext, {
+          frequency: 340,
+          endFrequency: 260,
+          start: now + 0.45,
+          duration: 0.4,
+          gain: 0.07,
+          type: "triangle",
+          filterFrequency: 1400,
+          vibratoRate: 9,
+          vibratoDepth: 22,
+        });
+        break;
+      case "hippo":
+        // big goofy grunt-honk: two low sweeps with a breathy snort
+        [0, 0.34].forEach((offset, index) => {
+          playTone(audioContext, {
+            frequency: 150 - index * 20,
+            endFrequency: 95,
+            start: now + offset,
+            duration: 0.3,
+            gain: 0.12,
+            type: "sawtooth",
+            filterFrequency: 700,
+            filterEndFrequency: 420,
+          });
+        });
+        playNoise(audioContext, {
+          start: now + 0.62,
+          duration: 0.18,
+          gain: 0.05,
+          filterFrequency: 900,
+          filterType: "bandpass",
+        });
+        break;
+      case "dolphin":
+        // bright happy clicks and whistles
+        [0, 0.09, 0.18].forEach((offset) => {
+          playNoise(audioContext, {
+            start: now + offset,
+            duration: 0.035,
+            gain: 0.05,
+            filterFrequency: 5200,
+            filterType: "bandpass",
+          });
+        });
+        playVibratoTone(audioContext, {
+          frequency: 1500,
+          endFrequency: 2400,
+          start: now + 0.28,
+          duration: 0.32,
+          gain: 0.06,
+          type: "sine",
+          filterFrequency: 6400,
+          vibratoRate: 12,
+          vibratoDepth: 60,
+        });
+        playVibratoTone(audioContext, {
+          frequency: 2300,
+          endFrequency: 1600,
+          start: now + 0.64,
+          duration: 0.3,
+          gain: 0.05,
+          type: "sine",
+          filterFrequency: 6400,
+          vibratoRate: 12,
+          vibratoDepth: 50,
+        });
+        break;
+      case "octopus":
+        // bubbly wobble: descending squelchy pops
+        [0, 0.14, 0.3, 0.48].forEach((offset, index) => {
+          playVibratoTone(audioContext, {
+            frequency: 620 - index * 90,
+            endFrequency: 420 - index * 70,
+            start: now + offset,
+            duration: 0.14,
+            gain: 0.06,
+            type: "sine",
+            filterFrequency: 2600,
+            vibratoRate: 16,
+            vibratoDepth: 40,
+          });
+          playNoise(audioContext, {
+            start: now + offset,
+            duration: 0.04,
+            gain: 0.02,
+            filterFrequency: 2400,
+            filterType: "bandpass",
+          });
+        });
+        break;
+      case "shark":
+        // playful "dun dun... whoosh": two low pulses and a swish
+        [0, 0.3].forEach((offset) => {
+          playTone(audioContext, {
+            frequency: 90,
+            endFrequency: 75,
+            start: now + offset,
+            duration: 0.2,
+            gain: 0.11,
+            type: "triangle",
+            filterFrequency: 500,
+          });
+        });
+        playNoise(audioContext, {
+          start: now + 0.58,
+          duration: 0.34,
+          gain: 0.045,
+          filterFrequency: 2400,
+          filterType: "bandpass",
+        });
+        break;
       case "lion":
         // friendly roar: low growl with vibrato + noise body
         playNoise(audioContext, {
