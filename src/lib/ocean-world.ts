@@ -32,12 +32,12 @@ type Animate = (time: number, active: boolean, activeElapsed: number) => void;
 
 /** Photo-figurine sizing for each sea animal (world units). */
 export const OCEAN_FIGURINES: Record<string, FigurineOptions> = {
-  Whale: { height: 3.6, depth: 0.8, sideColor: 0x2d5f86 },
-  Dolphin: { height: 3, depth: 0.55, sideColor: 0x4b88a8 },
-  Turtle: { height: 2.6, depth: 0.55, sideColor: 0x3f7a4b },
-  Octopus: { height: 3.4, depth: 0.6, sideColor: 0xa1416f },
-  Shark: { height: 3, depth: 0.6, sideColor: 0x5d707f },
-  Jellyfish: { height: 3.4, depth: 0.5, sideColor: 0x9a6cb4 },
+  Whale: { height: 3.6, depth: 2 },
+  Dolphin: { height: 3, depth: 1.2 },
+  Turtle: { height: 2.6, depth: 1.2 },
+  Octopus: { height: 3.4, depth: 1.6 },
+  Shark: { height: 3, depth: 1.4 },
+  Jellyfish: { height: 3.4, depth: 1.5 },
 };
 
 function gesturePulse(elapsed: number, start: number, duration: number): number {

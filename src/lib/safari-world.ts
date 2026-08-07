@@ -30,12 +30,12 @@ type Animate = (time: number, active: boolean, activeElapsed: number) => void;
 
 /** Photo-figurine sizing for each safari animal (world units). */
 export const SAFARI_FIGURINES: Record<string, FigurineOptions> = {
-  Lion: { height: 3.1, depth: 0.55, sideColor: 0xa8722f },
-  Elephant: { height: 4.6, depth: 0.75, sideColor: 0x77778a },
-  Giraffe: { height: 6.2, depth: 0.6, sideColor: 0xc08a3e },
-  Zebra: { height: 3, depth: 0.5, sideColor: 0x6b6d72 },
-  Monkey: { height: 2.2, depth: 0.42, sideColor: 0x6d4a2e },
-  Hippo: { height: 2.9, depth: 0.6, sideColor: 0x7d7690 },
+  Lion: { height: 3.1, depth: 1.5 },
+  Elephant: { height: 4.6, depth: 2.4 },
+  Giraffe: { height: 6.2, depth: 1.6 },
+  Zebra: { height: 3, depth: 1.3 },
+  Monkey: { height: 2.2, depth: 1 },
+  Hippo: { height: 2.9, depth: 1.7 },
 };
 
 function gesturePulse(elapsed: number, start: number, duration: number): number {

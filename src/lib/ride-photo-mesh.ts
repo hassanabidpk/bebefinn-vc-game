@@ -2,15 +2,17 @@
  * Photo → 3D figurine pipeline for the ride games.
  *
  * Takes a real animal photo shot on a plain white studio background and
- * turns it into a chunky 3D object at runtime:
+ * turns it into a rounded, genuinely 3D object at runtime:
  *
  *   1. key out the white background (flood fill from the borders, so white
  *      details inside the animal survive),
- *   2. trace the animal's silhouette (Moore boundary tracing on a
- *      downsampled mask, Douglas-Peucker simplified),
- *   3. extrude the silhouette with a soft bevel and texture the faces with
- *      the real photo — a thick photographic figurine, like a wooden toy
- *      cut from the picture.
+ *   2. build a distance field over the animal's silhouette (how far each
+ *      pixel sits from the nearest edge),
+ *   3. inflate: a front and back sheet of a subdivided grid are displaced
+ *      by the square root of the distance field — fat through the belly,
+ *      tapering to nothing at the outline, exactly like a plush toy sewn
+ *      from the photograph — then normals are computed so lighting shades
+ *      the curvature as a real rounded body.
  *
  * Everything happens in-browser with canvas — no external services.
  */
@@ -20,22 +22,19 @@ import * as THREE from "three";
 export interface FigurineOptions {
   /** World height of the animal itself (not the whole photo). */
   height: number;
-  /** World thickness of the figurine slab. */
+  /** World thickness of the animal through its fattest part. */
   depth: number;
-  /** Colour of the extruded sides (pick something near the animal's own). */
-  sideColor: number;
 }
 
 interface FigurineAsset {
-  geometry: THREE.ExtrudeGeometry;
+  geometry: THREE.BufferGeometry;
   texture: THREE.CanvasTexture;
   scale: number;
-  offsetX: number;
-  offsetY: number;
 }
 
 const KEY_SIZE = 512; // texture + keying resolution
-const TRACE_SIZE = 160; // silhouette tracing resolution
+const FIELD_SIZE = 160; // distance-field resolution
+const GRID = 80; // inflation mesh resolution across the animal's bbox
 const WHITE_TOLERANCE = 34; // max distance from white to count as background
 
 const assetCache = new Map<string, Promise<FigurineAsset>>();
@@ -50,7 +49,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 }
 
 /** Flood-fill near-white pixels connected to the border → transparent. */
-function keyOutBackground(ctx: CanvasRenderingContext2D, size: number) {
+function keyOutBackground(ctx: CanvasRenderingContext2D, size: number): ImageData {
   const imageData = ctx.getImageData(0, 0, size, size);
   const { data } = imageData;
   const isBackgroundish = (i: number) => {
@@ -80,17 +79,46 @@ function keyOutBackground(ctx: CanvasRenderingContext2D, size: number) {
     if (y > 0) queue.push(p - size);
     if (y < size - 1) queue.push(p + size);
   }
+
+  // Second pass: white background trapped in enclosed pockets (e.g. the
+  // gap under a belly, fenced in by legs) never touches the border, so the
+  // flood fill misses it. Clear any LARGE remaining near-white region —
+  // genuine white details like tusks and eyes are tiny and survive.
+  const seen = new Uint8Array(size * size);
+  const pocketLimit = size * size * 0.001; // ~260px at 512
+  const region: number[] = [];
+  for (let start = 0; start < size * size; start += 1) {
+    if (seen[start] || data[start * 4 + 3] === 0 || !isBackgroundish(start * 4)) continue;
+    region.length = 0;
+    const stack = [start];
+    seen[start] = 1;
+    while (stack.length) {
+      const p = stack.pop() as number;
+      region.push(p);
+      const x = p % size;
+      const y = (p / size) | 0;
+      for (const n of [x > 0 ? p - 1 : -1, x < size - 1 ? p + 1 : -1, y > 0 ? p - size : -1, y < size - 1 ? p + size : -1]) {
+        if (n >= 0 && !seen[n] && data[n * 4 + 3] > 0 && isBackgroundish(n * 4)) {
+          seen[n] = 1;
+          stack.push(n);
+        }
+      }
+    }
+    if (region.length > pocketLimit) {
+      for (const p of region) data[p * 4 + 3] = 0;
+    }
+  }
+
   ctx.putImageData(imageData, 0, 0);
   return imageData;
 }
 
-/** Downsample the alpha channel into a binary mask, keep largest blob. */
+/** Downsample the alpha channel into a binary mask, keep the largest blob. */
 function buildMask(imageData: ImageData, from: number, to: number): Uint8Array {
   const mask = new Uint8Array(to * to);
   const ratio = from / to;
   for (let y = 0; y < to; y += 1) {
     for (let x = 0; x < to; x += 1) {
-      // Sample a small neighbourhood so thin legs survive downsampling.
       let hits = 0;
       for (let dy = 0; dy < ratio; dy += 2) {
         for (let dx = 0; dx < ratio; dx += 2) {
@@ -103,7 +131,6 @@ function buildMask(imageData: ImageData, from: number, to: number): Uint8Array {
     }
   }
 
-  // Keep only the largest connected component.
   const labels = new Int32Array(to * to).fill(-1);
   let bestLabel = -1;
   let bestCount = 0;
@@ -135,150 +162,145 @@ function buildMask(imageData: ImageData, from: number, to: number): Uint8Array {
   return mask;
 }
 
-/** Moore boundary tracing — returns the outer contour, clockwise-ish. */
-function traceContour(mask: Uint8Array, size: number): Array<[number, number]> {
-  const at = (x: number, y: number) =>
-    x >= 0 && y >= 0 && x < size && y < size ? mask[y * size + x] : 0;
-
-  let startX = -1;
-  let startY = -1;
-  outer: for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      if (at(x, y)) {
-        startX = x;
-        startY = y;
-        break outer;
-      }
+/** Multi-source BFS: distance (in field pixels) from the nearest edge. */
+function distanceField(mask: Uint8Array, size: number): Float32Array {
+  const dist = new Float32Array(size * size).fill(-1);
+  const queue = new Int32Array(size * size);
+  let head = 0;
+  let tail = 0;
+  for (let p = 0; p < mask.length; p += 1) {
+    if (!mask[p]) {
+      dist[p] = 0;
+      queue[tail++] = p;
     }
   }
-  if (startX < 0) return [];
-
-  // 8-neighbour offsets, clockwise starting from west.
-  const offsets: Array<[number, number]> = [
-    [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1],
-  ];
-  const contour: Array<[number, number]> = [[startX, startY]];
-  let cx = startX;
-  let cy = startY;
-  let backtrack = 0; // came from the west
-  const maxSteps = size * size * 4;
-  for (let step = 0; step < maxSteps; step += 1) {
-    let found = false;
-    for (let i = 0; i < 8; i += 1) {
-      const dir = (backtrack + 1 + i) % 8;
-      const nx = cx + offsets[dir][0];
-      const ny = cy + offsets[dir][1];
-      if (at(nx, ny)) {
-        // Remember where we came from relative to the new pixel.
-        backtrack = (dir + 4) % 8;
-        cx = nx;
-        cy = ny;
-        contour.push([cx, cy]);
-        found = true;
-        break;
-      }
-    }
-    if (!found) break; // isolated pixel
-    if (cx === startX && cy === startY && contour.length > 3) break;
+  while (head < tail) {
+    const p = queue[head++];
+    const x = p % size;
+    const y = (p / size) | 0;
+    const d = dist[p];
+    if (x > 0 && dist[p - 1] < 0) { dist[p - 1] = d + 1; queue[tail++] = p - 1; }
+    if (x < size - 1 && dist[p + 1] < 0) { dist[p + 1] = d + 1; queue[tail++] = p + 1; }
+    if (y > 0 && dist[p - size] < 0) { dist[p - size] = d + 1; queue[tail++] = p - size; }
+    if (y < size - 1 && dist[p + size] < 0) { dist[p + size] = d + 1; queue[tail++] = p + size; }
   }
-  return contour;
+  return dist;
 }
 
-/**
- * Iterative Douglas-Peucker simplification. The contour is a closed loop
- * (first point ≈ last point), so a plain first-to-last pass would measure
- * distances against a degenerate zero-length chord and collapse the whole
- * shape — anchor a third point mid-loop and simplify the two halves.
- */
-function simplifyContour(points: Array<[number, number]>, epsilon: number): Array<[number, number]> {
-  if (points.length < 6) return points;
-  const keep = new Uint8Array(points.length);
-  const mid = points.length >> 1;
-  keep[0] = 1;
-  keep[mid] = 1;
-  keep[points.length - 1] = 1;
-  const stack: Array<[number, number]> = [[0, mid], [mid, points.length - 1]];
-  while (stack.length) {
-    const [first, last] = stack.pop() as [number, number];
-    const [x1, y1] = points[first];
-    const [x2, y2] = points[last];
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const norm = Math.hypot(dx, dy) || 1;
-    let maxDist = 0;
-    let index = -1;
-    for (let i = first + 1; i < last; i += 1) {
-      const [px, py] = points[i];
-      const dist = Math.abs(dy * px - dx * py + x2 * y1 - y2 * x1) / norm;
-      if (dist > maxDist) {
-        maxDist = dist;
-        index = i;
-      }
-    }
-    if (maxDist > epsilon && index > 0) {
-      keep[index] = 1;
-      stack.push([first, index], [index, last]);
-    }
-  }
-  return points.filter((_, i) => keep[i] === 1);
+/** Bilinear sample of the distance field at mask coordinates. */
+function sampleField(field: Float32Array, size: number, fx: number, fy: number): number {
+  const x = Math.min(size - 1.001, Math.max(0, fx));
+  const y = Math.min(size - 1.001, Math.max(0, fy));
+  const x0 = x | 0;
+  const y0 = y | 0;
+  const tx = x - x0;
+  const ty = y - y0;
+  const a = field[y0 * size + x0];
+  const b = field[y0 * size + x0 + 1];
+  const c = field[(y0 + 1) * size + x0];
+  const d = field[(y0 + 1) * size + x0 + 1];
+  return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
 }
 
-async function buildAsset(url: string, depthWorldPerHeight: number): Promise<FigurineAsset> {
+async function buildAsset(url: string, depthPerHeight: number): Promise<FigurineAsset> {
   const image = await loadImage(url);
   const canvas = document.createElement("canvas");
   canvas.width = KEY_SIZE;
   canvas.height = KEY_SIZE;
   const ctx = canvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
-  // Cover the square canvas; generated photos are square already.
   ctx.drawImage(image, 0, 0, KEY_SIZE, KEY_SIZE);
   const keyed = keyOutBackground(ctx, KEY_SIZE);
 
-  const mask = buildMask(keyed, KEY_SIZE, TRACE_SIZE);
-  const contour = simplifyContour(traceContour(mask, TRACE_SIZE), 1.35);
-  if (contour.length < 8) throw new Error(`silhouette trace failed for ${url}`);
+  const mask = buildMask(keyed, KEY_SIZE, FIELD_SIZE);
+  const field = distanceField(mask, FIELD_SIZE);
 
-  // Shape in image-UV space (0..1, y up) so extrude UVs sample the photo 1:1.
-  const shape = new THREE.Shape();
-  contour.forEach(([x, y], i) => {
-    const u = x / TRACE_SIZE;
-    const v = 1 - y / TRACE_SIZE;
-    if (i === 0) shape.moveTo(u, v);
-    else shape.lineTo(u, v);
-  });
-  shape.closePath();
-
-  // Animal bounding box inside the photo, for scaling and grounding.
-  let minX = 1;
+  // Animal bbox in the field (also gives us the height for scaling).
+  let minX = FIELD_SIZE;
   let maxX = 0;
-  let minY = 1;
+  let minY = FIELD_SIZE;
   let maxY = 0;
-  for (const [x, y] of contour) {
-    const u = x / TRACE_SIZE;
-    const v = 1 - y / TRACE_SIZE;
-    minX = Math.min(minX, u);
-    maxX = Math.max(maxX, u);
-    minY = Math.min(minY, v);
-    maxY = Math.max(maxY, v);
+  let maxDist = 0;
+  for (let y = 0; y < FIELD_SIZE; y += 1) {
+    for (let x = 0; x < FIELD_SIZE; x += 1) {
+      const p = y * FIELD_SIZE + x;
+      if (!mask[p]) continue;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      maxDist = Math.max(maxDist, field[p]);
+    }
   }
-  const animalHeight = Math.max(0.05, maxY - minY);
-  const scale = 1 / animalHeight; // multiply by world height later
-  const depth = depthWorldPerHeight * animalHeight;
+  if (maxX <= minX || maxY <= minY || maxDist <= 0) {
+    throw new Error(`silhouette missing for ${url}`);
+  }
+  // Pad a touch so the mesh reaches past the anti-aliased edge.
+  minX = Math.max(0, minX - 2);
+  maxX = Math.min(FIELD_SIZE - 1, maxX + 2);
+  minY = Math.max(0, minY - 2);
+  maxY = Math.min(FIELD_SIZE - 1, maxY + 2);
 
-  const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth,
-    bevelEnabled: true,
-    bevelThickness: depth * 0.18,
-    bevelSize: 0.008,
-    bevelSegments: 2,
-    steps: 1,
-  });
-  geometry.translate(-(minX + maxX) / 2, -minY, -depth / 2);
+  const animalHeightNorm = (maxY - minY) / FIELD_SIZE;
+  const scale = 1 / animalHeightNorm;
+  // Half-thickness through the fattest point, in image-normalized units.
+  const halfDepth = (depthPerHeight * animalHeightNorm) / 2;
+
+  // Two displaced sheets (front +z, back −z) over the bbox grid. Depth
+  // follows sqrt(edge distance): round through the body, feathering to
+  // zero right at the outline so front and back meet seamlessly.
+  const cols = GRID + 1;
+  const vertsPerSheet = cols * cols;
+  const positions = new Float32Array(vertsPerSheet * 2 * 3);
+  const uvs = new Float32Array(vertsPerSheet * 2 * 2);
+  const indices: number[] = [];
+
+  for (let sheet = 0; sheet < 2; sheet += 1) {
+    const zSign = sheet === 0 ? 1 : -1;
+    for (let iy = 0; iy <= GRID; iy += 1) {
+      for (let ix = 0; ix <= GRID; ix += 1) {
+        const fx = minX + (ix / GRID) * (maxX - minX);
+        const fy = minY + (iy / GRID) * (maxY - minY);
+        const raw = Math.max(0, sampleField(field, FIELD_SIZE, fx, fy));
+        const inflate = Math.sqrt(raw / maxDist);
+        const u = fx / FIELD_SIZE;
+        const v = 1 - fy / FIELD_SIZE;
+        const index = sheet * vertsPerSheet + iy * cols + ix;
+        positions[index * 3] = u;
+        positions[index * 3 + 1] = v;
+        positions[index * 3 + 2] = zSign * halfDepth * inflate;
+        uvs[index * 2] = u;
+        uvs[index * 2 + 1] = v;
+      }
+    }
+    for (let iy = 0; iy < GRID; iy += 1) {
+      for (let ix = 0; ix < GRID; ix += 1) {
+        const a = sheet * vertsPerSheet + iy * cols + ix;
+        const b = a + 1;
+        const c = a + cols;
+        const d = c + 1;
+        // Reverse winding on the back sheet so it faces outward.
+        if (sheet === 0) indices.push(a, c, b, b, c, d);
+        else indices.push(a, b, c, b, d, c);
+      }
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+
+  // Ground the animal and centre it on its own footprint.
+  const centerX = ((minX + maxX) / 2) / FIELD_SIZE;
+  const bottomY = 1 - maxY / FIELD_SIZE;
+  geometry.translate(-centerX, -bottomY, 0);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
 
-  return { geometry, texture, scale, offsetX: 0, offsetY: 0 };
+  return { geometry, texture, scale };
 }
 
 /**
@@ -286,7 +308,7 @@ async function buildAsset(url: string, depthWorldPerHeight: number): Promise<Fig
  * call; geometry and texture are shared between instances.
  */
 export async function loadFigurine(url: string, options: FigurineOptions): Promise<THREE.Group> {
-  const cacheKey = `${url}|${options.depth}`;
+  const cacheKey = `${url}|${options.depth}|${options.height}`;
   let pending = assetCache.get(cacheKey);
   if (!pending) {
     pending = buildAsset(url, options.depth / options.height);
@@ -294,21 +316,16 @@ export async function loadFigurine(url: string, options: FigurineOptions): Promi
   }
   const asset = await pending;
 
-  const photoMaterial = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshStandardMaterial({
     map: asset.texture,
     transparent: true,
     alphaTest: 0.35,
-    roughness: 0.62,
+    roughness: 0.6,
     metalness: 0.02,
+    side: THREE.FrontSide,
   });
-  const sideMaterial = new THREE.MeshStandardMaterial({
-    color: options.sideColor,
-    roughness: 0.8,
-    metalness: 0.02,
-  });
-  const mesh = new THREE.Mesh(asset.geometry, [photoMaterial, sideMaterial]);
-  const worldScale = asset.scale * options.height;
-  mesh.scale.setScalar(worldScale);
+  const mesh = new THREE.Mesh(asset.geometry, material);
+  mesh.scale.setScalar(asset.scale * options.height);
   mesh.castShadow = true;
 
   const group = new THREE.Group();
