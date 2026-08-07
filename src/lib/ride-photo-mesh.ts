@@ -32,10 +32,13 @@ interface FigurineAsset {
   scale: number;
 }
 
-const KEY_SIZE = 512; // texture + keying resolution
+const KEY_SIZE = 768; // texture + keying resolution
 const FIELD_SIZE = 160; // distance-field resolution
+const DEPTH_SIZE = 96; // depth-map sampling resolution
 const GRID = 80; // inflation mesh resolution across the animal's bbox
 const WHITE_TOLERANCE = 34; // max distance from white to count as background
+/** How much of the relief comes from the AI depth map vs pure inflation. */
+const DEPTH_WEIGHT = 0.5;
 
 const assetCache = new Map<string, Promise<FigurineAsset>>();
 
@@ -187,6 +190,54 @@ function distanceField(mask: Uint8Array, size: number): Float32Array {
   return dist;
 }
 
+/**
+ * Load the AI-estimated depth map (white = near, black = far) as a small
+ * blurred luminance grid. The generated maps keep skin texture and are not
+ * pixel-aligned with the photo, so we sample at low resolution and blur
+ * hard — leaving only the broad depth structure (head forward, far legs
+ * back). Returns null when no depth map exists.
+ */
+async function loadDepthGrid(url: string): Promise<Float32Array | null> {
+  let image: HTMLImageElement;
+  try {
+    image = await loadImage(url);
+  } catch {
+    return null;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = DEPTH_SIZE;
+  canvas.height = DEPTH_SIZE;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
+  ctx.drawImage(image, 0, 0, DEPTH_SIZE, DEPTH_SIZE);
+  const { data } = ctx.getImageData(0, 0, DEPTH_SIZE, DEPTH_SIZE);
+  let grid = new Float32Array(DEPTH_SIZE * DEPTH_SIZE);
+  for (let i = 0; i < grid.length; i += 1) {
+    grid[i] = (data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2]) / (3 * 255);
+  }
+  // Two box-blur passes wash out wrinkles and misalignment.
+  for (let pass = 0; pass < 2; pass += 1) {
+    const blurred = new Float32Array(grid.length);
+    for (let y = 0; y < DEPTH_SIZE; y += 1) {
+      for (let x = 0; x < DEPTH_SIZE; x += 1) {
+        let sum = 0;
+        let n = 0;
+        for (let dy = -2; dy <= 2; dy += 1) {
+          for (let dx = -2; dx <= 2; dx += 1) {
+            const sx = x + dx;
+            const sy = y + dy;
+            if (sx < 0 || sy < 0 || sx >= DEPTH_SIZE || sy >= DEPTH_SIZE) continue;
+            sum += grid[sy * DEPTH_SIZE + sx];
+            n += 1;
+          }
+        }
+        blurred[y * DEPTH_SIZE + x] = sum / n;
+      }
+    }
+    grid = blurred;
+  }
+  return grid;
+}
+
 /** Bilinear sample of the distance field at mask coordinates. */
 function sampleField(field: Float32Array, size: number, fx: number, fy: number): number {
   const x = Math.min(size - 1.001, Math.max(0, fx));
@@ -202,8 +253,12 @@ function sampleField(field: Float32Array, size: number, fx: number, fy: number):
   return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
 }
 
-async function buildAsset(url: string, depthPerHeight: number): Promise<FigurineAsset> {
-  const image = await loadImage(url);
+async function buildAsset(
+  url: string,
+  depthUrl: string,
+  depthPerHeight: number
+): Promise<FigurineAsset> {
+  const [image, depthGrid] = await Promise.all([loadImage(url), loadDepthGrid(depthUrl)]);
   const canvas = document.createElement("canvas");
   canvas.width = KEY_SIZE;
   canvas.height = KEY_SIZE;
@@ -245,6 +300,25 @@ async function buildAsset(url: string, depthPerHeight: number): Promise<Figurine
   // Half-thickness through the fattest point, in image-normalized units.
   const halfDepth = (depthPerHeight * animalHeightNorm) / 2;
 
+  // Normalise the AI depth map over the animal's own pixels.
+  const sampleDepth = (fx: number, fy: number) =>
+    depthGrid
+      ? sampleField(depthGrid, DEPTH_SIZE, (fx / FIELD_SIZE) * DEPTH_SIZE, (fy / FIELD_SIZE) * DEPTH_SIZE)
+      : 0;
+  let depthMin = 1;
+  let depthMax = 0;
+  if (depthGrid) {
+    for (let y = minY; y <= maxY; y += 2) {
+      for (let x = minX; x <= maxX; x += 2) {
+        if (!mask[y * FIELD_SIZE + x]) continue;
+        const d = sampleDepth(x, y);
+        depthMin = Math.min(depthMin, d);
+        depthMax = Math.max(depthMax, d);
+      }
+    }
+  }
+  const depthRange = Math.max(0.001, depthMax - depthMin);
+
   // Two displaced sheets (front +z, back −z) over the bbox grid. Depth
   // follows sqrt(edge distance): round through the body, feathering to
   // zero right at the outline so front and back meet seamlessly.
@@ -262,12 +336,21 @@ async function buildAsset(url: string, depthPerHeight: number): Promise<Figurine
         const fy = minY + (iy / GRID) * (maxY - minY);
         const raw = Math.max(0, sampleField(field, FIELD_SIZE, fx, fy));
         const inflate = Math.sqrt(raw / maxDist);
+        // Front sheet: blend the balloon inflation with real estimated
+        // depth (head and near limbs push out, far side recedes). The
+        // edge fade pins the outline to zero so the sheets still meet.
+        let relief = inflate;
+        if (sheet === 0 && depthGrid) {
+          const depthN = (sampleDepth(fx, fy) - depthMin) / depthRange;
+          const edgeFade = Math.min(1, inflate * 2.2);
+          relief = inflate * (1 - DEPTH_WEIGHT) + depthN * edgeFade * DEPTH_WEIGHT;
+        }
         const u = fx / FIELD_SIZE;
         const v = 1 - fy / FIELD_SIZE;
         const index = sheet * vertsPerSheet + iy * cols + ix;
         positions[index * 3] = u;
         positions[index * 3 + 1] = v;
-        positions[index * 3 + 2] = zSign * halfDepth * inflate;
+        positions[index * 3 + 2] = zSign * halfDepth * (sheet === 0 ? relief : inflate * 0.85);
         uvs[index * 2] = u;
         uvs[index * 2 + 1] = v;
       }
@@ -311,7 +394,8 @@ export async function loadFigurine(url: string, options: FigurineOptions): Promi
   const cacheKey = `${url}|${options.depth}|${options.height}`;
   let pending = assetCache.get(cacheKey);
   if (!pending) {
-    pending = buildAsset(url, options.depth / options.height);
+    const depthUrl = url.replace(/\.(jpe?g|png)$/i, "-depth.jpeg");
+    pending = buildAsset(url, depthUrl, options.depth / options.height);
     assetCache.set(cacheKey, pending);
   }
   const asset = await pending;
