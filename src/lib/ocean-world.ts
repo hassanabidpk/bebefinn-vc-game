@@ -1,16 +1,16 @@
 /**
- * Ocean Dive world builder — deep-water scene where each sea animal is a
- * real photo turned into a 3D figurine (background keyed out, silhouette
- * extruded — see ride-photo-mesh.ts). Figurines drift, breathe, and perform
- * a signature move when the submarine stops (whale spouts, dolphin flips,
- * shark barrel-rolls...). Sun shafts, motes, and contact shadows included.
+ * Ocean Dive world builder — deep-water scene with real low-poly 3D sea
+ * animal models (Poly by Google, CC-BY 3.0 — see ATTRIBUTIONS.md) that
+ * drift, breathe, and perform a signature move when the submarine stops
+ * (whale spouts, dolphin flips, shark barrel-rolls...). Sun shafts,
+ * motes, and contact shadows included.
  */
 
 import * as THREE from "three";
 import type { RideAnimalNode, RideWorldBuild } from "./ride-engine";
 import { OCEAN_RIDE } from "./ride-data";
 import type { RideAnimalSpec } from "./ride-data";
-import type { FigurineOptions } from "./ride-photo-mesh";
+import type { AnimalModelOptions } from "./ride-models";
 import {
   createLoopCurve,
   createTrackRibbon,
@@ -30,14 +30,14 @@ import {
 
 type Animate = (time: number, active: boolean, activeElapsed: number) => void;
 
-/** Photo-figurine sizing for each sea animal (world units). */
-export const OCEAN_FIGURINES: Record<string, FigurineOptions> = {
-  Whale: { height: 3.6, depth: 2 },
-  Dolphin: { height: 3, depth: 1.2 },
-  Turtle: { height: 2.6, depth: 1.2 },
-  Octopus: { height: 3.4, depth: 1.6 },
-  Shark: { height: 3, depth: 1.4 },
-  Jellyfish: { height: 3.4, depth: 1.5 },
+/** Model sizing for each sea animal (world units). */
+export const OCEAN_MODELS: Record<string, AnimalModelOptions> = {
+  Whale: { height: 3.6, yaw: Math.PI },
+  Dolphin: { height: 2.2, yaw: Math.PI },
+  Turtle: { height: 2, yaw: Math.PI },
+  Octopus: { height: 3.2, yaw: Math.PI },
+  Shark: { height: 2.4, yaw: Math.PI },
+  Jellyfish: { height: 3.2, yaw: Math.PI },
 };
 
 function gesturePulse(elapsed: number, start: number, duration: number): number {
@@ -70,26 +70,30 @@ function swimMotion(
   home: { position: THREE.Vector3; quaternion: THREE.Quaternion } | null
 ): number {
   if (!home) return 0;
-  // Flat-ish figurines keep their photo face turned toward the submarine.
-  const faceVehicle = () => {
-    const yaw = Math.atan2(vp.x - group.position.x, vp.z - group.position.z);
+  const turnTo = (yaw: number, rate: number) => {
     const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
-    group.quaternion.slerp(targetQuat, active ? 0.1 : 0.06);
+    group.quaternion.slerp(targetQuat, rate);
   };
   if (active) {
+    // Swim home and turn to face the submarine for the show.
     group.position.x += (home.position.x - group.position.x) * 0.08;
     group.position.z += (home.position.z - group.position.z) * 0.08;
-    faceVehicle();
+    turnTo(Math.atan2(vp.x - group.position.x, vp.z - group.position.z), 0.1);
     return 0;
   }
   const angle = time * pace + seed;
-  group.position.x = home.position.x + Math.cos(angle) * radius;
-  group.position.z = home.position.z + Math.sin(angle) * radius * 0.8;
-  faceVehicle();
+  const targetX = home.position.x + Math.cos(angle) * radius;
+  const targetZ = home.position.z + Math.sin(angle) * radius * 0.8;
+  const dx = targetX - group.position.x;
+  const dz = targetZ - group.position.z;
+  group.position.x = targetX;
+  group.position.z = targetZ;
+  // Swim facing the direction of travel.
+  if (Math.hypot(dx, dz) > 0.002) turnTo(Math.atan2(dx, dz), 0.1);
   return 1;
 }
 
-/** Re-parent the figurine mesh so the group spins around its middle. */
+/** Re-parent the model so the group spins around its middle. */
 function centerSpinner(group: THREE.Group, height: number): THREE.Group {
   const spinner = new THREE.Group();
   spinner.position.y = height / 2;
@@ -103,11 +107,11 @@ function centerSpinner(group: THREE.Group, height: number): THREE.Group {
   return spinner;
 }
 
-/** Species motion for the sea figurines — all group-level transforms. */
+/** Species motion for the sea animal models — all group-level transforms. */
 const OCEAN_MOTION: Record<string, (g: THREE.Group, vp: THREE.Vector3) => Animate> = {
   Whale: (g, vp) => {
     const getHome = homeKeeper(g);
-    const height = OCEAN_FIGURINES.Whale.height;
+    const height = OCEAN_MODELS.Whale.height;
     // Bubble spout that grows out of the blowhole during the show.
     const spout = new THREE.Group();
     [
@@ -131,7 +135,7 @@ const OCEAN_MOTION: Record<string, (g: THREE.Group, vp: THREE.Vector3) => Animat
   },
   Dolphin: (g, vp) => {
     const getHome = homeKeeper(g);
-    const spinner = centerSpinner(g, OCEAN_FIGURINES.Dolphin.height);
+    const spinner = centerSpinner(g, OCEAN_MODELS.Dolphin.height);
     return (time, active, elapsed) => {
       swimMotion(g, vp, time, active, 2.2, 2.4, 0.22, getHome());
       g.position.y = Math.sin(time * 1.9) * 0.3 + 0.4;
@@ -169,7 +173,7 @@ const OCEAN_MOTION: Record<string, (g: THREE.Group, vp: THREE.Vector3) => Animat
   },
   Shark: (g, vp) => {
     const getHome = homeKeeper(g);
-    const spinner = centerSpinner(g, OCEAN_FIGURINES.Shark.height);
+    const spinner = centerSpinner(g, OCEAN_MODELS.Shark.height);
     return (time, active, elapsed) => {
       swimMotion(g, vp, time, active, 1.3, 2.6, 0.28, getHome());
       g.position.y = Math.sin(time * 1.6) * 0.22 + 0.35;

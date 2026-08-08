@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Group } from "three";
 import { RideEngine, type RideInput, type RideMode } from "@/lib/ride-engine";
 import { RIDE_CONFIGS, type RideWorldId } from "@/lib/ride-data";
-import { buildSafariWorld, SAFARI_FIGURINES } from "@/lib/safari-world";
-import { buildOceanWorld, OCEAN_FIGURINES } from "@/lib/ocean-world";
-import { loadFigurine } from "@/lib/ride-photo-mesh";
+import { buildSafariWorld, SAFARI_MODELS } from "@/lib/safari-world";
+import { buildOceanWorld, OCEAN_MODELS } from "@/lib/ocean-world";
+import { loadAnimalModel } from "@/lib/ride-models";
 import { getAnimalInfo } from "@/lib/animal-info";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
@@ -17,14 +17,14 @@ const WORLD_BUILDERS = {
   ocean: buildOceanWorld,
 } as const;
 
-const FIGURINE_SPECS = {
-  safari: SAFARI_FIGURINES,
-  ocean: OCEAN_FIGURINES,
+const MODEL_SPECS = {
+  safari: SAFARI_MODELS,
+  ocean: OCEAN_MODELS,
 } as const;
 
-/** Studio photos on white, keyed + extruded into 3D at runtime. */
-function cutoutUrl(word: string): string {
-  return `/animals/cutout/${word.toLowerCase()}.jpeg`;
+/** Low-poly animal models by Poly by Google (CC-BY 3.0, ATTRIBUTIONS.md). */
+function modelUrl(word: string): string {
+  return `/models/animals/${word.toLowerCase()}.glb`;
 }
 
 const KEY_TO_INPUT: Record<string, RideInput> = {
@@ -73,14 +73,14 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     }
   }, [config]);
 
-  // Turn the real studio photos into 3D figurines before the ride starts.
+  // Load and normalise the 3D animal models before the ride starts.
   useEffect(() => {
     let cancelled = false;
     setFigurines(null);
-    const specs = FIGURINE_SPECS[worldId];
+    const specs = MODEL_SPECS[worldId];
     Promise.all(
       config.animals.map(async (animal) => {
-        const group = await loadFigurine(cutoutUrl(animal.word), specs[animal.word]);
+        const group = await loadAnimalModel(modelUrl(animal.word), specs[animal.word]);
         return [animal.word, group] as const;
       })
     ).then((entries) => {

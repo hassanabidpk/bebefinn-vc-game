@@ -1,16 +1,16 @@
 /**
- * Safari Ride world builder — golden-hour savanna where each animal is a
- * real photo turned into a 3D figurine (background keyed out, silhouette
- * extruded — see ride-photo-mesh.ts). Figurines wander around their home
- * spot with a toy-like waddle and perform a signature move when the jeep
- * stops. Real-time shadows follow the jeep under a painted sky dome.
+ * Safari Ride world builder — golden-hour savanna with real low-poly 3D
+ * animal models (Poly by Google, CC-BY 3.0 — see ATTRIBUTIONS.md) that
+ * wander around their home spot facing their direction of travel and
+ * perform a signature move when the jeep stops. Real-time shadows follow
+ * the jeep under a painted sky dome.
  */
 
 import * as THREE from "three";
 import type { RideAnimalNode, RideWorldBuild } from "./ride-engine";
 import { SAFARI_RIDE } from "./ride-data";
 import type { RideAnimalSpec } from "./ride-data";
-import type { FigurineOptions } from "./ride-photo-mesh";
+import type { AnimalModelOptions } from "./ride-models";
 import {
   createLoopCurve,
   createTrackRibbon,
@@ -28,14 +28,14 @@ import {
 
 type Animate = (time: number, active: boolean, activeElapsed: number) => void;
 
-/** Photo-figurine sizing for each safari animal (world units). */
-export const SAFARI_FIGURINES: Record<string, FigurineOptions> = {
-  Lion: { height: 3.1, depth: 1.5 },
-  Elephant: { height: 4.6, depth: 2.4 },
-  Giraffe: { height: 6.2, depth: 1.6 },
-  Zebra: { height: 3, depth: 1.3 },
-  Monkey: { height: 2.2, depth: 1 },
-  Hippo: { height: 2.9, depth: 1.7 },
+/** Model sizing for each safari animal (world units). */
+export const SAFARI_MODELS: Record<string, AnimalModelOptions> = {
+  Lion: { height: 3.1, yaw: Math.PI },
+  Elephant: { height: 4.6, yaw: Math.PI },
+  Giraffe: { height: 6.2, yaw: Math.PI },
+  Zebra: { height: 3, yaw: Math.PI },
+  Monkey: { height: 2.2, yaw: Math.PI },
+  Hippo: { height: 2.9, yaw: Math.PI },
 };
 
 function gesturePulse(elapsed: number, start: number, duration: number): number {
@@ -69,29 +69,32 @@ function groundMotion(
   home: { position: THREE.Vector3; quaternion: THREE.Quaternion } | null
 ): number {
   if (!home) return 0;
-  // Photo figurines are flat-ish, so they always turn their photo face
-  // toward the jeep — like a pop-up book character watching you drive by.
-  const faceVehicle = () => {
-    const yaw = Math.atan2(vp.x - group.position.x, vp.z - group.position.z);
+  const turnTo = (yaw: number, rate: number) => {
     const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
-    group.quaternion.slerp(targetQuat, active ? 0.1 : 0.06);
+    group.quaternion.slerp(targetQuat, rate);
   };
   if (active) {
+    // Come home and turn to face the jeep for the show.
     group.position.x += (home.position.x - group.position.x) * 0.08;
     group.position.z += (home.position.z - group.position.z) * 0.08;
-    faceVehicle();
+    turnTo(Math.atan2(vp.x - group.position.x, vp.z - group.position.z), 0.1);
     return 0;
   }
   const angle = time * pace + seed;
-  group.position.x = home.position.x + Math.cos(angle) * radius;
-  group.position.z = home.position.z + Math.sin(angle) * radius * 0.7;
-  faceVehicle();
+  const targetX = home.position.x + Math.cos(angle) * radius;
+  const targetZ = home.position.z + Math.sin(angle) * radius * 0.7;
+  const dx = targetX - group.position.x;
+  const dz = targetZ - group.position.z;
+  group.position.x = targetX;
+  group.position.z = targetZ;
+  // Walk facing the direction of travel, like a real animal.
+  if (Math.hypot(dx, dz) > 0.002) turnTo(Math.atan2(dx, dz), 0.1);
   return 1;
 }
 
 /**
- * Species motion for the photo figurines. All group-level: toy-like waddle
- * walks, hops, bows, rears, spins — plus each animal's signature show.
+ * Species motion for the animal models. All group-level: waddle walks,
+ * hops, bows, rears, spins — plus each animal's signature show.
  */
 const SAFARI_MOTION: Record<string, (g: THREE.Group, vp: THREE.Vector3) => Animate> = {
   Lion: (g, vp) => {
