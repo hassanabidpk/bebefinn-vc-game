@@ -17,6 +17,12 @@ export type RideInput = "forward" | "back" | "left" | "right";
 export interface RideAnimalNode {
   spec: RideAnimalSpec;
   group: THREE.Group;
+  /**
+   * Per-frame species animation. `active` is true while this animal is the
+   * current encounter; `activeElapsed` is seconds since it became the star
+   * (0 otherwise) so signature gestures can be keyed from the stop moment.
+   */
+  animate?: (time: number, active: boolean, activeElapsed: number) => void;
 }
 
 export interface RideWorldBuild {
@@ -84,6 +90,7 @@ export class RideEngine {
   private highlight: THREE.Mesh;
   private animalBaseY = new Map<string, number>();
   private lookTarget: THREE.Vector3 | null = null;
+  private activeSince = 0;
 
   constructor(
     container: HTMLElement,
@@ -286,6 +293,7 @@ export class RideEngine {
     );
     if (near) {
       this.activeEncounter = near.word;
+      this.activeSince = this.clock.elapsedTime;
       this.callbacks.onEncounter(near.word);
       // In drive mode announce once per approach; auto mode mutes after dwelling.
       if (this.mode === "drive") this.muted.add(near.word);
@@ -312,12 +320,16 @@ export class RideEngine {
     this.world.animals.forEach((animal, index) => {
       const baseY = this.animalBaseY.get(animal.spec.word) ?? 0;
       const active = animal.spec.word === this.activeEncounter;
-      // Gentle float for everyone; the star of the moment bobs a bit more.
-      // (Animals are photo boards now — big hops would look broken.)
-      const bounce = active
-        ? Math.abs(Math.sin(time * 3.2)) * 0.35
-        : Math.sin(time * 1.6 + index * 1.3) * 0.12;
-      animal.group.position.y = baseY + bounce;
+
+      if (animal.animate) {
+        // Species animation owns the whole pose (walk cycles, gestures).
+        animal.animate(time, active, active ? time - this.activeSince : 0);
+      } else {
+        const bounce = active
+          ? Math.abs(Math.sin(time * 3.2)) * 0.35
+          : Math.sin(time * 1.6 + index * 1.3) * 0.12;
+        animal.group.position.y = baseY + bounce;
+      }
 
       if (active) {
         this.highlight.visible = true;

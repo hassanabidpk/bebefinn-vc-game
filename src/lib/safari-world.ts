@@ -1,13 +1,16 @@
 /**
- * Safari Ride world builder — golden-hour savanna where each animal is a
- * real wildlife photo on a big wooden viewpoint board, lit by real-time
- * shadows that follow the jeep under a painted sky dome. Scenery and the
- * jeep are procedural; the photos come from /public/animals.
+ * Safari Ride world builder — golden-hour savanna with real low-poly 3D
+ * animal models (Poly by Google, CC-BY 3.0 — see ATTRIBUTIONS.md) that
+ * wander around their home spot facing their direction of travel and
+ * perform a signature move when the jeep stops. Real-time shadows follow
+ * the jeep under a painted sky dome.
  */
 
 import * as THREE from "three";
-import type { RideWorldBuild } from "./ride-engine";
+import type { RideAnimalNode, RideWorldBuild } from "./ride-engine";
 import { SAFARI_RIDE } from "./ride-data";
+import type { RideAnimalSpec } from "./ride-data";
+import type { AnimalModelOptions } from "./ride-models";
 import {
   createLoopCurve,
   createTrackRibbon,
@@ -19,10 +22,155 @@ import {
   latheBody,
   noiseTexture,
   part,
-  photoBoard,
   radialFadeTexture,
   skyGradientTexture,
 } from "./ride-visuals";
+
+type Animate = (time: number, active: boolean, activeElapsed: number) => void;
+
+/** Model sizing for each safari animal (world units). */
+export const SAFARI_MODELS: Record<string, AnimalModelOptions> = {
+  Lion: { height: 3.1, yaw: Math.PI },
+  Elephant: { height: 4.6, yaw: Math.PI },
+  Giraffe: { height: 6.2, yaw: Math.PI },
+  Zebra: { height: 3, yaw: Math.PI },
+  Monkey: { height: 2.2, yaw: Math.PI },
+  Hippo: { height: 2.9, yaw: Math.PI },
+};
+
+function gesturePulse(elapsed: number, start: number, duration: number): number {
+  const t = (elapsed - start) / duration;
+  if (t <= 0 || t >= 1) return 0;
+  return Math.sin(t * Math.PI);
+}
+
+function rampIn(elapsed: number, duration = 0.5): number {
+  const t = Math.min(1, Math.max(0, elapsed / duration));
+  return t * t * (3 - 2 * t);
+}
+
+function homeKeeper(group: THREE.Group) {
+  let home: { position: THREE.Vector3; quaternion: THREE.Quaternion } | null = null;
+  return () => {
+    if (!home) home = { position: group.position.clone(), quaternion: group.quaternion.clone() };
+    return home;
+  };
+}
+
+/** Amble around home when idle; come home and face the road when active. */
+function groundMotion(
+  group: THREE.Group,
+  vp: THREE.Vector3,
+  time: number,
+  active: boolean,
+  seed: number,
+  radius: number,
+  pace: number,
+  home: { position: THREE.Vector3; quaternion: THREE.Quaternion } | null
+): number {
+  if (!home) return 0;
+  const turnTo = (yaw: number, rate: number) => {
+    const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
+    group.quaternion.slerp(targetQuat, rate);
+  };
+  if (active) {
+    // Come home and turn to face the jeep for the show.
+    group.position.x += (home.position.x - group.position.x) * 0.08;
+    group.position.z += (home.position.z - group.position.z) * 0.08;
+    turnTo(Math.atan2(vp.x - group.position.x, vp.z - group.position.z), 0.1);
+    return 0;
+  }
+  const angle = time * pace + seed;
+  const targetX = home.position.x + Math.cos(angle) * radius;
+  const targetZ = home.position.z + Math.sin(angle) * radius * 0.7;
+  const dx = targetX - group.position.x;
+  const dz = targetZ - group.position.z;
+  group.position.x = targetX;
+  group.position.z = targetZ;
+  // Walk facing the direction of travel, like a real animal.
+  if (Math.hypot(dx, dz) > 0.002) turnTo(Math.atan2(dx, dz), 0.1);
+  return 1;
+}
+
+/**
+ * Species motion for the animal models. All group-level: waddle walks,
+ * hops, bows, rears, spins — plus each animal's signature show.
+ */
+const SAFARI_MOTION: Record<string, (g: THREE.Group, vp: THREE.Vector3) => Animate> = {
+  Lion: (g, vp) => {
+    const getHome = homeKeeper(g);
+    return (time, active, elapsed) => {
+      const walk = groundMotion(g, vp, time, active, 3.1, 1.6, 0.14, getHome());
+      const rear = gesturePulse(elapsed, 0.5, 2.6) * rampIn(elapsed);
+      g.rotation.z = Math.sin(time * 6.5) * 0.05 * walk;
+      g.rotation.x = -rear * 0.55;
+      g.position.y = rear * 0.5 + Math.abs(Math.sin(time * 4.4)) * 0.06 * walk;
+      // Roar shudder at the top of the rear.
+      g.scale.setScalar(1 + rear * 0.05 + Math.sin(time * 22) * 0.012 * rear);
+    };
+  },
+  Elephant: (g, vp) => {
+    const getHome = homeKeeper(g);
+    return (time, active, elapsed) => {
+      const walk = groundMotion(g, vp, time, active, 1.7, 1.3, 0.09, getHome());
+      const salute = gesturePulse(elapsed, 0.5, 2.8) * rampIn(elapsed);
+      g.rotation.z = Math.sin(time * 5) * 0.04 * walk;
+      // Tip back and stretch tall, like raising the trunk to trumpet.
+      g.rotation.x = -salute * 0.32;
+      g.scale.y = 1 + salute * 0.08;
+      g.position.y = salute * 0.25 + Math.abs(Math.sin(time * 3.4)) * 0.05 * walk;
+    };
+  },
+  Giraffe: (g, vp) => {
+    const getHome = homeKeeper(g);
+    return (time, active, elapsed) => {
+      const walk = groundMotion(g, vp, time, active, 5.4, 1.8, 0.11, getHome());
+      const bow = gesturePulse(elapsed, 0.5, 3) * rampIn(elapsed);
+      g.rotation.z = Math.sin(time * 4.6) * 0.045 * walk;
+      // A deep graceful bow from the ankles.
+      g.rotation.x = bow * 0.5;
+      g.position.y = Math.abs(Math.sin(time * 3.6)) * 0.06 * walk;
+    };
+  },
+  Zebra: (g, vp) => {
+    const getHome = homeKeeper(g);
+    return (time, active, elapsed) => {
+      const walk = groundMotion(g, vp, time, active, 7.9, 2, 0.16, getHome());
+      const buck = (gesturePulse(elapsed, 0.5, 1.5) + gesturePulse(elapsed, 2.7, 1.5)) * rampIn(elapsed);
+      g.rotation.z = Math.sin(time * 7.5) * 0.055 * walk + Math.sin(time * 11) * 0.08 * buck;
+      g.rotation.x = -buck * 0.3;
+      g.position.y = buck * 0.55 + Math.abs(Math.sin(time * 5)) * 0.07 * walk;
+    };
+  },
+  Monkey: (g, vp) => {
+    const getHome = homeKeeper(g);
+    let spin = 0;
+    return (time, active, elapsed) => {
+      getHome();
+      const excitement = active ? rampIn(elapsed, 0.6) : 0;
+      g.position.y = Math.abs(Math.sin(time * (active ? 7 : 2.8))) * (0.14 + excitement * 0.5);
+      g.rotation.z = Math.sin(time * 3.2) * 0.07;
+      // Joy spin during the show.
+      const wantSpin = gesturePulse(elapsed, 0.8, 1.4) > 0 ? 0.18 : 0;
+      spin += wantSpin;
+      g.rotation.y += wantSpin;
+      void spin;
+    };
+  },
+  Hippo: (g, vp) => {
+    const getHome = homeKeeper(g);
+    return (time, active, elapsed) => {
+      const walk = groundMotion(g, vp, time, active, 9.2, 1.1, 0.07, getHome());
+      const yawn = gesturePulse(elapsed, 0.6, 3.2) * rampIn(elapsed);
+      g.rotation.z = Math.sin(time * 4.2) * 0.045 * walk;
+      // Head-back stretch with a belly wobble.
+      g.rotation.x = -yawn * 0.35;
+      g.scale.y = 1 + yawn * 0.1;
+      g.scale.x = 1 + Math.sin(time * 9) * 0.02 * yawn;
+      g.position.y = Math.abs(Math.sin(time * 2.8)) * 0.045 * walk;
+    };
+  },
+};
 
 // ---- vehicle ----
 
@@ -34,12 +182,10 @@ function buildJeep(): THREE.Group {
   body.name = "jeep-body";
   part(g, new THREE.BoxGeometry(2.24, 0.3, 3.74), { color: 0x8f4415, roughness: 0.5 }, 0, 0.62, 0);
   part(g, new THREE.BoxGeometry(1.95, 0.55, 1.75), { color: 0xe8853f, roughness: 0.4, metalness: 0.2 }, 0, 1.72, -0.5);
-  // Rounded fenders.
   for (const sz of [-1.15, 1.15]) {
     const fender = part(g, new THREE.CylinderGeometry(0.62, 0.62, 2.36, 16, 1, false, 0, Math.PI), { color: 0x8f4415, roughness: 0.5 }, 0, 0.85, sz);
     fender.rotation.z = Math.PI / 2;
   }
-  // Windshield glass.
   part(g, new THREE.BoxGeometry(1.8, 0.72, 0.08), { color: 0xcfeefc, roughness: 0.05, metalness: 0.4, opacity: 0.4 }, 0, 2.05, 0.78);
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
@@ -47,11 +193,9 @@ function buildJeep(): THREE.Group {
     }
   }
   part(g, new THREE.BoxGeometry(2.15, 0.1, 3.25), { map: noiseTexture("#efe1bd", "#d8c79d", 500, 91), roughness: 0.9 }, 0, 2.9, 0);
-  // Headlights.
   for (const sx of [-1, 1]) {
     part(g, new THREE.SphereGeometry(0.14, 10, 8), { color: 0xfff3c4, emissive: 0xfff3c4, emissiveIntensity: 0.9, roughness: 0.2 }, sx * 0.7, 1.15, 1.9);
   }
-  // Wheels with rims and chunky tread.
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const wheel = new THREE.Group();
@@ -62,11 +206,9 @@ function buildJeep(): THREE.Group {
       g.add(wheel);
     }
   }
-  // Spare tire on the tailgate.
   const spare = part(g, new THREE.CylinderGeometry(0.5, 0.5, 0.3, 18), { color: 0x26282c, roughness: 0.95 }, 0, 1.3, -1.95);
   spare.rotation.x = Math.PI / 2;
 
-  // Otter ranger driver.
   const driver = new THREE.Group();
   part(driver, new THREE.CapsuleGeometry(0.3, 0.35, 6, 12), { map: noiseTexture("#8b5a3c", "#6d4227", 500, 97) }, 0, 0.2, 0);
   const otterHead = part(driver, new THREE.SphereGeometry(0.3, 14, 12), { map: noiseTexture("#8b5a3c", "#6d4227", 500, 98) }, 0, 0.75, 0);
@@ -91,11 +233,10 @@ function buildJeep(): THREE.Group {
 
 export function buildSafariWorld(
   scene: THREE.Scene,
-  photos: Record<string, THREE.Texture>
+  figurines: Record<string, THREE.Group>
 ): RideWorldBuild {
   scene.fog = new THREE.Fog(0xc9e6f2, 55, 150);
 
-  // Painted sky dome (fog must not tint it).
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(260, 24, 16),
     new THREE.MeshBasicMaterial({
@@ -107,7 +248,6 @@ export function buildSafariWorld(
   scene.add(sky);
 
   scene.add(new THREE.HemisphereLight(0xfff2d8, 0xb08d52, 1.05));
-  // Soft fill from behind the camera so vehicle/animal near sides stay bright.
   const fill = new THREE.DirectionalLight(0xfff6e6, 0.5);
   fill.position.set(-14, 20, -18);
   scene.add(fill);
@@ -126,7 +266,6 @@ export function buildSafariWorld(
   scene.add(sun);
   scene.add(sun.target);
 
-  // Grassy ground with tonal noise.
   const groundTexture = noiseTexture("#9dbb59", "#7fa348", 1400, 12);
   groundTexture.repeat.set(48, 48);
   const ground = new THREE.Mesh(
@@ -142,7 +281,6 @@ export function buildSafariWorld(
   road.receiveShadow = true;
   scene.add(road);
 
-  // Golden sun disc + drifting clouds.
   const sunDisc = new THREE.Mesh(
     new THREE.SphereGeometry(7, 18, 14),
     new THREE.MeshBasicMaterial({ color: 0xfff0a8, fog: false })
@@ -182,7 +320,6 @@ export function buildSafariWorld(
     clouds.push(cloud);
   }
 
-  // Acacia trees, bushes, rocks, termite mounds.
   for (let i = 0; i < 30; i += 1) {
     const angle = rand() * Math.PI * 2;
     const radius = rand() < 0.5 ? 12 + rand() * 15 : 58 + rand() * 60;
@@ -194,7 +331,6 @@ export function buildSafariWorld(
       const lean = (rand() - 0.5) * 0.25;
       const trunk = part(tree, new THREE.CylinderGeometry(0.32, 0.62, 5.4, 10), { map: noiseTexture("#7d5433", "#5d3d24", 700, 100 + i), roughness: 1 }, 0, 2.7, 0);
       trunk.rotation.z = lean;
-      // Flat-topped acacia canopy, two stacked discs.
       part(tree, new THREE.SphereGeometry(3.6, 14, 10), { map: noiseTexture("#5d9c46", "#487d36", 900, 130 + i), roughness: 1 }, lean * 5, 5.7, 0).scale.set(1.4, 0.42, 1.4);
       part(tree, new THREE.SphereGeometry(2.5, 12, 10), { map: noiseTexture("#6cae52", "#528c3e", 700, 160 + i), roughness: 1 }, lean * 5 + 0.6, 6.4, 0.4).scale.set(1.2, 0.4, 1.2);
       tree.position.set(x, 0, z);
@@ -210,7 +346,6 @@ export function buildSafariWorld(
     }
   }
 
-  // Dry-grass tufts scattered as one instanced draw call.
   const tuftGeometry = new THREE.ConeGeometry(0.16, 0.9, 6);
   const tuftMaterial = new THREE.MeshStandardMaterial({ color: 0xc9c26a, roughness: 1 });
   const tufts = new THREE.InstancedMesh(tuftGeometry, tuftMaterial, 240);
@@ -226,15 +361,13 @@ export function buildSafariWorld(
 
   const vehicle = buildJeep();
   scene.add(vehicle);
+  const vehicleFocus = curve.getPointAt(0);
 
-  const animals = SAFARI_RIDE.animals.map((spec) => {
-    const group = photoBoard(photos[spec.word]);
-    group.traverse((object) => {
-      object.castShadow = true;
-    });
-    placeBesideTrack(group, curve, spec.t, spec.side, 7.5);
+  const animals: RideAnimalNode[] = SAFARI_RIDE.animals.map((spec: RideAnimalSpec) => {
+    const group = figurines[spec.word];
+    placeBesideTrack(group, curve, spec.t, spec.side, 8.5);
     scene.add(group);
-    return { spec, group };
+    return { spec, group, animate: SAFARI_MOTION[spec.word](group, vehicleFocus) };
   });
 
   return {
@@ -245,7 +378,7 @@ export function buildSafariWorld(
     cameraDistance: 9,
     cameraHeight: 4.2,
     update: (time: number, vehiclePosition: THREE.Vector3) => {
-      // Keep the shadow frustum centred on the jeep so shadows stay crisp.
+      vehicleFocus.copy(vehiclePosition);
       sun.position.set(vehiclePosition.x + 18, 32, vehiclePosition.z + 8);
       sun.target.position.copy(vehiclePosition);
       clouds.forEach((cloud, index) => {

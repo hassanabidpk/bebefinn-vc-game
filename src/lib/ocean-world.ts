@@ -1,13 +1,16 @@
 /**
- * Ocean Dive world builder — deep-water scene where each sea animal is a
- * real photo inside a floating brass porthole, among sun shafts, drifting
- * motes, and soft contact shadows on the sand. Scenery and the submarine
- * are procedural; the photos come from /public/animals.
+ * Ocean Dive world builder — deep-water scene with real low-poly 3D sea
+ * animal models (Poly by Google, CC-BY 3.0 — see ATTRIBUTIONS.md) that
+ * drift, breathe, and perform a signature move when the submarine stops
+ * (whale spouts, dolphin flips, shark barrel-rolls...). Sun shafts,
+ * motes, and contact shadows included.
  */
 
 import * as THREE from "three";
-import type { RideWorldBuild } from "./ride-engine";
+import type { RideAnimalNode, RideWorldBuild } from "./ride-engine";
 import { OCEAN_RIDE } from "./ride-data";
+import type { RideAnimalSpec } from "./ride-data";
+import type { AnimalModelOptions } from "./ride-models";
 import {
   createLoopCurve,
   createTrackRibbon,
@@ -20,11 +23,182 @@ import {
   latheBody,
   noiseTexture,
   part,
-  photoPorthole,
   radialFadeTexture,
   skyGradientTexture,
   taperedLimb,
 } from "./ride-visuals";
+
+type Animate = (time: number, active: boolean, activeElapsed: number) => void;
+
+/** Model sizing for each sea animal (world units). */
+export const OCEAN_MODELS: Record<string, AnimalModelOptions> = {
+  Whale: { height: 3.6, yaw: Math.PI },
+  Dolphin: { height: 2.2, yaw: Math.PI },
+  Turtle: { height: 2, yaw: Math.PI },
+  Octopus: { height: 3.2, yaw: Math.PI },
+  Shark: { height: 2.4, yaw: Math.PI },
+  Jellyfish: { height: 3.2, yaw: Math.PI },
+};
+
+function gesturePulse(elapsed: number, start: number, duration: number): number {
+  const t = (elapsed - start) / duration;
+  if (t <= 0 || t >= 1) return 0;
+  return Math.sin(t * Math.PI);
+}
+
+function rampIn(elapsed: number, duration = 0.5): number {
+  const t = Math.min(1, Math.max(0, elapsed / duration));
+  return t * t * (3 - 2 * t);
+}
+
+function homeKeeper(group: THREE.Group) {
+  let home: { position: THREE.Vector3; quaternion: THREE.Quaternion } | null = null;
+  return () => {
+    if (!home) home = { position: group.position.clone(), quaternion: group.quaternion.clone() };
+    return home;
+  };
+}
+
+function swimMotion(
+  group: THREE.Group,
+  vp: THREE.Vector3,
+  time: number,
+  active: boolean,
+  seed: number,
+  radius: number,
+  pace: number,
+  home: { position: THREE.Vector3; quaternion: THREE.Quaternion } | null
+): number {
+  if (!home) return 0;
+  const turnTo = (yaw: number, rate: number) => {
+    const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
+    group.quaternion.slerp(targetQuat, rate);
+  };
+  if (active) {
+    // Swim home and turn to face the submarine for the show.
+    group.position.x += (home.position.x - group.position.x) * 0.08;
+    group.position.z += (home.position.z - group.position.z) * 0.08;
+    turnTo(Math.atan2(vp.x - group.position.x, vp.z - group.position.z), 0.1);
+    return 0;
+  }
+  const angle = time * pace + seed;
+  const targetX = home.position.x + Math.cos(angle) * radius;
+  const targetZ = home.position.z + Math.sin(angle) * radius * 0.8;
+  const dx = targetX - group.position.x;
+  const dz = targetZ - group.position.z;
+  group.position.x = targetX;
+  group.position.z = targetZ;
+  // Swim facing the direction of travel.
+  if (Math.hypot(dx, dz) > 0.002) turnTo(Math.atan2(dx, dz), 0.1);
+  return 1;
+}
+
+/** Re-parent the model so the group spins around its middle. */
+function centerSpinner(group: THREE.Group, height: number): THREE.Group {
+  const spinner = new THREE.Group();
+  spinner.position.y = height / 2;
+  while (group.children.length) {
+    const child = group.children[0];
+    group.remove(child);
+    child.position.y -= height / 2;
+    spinner.add(child);
+  }
+  group.add(spinner);
+  return spinner;
+}
+
+/** Species motion for the sea animal models — all group-level transforms. */
+const OCEAN_MOTION: Record<string, (g: THREE.Group, vp: THREE.Vector3) => Animate> = {
+  Whale: (g, vp) => {
+    const getHome = homeKeeper(g);
+    const height = OCEAN_MODELS.Whale.height;
+    // Bubble spout that grows out of the blowhole during the show.
+    const spout = new THREE.Group();
+    [
+      [0, 0.25, 0.24],
+      [-0.35, 0.75, 0.19],
+      [0.38, 0.9, 0.2],
+      [0, 1.3, 0.27],
+    ].forEach(([x, y, radius]) => {
+      part(spout, new THREE.SphereGeometry(radius, 10, 8), { color: 0xdff2fc, roughness: 0.1, opacity: 0.55, shadows: false }, x, y, 0);
+    });
+    spout.position.y = height * 0.95;
+    spout.scale.setScalar(0.001);
+    g.add(spout);
+    return (time, active, elapsed) => {
+      swimMotion(g, vp, time, active, 0.4, 1.2, 0.05, getHome());
+      const show = gesturePulse(elapsed, 0.4, 3.4) * rampIn(elapsed);
+      g.position.y = show * 1.1 + Math.sin(time * 1.2) * 0.18;
+      g.rotation.z = Math.sin(time * 1.6) * 0.05;
+      spout.scale.setScalar(Math.max(0.001, show));
+    };
+  },
+  Dolphin: (g, vp) => {
+    const getHome = homeKeeper(g);
+    const spinner = centerSpinner(g, OCEAN_MODELS.Dolphin.height);
+    return (time, active, elapsed) => {
+      swimMotion(g, vp, time, active, 2.2, 2.4, 0.22, getHome());
+      g.position.y = Math.sin(time * 1.9) * 0.3 + 0.4;
+      let flip = 0;
+      for (const start of [0.4, 3]) {
+        const t = (elapsed - start) / 1.4;
+        if (t > 0 && t < 1) flip = t * t * (3 - 2 * t) * Math.PI * 2;
+      }
+      spinner.rotation.z = -flip;
+      if (active && flip === 0) g.position.y += Math.abs(Math.sin(time * 5)) * 0.4 * rampIn(elapsed);
+    };
+  },
+  Turtle: (g, vp) => {
+    const getHome = homeKeeper(g);
+    return (time, active, elapsed) => {
+      swimMotion(g, vp, time, active, 4.8, 0.7, 0.06, getHome());
+      const hello = gesturePulse(elapsed, 0.5, 2.8) * rampIn(elapsed);
+      g.position.y = Math.sin(time * 1.4) * 0.15 + 0.3 + hello * 0.5;
+      // Paddling rock, quicker when excited.
+      g.rotation.z = Math.sin(time * (active ? 5.5 : 2)) * (active ? 0.14 : 0.07);
+      g.rotation.x = -hello * 0.25;
+    };
+  },
+  Octopus: (g, vp) => {
+    const getHome = homeKeeper(g);
+    return (time, active, elapsed) => {
+      swimMotion(g, vp, time, active, 6.1, 0.3, 0.06, getHome());
+      // Squishy jet-breathing.
+      const breath = Math.sin(time * (active ? 5 : 2.1)) * (active ? 0.1 : 0.045);
+      g.scale.set(1 - breath * 0.6, 1 + breath, 1 - breath * 0.6);
+      const dance = gesturePulse(elapsed, 0.5, 3) * rampIn(elapsed);
+      g.position.y = dance * 0.9 + Math.sin(time * 1.2) * 0.1;
+      g.rotation.z = Math.sin(time * (active ? 4.4 : 1.1)) * (active ? 0.18 : 0.04);
+    };
+  },
+  Shark: (g, vp) => {
+    const getHome = homeKeeper(g);
+    const spinner = centerSpinner(g, OCEAN_MODELS.Shark.height);
+    return (time, active, elapsed) => {
+      swimMotion(g, vp, time, active, 1.3, 2.6, 0.28, getHome());
+      g.position.y = Math.sin(time * 1.6) * 0.22 + 0.35;
+      let roll = 0;
+      for (const start of [0.5, 3.1]) {
+        const t = (elapsed - start) / 1.5;
+        if (t > 0 && t < 1) roll = t * t * (3 - 2 * t) * Math.PI * 2;
+      }
+      spinner.rotation.z = roll;
+      g.rotation.z = active ? 0 : Math.sin(time * 3.2) * 0.05;
+    };
+  },
+  Jellyfish: (g, vp) => {
+    const getHome = homeKeeper(g);
+    return (time, active, elapsed) => {
+      getHome();
+      // Medusa pulse: squash wide, stretch tall, drift upward.
+      const beat = Math.sin(time * (active ? 4.6 : 2.2));
+      g.scale.set(1 - beat * 0.07, 1 + beat * 0.12, 1 - beat * 0.07);
+      const glow = gesturePulse(elapsed, 0.4, 3.2) * rampIn(elapsed);
+      g.position.y = Math.sin(time * 1.1) * 0.4 + 0.5 + glow * 1.2;
+      g.rotation.z = Math.sin(time * 0.9) * 0.06;
+    };
+  },
+};
 
 // ---- vehicle ----
 
@@ -36,7 +210,6 @@ function buildSubmarine(): THREE.Group {
   hull.rotation.x = Math.PI / 2;
   hull.position.y = 0.5;
 
-  // Porthole with otter captain.
   part(g, new THREE.TorusGeometry(0.58, 0.11, 12, 24), { color: 0xb8860b, roughness: 0.25, metalness: 0.7 }, 0, 0.62, 1.55).rotation.x = 0.12;
   part(g, new THREE.CircleGeometry(0.54, 24), { color: 0xa8dcf0, roughness: 0.05, metalness: 0.3, opacity: 0.55 }, 0, 0.62, 1.54).rotation.x = 0.12;
   const captain = new THREE.Group();
@@ -47,7 +220,6 @@ function buildSubmarine(): THREE.Group {
   captain.position.set(0, 0.58, 1.3);
   g.add(captain);
 
-  // Conning tower, periscope, dive planes.
   part(g, new THREE.CylinderGeometry(0.42, 0.55, 0.65, 16), { map: paintTexture, roughness: 0.35, metalness: 0.35 }, 0, 1.5, -0.3);
   part(g, new THREE.CylinderGeometry(0.06, 0.06, 0.85, 10), { color: 0xb8860b, roughness: 0.3, metalness: 0.7 }, 0, 2.2, -0.3);
   const scopeHead = part(g, new THREE.SphereGeometry(0.13, 10, 8), { color: 0xb8860b, roughness: 0.3, metalness: 0.7 }, 0.22, 2.55, -0.3);
@@ -67,7 +239,6 @@ function buildSubmarine(): THREE.Group {
   propeller.position.set(0, 0.5, -2.6);
   g.add(propeller);
 
-  // Soft headlight glow cone ahead of the sub.
   const beam = new THREE.Mesh(
     new THREE.ConeGeometry(1.5, 5, 20, 1, true),
     new THREE.MeshBasicMaterial({
@@ -89,11 +260,10 @@ function buildSubmarine(): THREE.Group {
 
 export function buildOceanWorld(
   scene: THREE.Scene,
-  photos: Record<string, THREE.Texture>
+  figurines: Record<string, THREE.Group>
 ): RideWorldBuild {
   scene.fog = new THREE.Fog(0x0e5c8f, 20, 105);
 
-  // Deep-water gradient dome.
   const water = new THREE.Mesh(
     new THREE.SphereGeometry(240, 24, 16),
     new THREE.MeshBasicMaterial({
@@ -112,7 +282,6 @@ export function buildOceanWorld(
   fill.position.set(-10, 14, -20);
   scene.add(fill);
 
-  // Rippled sand floor.
   const sandTexture = noiseTexture("#dcc98f", "#c2ab72", 1500, 21);
   sandTexture.repeat.set(40, 40);
   const floor = new THREE.Mesh(
@@ -125,7 +294,6 @@ export function buildOceanWorld(
   const curve = createLoopCurve(40, 6, 3, 1.1);
   scene.add(createTrackRibbon(curve, 7, 0xe6d7a0, -2.9));
 
-  // Sun shafts slanting down through the water.
   const rayTexture = radialFadeTexture("rgba(190,235,255,0.55)", "rgba(190,235,255,0)");
   const rays: THREE.Mesh[] = [];
   const rand = seededRandom(22);
@@ -150,7 +318,6 @@ export function buildOceanWorld(
     rays.push(ray);
   }
 
-  // Coral gardens, seaweed, rocks.
   const swaying: THREE.Mesh[] = [];
   for (let i = 0; i < 34; i += 1) {
     const angle = rand() * Math.PI * 2;
@@ -184,7 +351,6 @@ export function buildOceanWorld(
     }
   }
 
-  // Bubbles and drifting motes.
   const bubbles: THREE.Mesh[] = [];
   for (let i = 0; i < 30; i += 1) {
     const bubble = part(
@@ -223,16 +389,16 @@ export function buildOceanWorld(
   const vehicle = buildSubmarine();
   scene.add(vehicle);
   const vehicleShadow = blobShadow(scene, 2.2, 0.07, 0.3);
+  const vehicleFocus = curve.getPointAt(0);
 
-  const animals = OCEAN_RIDE.animals.map((spec) => {
-    const group = photoPorthole(photos[spec.word]);
-    placeBesideTrack(group, curve, spec.t, spec.side, 8);
-    // Soft contact shadow keeps every porthole visually grounded.
-    const shadow = blobShadow(scene, 2.4, 0.06, 0.28);
+  const animals: RideAnimalNode[] = OCEAN_RIDE.animals.map((spec: RideAnimalSpec) => {
+    const group = figurines[spec.word];
+    placeBesideTrack(group, curve, spec.t, spec.side, 8.5);
+    const shadow = blobShadow(scene, spec.word === "Whale" ? 3.2 : 2.2, 0.06, 0.28);
     shadow.position.x = group.position.x;
     shadow.position.z = group.position.z;
     scene.add(group);
-    return { spec, group };
+    return { spec, group, animate: OCEAN_MOTION[spec.word](group, vehicleFocus) };
   });
 
   let propeller: THREE.Object3D | null = null;
@@ -248,6 +414,7 @@ export function buildOceanWorld(
     cameraDistance: 10,
     cameraHeight: 4.6,
     update: (time: number, vehiclePosition: THREE.Vector3) => {
+      vehicleFocus.copy(vehiclePosition);
       if (propeller) propeller.rotation.z = time * 7;
       vehicleShadow.position.x = vehiclePosition.x;
       vehicleShadow.position.z = vehiclePosition.z;

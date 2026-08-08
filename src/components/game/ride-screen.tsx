@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Texture } from "three";
+import type { Group } from "three";
 import { RideEngine, type RideInput, type RideMode } from "@/lib/ride-engine";
 import { RIDE_CONFIGS, type RideWorldId } from "@/lib/ride-data";
-import { buildSafariWorld } from "@/lib/safari-world";
-import { buildOceanWorld } from "@/lib/ocean-world";
-import { loadRideTextures } from "@/lib/ride-visuals";
+import { buildSafariWorld, SAFARI_MODELS } from "@/lib/safari-world";
+import { buildOceanWorld, OCEAN_MODELS } from "@/lib/ocean-world";
+import { loadAnimalModel } from "@/lib/ride-models";
 import { getAnimalInfo } from "@/lib/animal-info";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
@@ -16,6 +16,16 @@ const WORLD_BUILDERS = {
   safari: buildSafariWorld,
   ocean: buildOceanWorld,
 } as const;
+
+const MODEL_SPECS = {
+  safari: SAFARI_MODELS,
+  ocean: OCEAN_MODELS,
+} as const;
+
+/** Low-poly animal models by Poly by Google (CC-BY 3.0, ATTRIBUTIONS.md). */
+function modelUrl(word: string): string {
+  return `/models/animals/${word.toLowerCase()}.glb`;
+}
 
 const KEY_TO_INPUT: Record<string, RideInput> = {
   ArrowUp: "forward",
@@ -37,7 +47,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   const config = RIDE_CONFIGS[worldId];
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<RideEngine | null>(null);
-  const [textures, setTextures] = useState<Record<string, Texture> | null>(null);
+  const [figurines, setFigurines] = useState<Record<string, Group> | null>(null);
   const [mode, setMode] = useState<RideMode>("auto");
   const [encounter, setEncounter] = useState<string | null>(null);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
@@ -55,18 +65,31 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     timersRef.current.add(timer);
   }, []);
 
-  // Photos must be on the GPU before the ride starts (AGENTS: preload).
+  // Warm the browser cache so panel/sticker photos appear instantly.
+  useEffect(() => {
+    for (const animal of config.animals) {
+      const img = new Image();
+      img.src = animal.photo;
+    }
+  }, [config]);
+
+  // Load and normalise the 3D animal models before the ride starts.
   useEffect(() => {
     let cancelled = false;
-    setTextures(null);
-    const photos = Object.fromEntries(config.animals.map((a) => [a.word, a.photo]));
-    loadRideTextures(photos).then((loaded) => {
-      if (!cancelled) setTextures(loaded);
+    setFigurines(null);
+    const specs = MODEL_SPECS[worldId];
+    Promise.all(
+      config.animals.map(async (animal) => {
+        const group = await loadAnimalModel(modelUrl(animal.word), specs[animal.word]);
+        return [animal.word, group] as const;
+      })
+    ).then((entries) => {
+      if (!cancelled) setFigurines(Object.fromEntries(entries));
     });
     return () => {
       cancelled = true;
     };
-  }, [config]);
+  }, [config, worldId]);
 
   // Callbacks handed to the engine read fresh state through this ref.
   const meetAnimalRef = useRef<(word: string) => void>(() => {});
@@ -101,11 +124,11 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !textures) return;
+    if (!container || !figurines) return;
 
     const engine = new RideEngine(
       container,
-      (scene) => WORLD_BUILDERS[worldId](scene, textures),
+      (scene) => WORLD_BUILDERS[worldId](scene, figurines),
       {
         onEncounter: (word) => meetAnimalRef.current(word),
         onEncounterEnd: () => setEncounter(null),
@@ -122,7 +145,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
       timers.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worldId, textures]);
+  }, [worldId, figurines]);
 
   const switchMode = useCallback((next: RideMode) => {
     engineRef.current?.setMode(next);
@@ -189,7 +212,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     <div className={`ride-screen ride-${worldId}`}>
       <div ref={containerRef} className="ride-canvas" />
 
-      {!textures ? (
+      {!figurines ? (
         <div className="ride-loading" role="status" aria-label="Loading ride">
           <span className="ride-loading-emoji">{config.vehicleEmoji}</span>
         </div>
