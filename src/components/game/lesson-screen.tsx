@@ -12,6 +12,7 @@ import { Confetti } from "./confetti";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto, hasAnimalPhoto, hasAnimalVideo, getAnimalVideo } from "./animal-photo";
 import { getAnimalInfo } from "@/lib/animal-info";
+import { isCorrectLessonGuess, lessonGuessFromKey } from "@/lib/lesson-guess";
 
 // Lessons cover the 26 letters plus the 10 number lessons (1–9 and 10).
 const LETTERS = alphabetData.filter((entry) =>
@@ -50,6 +51,7 @@ export function LessonScreen({
   const [isGuessing, setIsGuessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [guessOutcome, setGuessOutcome] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
   const [flipped, setFlipped] = useState(false);
@@ -61,6 +63,7 @@ export function LessonScreen({
   const revealEndFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealLessonRef = useRef<(correctGuess?: string) => void>(() => {});
   const lastPickedWordByLetter = useRef<Record<string, string>>({});
   const { speak, speakBilingual, stop } = useSpeech();
   const {
@@ -100,7 +103,7 @@ export function LessonScreen({
 
     geminiPlay(phrase, { voice: "Leda", onEnd: finish }).catch(() => speak(phrase, { onEnd: finish }));
   };
-  const { playAnimalSound } = useGameAudio();
+  const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
 
   const chooseLessonEntry = (entry: AlphabetEntry) => {
     const picked = pickLessonEntry(entry, lastPickedWordByLetter.current[entry.letter]);
@@ -119,6 +122,19 @@ export function LessonScreen({
       : letterCase === "both"
         ? `${item.letter}${item.letter.toLowerCase()}`
         : item.letter;
+  const isNumberLesson = /^[0-9]+$/.test(item.letter);
+  const shortGuessPrompt =
+    item.letter === "10"
+      ? "Press 0 for ten!"
+      : isNumberLesson
+        ? "Type the number!"
+        : "Type the first letter!";
+  const longGuessPrompt =
+    item.letter === "10"
+      ? "What is it? Press 0 for ten!"
+      : isNumberLesson
+        ? "What is it? Type the number!"
+        : "What is it? Press the first letter!";
   const isFirst = index === 0;
   const isLast = index === TOTAL - 1;
   const progressPct = ((index + 1) / TOTAL) * 100;
@@ -142,11 +158,43 @@ export function LessonScreen({
     });
   };
 
-  // Keyboard shortcut: A-Z, 1-9 (numbers), 0 (=10), and ←/→ to navigate.
+  revealLessonRef.current = (correctGuess?: string) => {
+    clearAllTimers();
+    setIsGuessing(false);
+    setIsSpeaking(true);
+    setGuessOutcome(correctGuess ?? null);
+
+    if (correctGuess) playCelebrate();
+
+    const phrase = buildRevealPhrase(item);
+    const hasPhoto = hasAnimalPhoto(item.word);
+    if (hasPhoto) {
+      playAnimalSound(item.word.toLowerCase());
+      speechTimer.current = setTimeout(() => speakReveal(phrase, playVideoAfterSpeech), 900);
+    } else {
+      speakReveal(phrase, playVideoAfterSpeech);
+    }
+
+    setShowConfetti(true);
+    confettiTimer.current = setTimeout(() => setShowConfetti(false), 1600);
+    speakOffTimer.current = setTimeout(() => setIsSpeaking(false), 3200);
+  };
+
+  // During suspense, letter/number keys are guesses. After reveal they keep
+  // their original shortcut behavior and jump directly to a lesson.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = e.key.toLowerCase();
+      const guess = lessonGuessFromKey(e.key);
+
+      if (isGuessing && guess) {
+        e.preventDefault();
+        if (isCorrectLessonGuess(e.key, item.letter)) revealLessonRef.current(guess);
+        else playTap();
+        return;
+      }
+
       if (k.length === 1 && k >= "a" && k <= "z") {
         const target = LETTERS.findIndex((it) => it.letter.toLowerCase() === k);
         if (target >= 0) {
@@ -193,7 +241,7 @@ export function LessonScreen({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [index, onIndex]);
+  }, [index, isGuessing, item.letter, onIndex, playTap]);
 
   // Guess → reveal → speak → confetti, kicked off whenever the lesson changes.
   useEffect(() => {
@@ -201,6 +249,7 @@ export function LessonScreen({
     setIsGuessing(true);
     setIsSpeaking(false);
     setShowConfetti(false);
+    setGuessOutcome(null);
     setVideoOpen(false);
     setFlipped(false);
 
@@ -209,22 +258,7 @@ export function LessonScreen({
     const phrase = buildRevealPhrase(item);
     geminiPrefetch(phrase, "Leda");
 
-    guessTimer.current = setTimeout(() => {
-      setIsGuessing(false);
-      setIsSpeaking(true);
-
-      const hasPhoto = hasAnimalPhoto(item.word);
-      if (hasPhoto) {
-        playAnimalSound(item.word.toLowerCase());
-        speechTimer.current = setTimeout(() => speakReveal(phrase, playVideoAfterSpeech), 900);
-      } else {
-        speakReveal(phrase, playVideoAfterSpeech);
-      }
-
-      setShowConfetti(true);
-      confettiTimer.current = setTimeout(() => setShowConfetti(false), 1600);
-      speakOffTimer.current = setTimeout(() => setIsSpeaking(false), 3200);
-    }, 860);
+    guessTimer.current = setTimeout(() => revealLessonRef.current(), 2400);
 
     return () => {
       clearAllTimers();
@@ -354,7 +388,13 @@ export function LessonScreen({
             key={`sb-${index}-${isGuessing ? "g" : "r"}`}
           >
             <SpeakingBars active={isSpeaking} color={item.color} />
-            <span>{isGuessing ? "Guess!" : `${item.letter} for ${item.word}!`}</span>
+            <span>
+              {isGuessing
+                ? shortGuessPrompt
+                : guessOutcome
+                  ? `${guessOutcome}! Great guess!`
+                  : `${item.letter} for ${item.word}!`}
+            </span>
           </div>
         </div>
 
@@ -373,6 +413,11 @@ export function LessonScreen({
             }}
           >
             <div className="lesson-card lesson-card-front">
+              {guessOutcome ? (
+                <div className="guess-success" role="status" aria-live="polite">
+                  <span>✓</span> {guessOutcome}
+                </div>
+              ) : null}
               <div className="lesson-card-grid">
                 <div
                   className="big-letter"
@@ -511,7 +556,11 @@ export function LessonScreen({
 
       <footer className="lesson-footer">
         <div className="word-banner" key={`w-${index}-${isGuessing ? "g" : "r"}`}>
-          {isGuessing ? "What is it?" : `${item.letter} for ${item.word}`}
+          {isGuessing
+            ? longGuessPrompt
+            : guessOutcome
+              ? `Great guess! ${item.letter} for ${item.word}`
+              : `${item.letter} for ${item.word}`}
         </div>
         <div className="nav-row">
           <button

@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Group } from "three";
-import { RideEngine, type RideInput, type RideMode } from "@/lib/ride-engine";
+import {
+  RideEngine,
+  type RideInput,
+  type RideMode,
+  type RideTelemetry,
+} from "@/lib/ride-engine";
 import { RIDE_CONFIGS, type RideWorldId } from "@/lib/ride-data";
 import { buildSafariWorld, SAFARI_MODELS } from "@/lib/safari-world";
 import { buildOceanWorld, OCEAN_MODELS } from "@/lib/ocean-world";
@@ -32,6 +37,11 @@ const KEY_TO_INPUT: Record<string, RideInput> = {
   ArrowDown: "back",
   ArrowLeft: "left",
   ArrowRight: "right",
+  w: "forward",
+  s: "back",
+  a: "left",
+  d: "right",
+  " ": "forward",
 };
 
 function article(word: string): string {
@@ -51,6 +61,14 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   const [mode, setMode] = useState<RideMode>("auto");
   const [encounter, setEncounter] = useState<string | null>(null);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
+  const [photos, setPhotos] = useState<Set<string>>(() => new Set());
+  const [photoFlash, setPhotoFlash] = useState(false);
+  const [telemetry, setTelemetry] = useState<RideTelemetry>({
+    speed: 0,
+    speedRatio: 0,
+    progress: 0,
+    steering: 0,
+  });
   const [celebration, setCelebration] = useState(0);
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
@@ -132,10 +150,15 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
       {
         onEncounter: (word) => meetAnimalRef.current(word),
         onEncounterEnd: () => setEncounter(null),
+        onTelemetry: setTelemetry,
       }
     );
     engineRef.current = engine;
     setMode("auto");
+    setEncounter(null);
+    setSeen(new Set());
+    setPhotos(new Set());
+    setTelemetry({ speed: 0, speedRatio: 0, progress: 0, steering: 0 });
 
     const timers = timersRef.current;
     return () => {
@@ -163,8 +186,18 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
 
   useEffect(() => {
     const onKey = (down: boolean) => (event: KeyboardEvent) => {
-      const input = KEY_TO_INPUT[event.key];
+      const input = KEY_TO_INPUT[event.key] ?? KEY_TO_INPUT[event.key.toLowerCase()];
       if (!input) return;
+      if (!down) {
+        pressArrow(input, false);
+        return;
+      }
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      const isInteractive =
+        target instanceof HTMLElement &&
+        Boolean(target.closest("button, a, input, select, textarea, [role='button'], [contenteditable='true']"));
+      if (event.key === " " && isInteractive) return;
       event.preventDefault();
       pressArrow(input, down);
     };
@@ -185,6 +218,16 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     playTap();
     switchMode(next);
     speak(next === "auto" ? "I will drive! Enjoy the ride!" : "You drive! Use the arrows!");
+  };
+
+  const takePhoto = (word: string) => {
+    if (photos.has(word)) return;
+    playTap();
+    playCelebrate();
+    setPhotos((previous) => new Set(previous).add(word));
+    setPhotoFlash(true);
+    later(260, () => setPhotoFlash(false));
+    later(380, () => speak(`Great photo of the ${word}!`));
   };
 
   const encounterSpec = encounter
@@ -228,11 +271,12 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
             {config.animals.map((animal) => (
               <span
                 key={animal.word}
-                className={`ride-sticker ${seen.has(animal.word) ? "earned" : ""}`}
+                className={`ride-sticker ${seen.has(animal.word) ? "earned" : ""} ${photos.has(animal.word) ? "photographed" : ""}`}
                 style={{ borderColor: animal.color }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={animal.photo} alt="" draggable={false} />
+                {photos.has(animal.word) ? <span className="ride-sticker-camera">📸</span> : null}
               </span>
             ))}
           </div>
@@ -283,17 +327,55 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
           >
             🔊
           </button>
+          <button
+            className={`ride-panel-camera ${photos.has(encounterSpec.word) ? "captured" : ""}`}
+            aria-label={
+              photos.has(encounterSpec.word)
+                ? `${encounterSpec.word} photo captured`
+                : `Take a photo of the ${encounterSpec.word}`
+            }
+            onClick={() => takePhoto(encounterSpec.word)}
+            disabled={photos.has(encounterSpec.word)}
+          >
+            {photos.has(encounterSpec.word) ? "✓" : "📸"}
+          </button>
+        </div>
+      ) : null}
+
+      {mode === "drive" ? (
+        <div className="ride-dashboard">
+          <div className="ride-mission" aria-live="polite">
+            <span className="ride-mission-icon">📸</span>
+            <span>
+              <strong>Photo Safari</strong>
+              <small>{photos.size}/{config.animals.length} animal photos</small>
+            </span>
+          </div>
+          <div className="ride-speed" aria-label={`Speed ${Math.round(telemetry.speedRatio * 100)} percent`}>
+            <span>Speed</span>
+            <div className="ride-speed-bars">
+              {Array.from({ length: 5 }, (_, segment) => (
+                <i
+                  key={segment}
+                  className={telemetry.speedRatio * 5 > segment ? "active" : ""}
+                />
+              ))}
+            </div>
+          </div>
+          <span className="ride-key-hint">Arrows / WASD</span>
         </div>
       ) : null}
 
       <div className={`ride-controls ${mode === "drive" ? "" : "ride-controls-idle"}`}>
         <div className="ride-controls-row">{arrow("forward", "Drive forward", "▲")}</div>
         <div className="ride-controls-row">
-          {arrow("left", "Slide left", "◀")}
+          {arrow("left", "Steer left", "◀")}
           {arrow("back", "Drive backward", "▼")}
-          {arrow("right", "Slide right", "▶")}
+          {arrow("right", "Steer right", "▶")}
         </div>
       </div>
+
+      {photoFlash ? <div className="ride-photo-flash" aria-hidden="true" /> : null}
 
       {celebration ? <Confetti key={`ride-celebrate-${celebration}`} /> : null}
     </div>

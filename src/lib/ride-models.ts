@@ -49,9 +49,29 @@ export async function loadAnimalModel(url: string, options: AnimalModelOptions):
 
   model.traverse((object) => {
     object.castShadow = true;
+    object.receiveShadow = true;
     const mesh = object as THREE.Mesh;
-    const material = mesh.material as THREE.MeshStandardMaterial | undefined;
-    if (material && "roughness" in material) material.roughness = Math.min(1, material.roughness ?? 1);
+    if (mesh.geometry?.attributes.position && !mesh.geometry.attributes.normal) {
+      mesh.geometry.computeVertexNormals();
+    }
+    const source = mesh.material;
+    if (!source) return;
+    const materials = Array.isArray(source) ? source : [source];
+    const enhanced = materials.map((entry) => {
+      const material = entry.clone() as THREE.MeshStandardMaterial;
+      if ("roughness" in material) {
+        material.roughness = THREE.MathUtils.clamp(material.roughness ?? 0.82, 0.62, 0.94);
+        material.metalness = 0;
+        material.envMapIntensity = 0.75;
+      }
+      if (material.map) {
+        material.map.colorSpace = THREE.SRGBColorSpace;
+        material.map.anisotropy = 4;
+      }
+      material.needsUpdate = true;
+      return material;
+    });
+    mesh.material = Array.isArray(source) ? enhanced : enhanced[0];
   });
 
   const group = new THREE.Group();
