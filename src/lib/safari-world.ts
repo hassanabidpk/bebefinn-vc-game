@@ -30,12 +30,12 @@ type Animate = (time: number, active: boolean, activeElapsed: number) => void;
 
 /** Model sizing for each safari animal (world units). */
 export const SAFARI_MODELS: Record<string, AnimalModelOptions> = {
-  Lion: { height: 3.1, yaw: Math.PI },
-  Elephant: { height: 4.6, yaw: Math.PI },
-  Giraffe: { height: 6.2, yaw: Math.PI },
-  Zebra: { height: 3, yaw: Math.PI },
-  Monkey: { height: 2.2, yaw: Math.PI },
-  Hippo: { height: 2.9, yaw: Math.PI },
+  Lion: { height: 3.5, yaw: Math.PI },
+  Elephant: { height: 5.1, yaw: Math.PI },
+  Giraffe: { height: 6.9, yaw: Math.PI },
+  Zebra: { height: 3.35, yaw: Math.PI },
+  Monkey: { height: 2.45, yaw: Math.PI },
+  Hippo: { height: 3.25, yaw: Math.PI },
 };
 
 function gesturePulse(elapsed: number, start: number, duration: number): number {
@@ -203,6 +203,7 @@ function buildJeep(): THREE.Group {
       part(wheel, new THREE.CylinderGeometry(0.26, 0.26, 0.44, 12), { color: 0xcfc8b8, roughness: 0.3, metalness: 0.7 });
       wheel.rotation.z = Math.PI / 2;
       wheel.position.set(sx * 1.16, 0.58, sz * 1.15);
+      wheel.name = "jeep-wheel";
       g.add(wheel);
     }
   }
@@ -277,7 +278,16 @@ export function buildSafariWorld(
   scene.add(ground);
 
   const curve = createLoopCurve(40, 6, 0);
-  const road = createTrackRibbon(curve, 7, 0xc9a05e, 0.05);
+  const shoulder = createTrackRibbon(curve, 8.6, 0x9c753e, 0.025);
+  shoulder.receiveShadow = true;
+  scene.add(shoulder);
+  const road = createTrackRibbon(curve, 7, 0xffffff, 0.055);
+  const roadTexture = noiseTexture("#cda968", "#936a36", 2100, 18);
+  roadTexture.repeat.set(2, 22);
+  const roadMaterial = road.material as THREE.MeshStandardMaterial;
+  roadMaterial.map = roadTexture;
+  roadMaterial.color.set(0xffffff);
+  roadMaterial.needsUpdate = true;
   road.receiveShadow = true;
   scene.add(road);
 
@@ -300,6 +310,35 @@ export function buildSafariWorld(
   scene.add(sunGlow);
 
   const rand = seededRandom(11);
+
+  // Layered low-poly mesas create real parallax and a more convincing
+  // savanna horizon than a flat fog line.
+  for (let i = 0; i < 18; i += 1) {
+    const angle = (i / 18) * Math.PI * 2 + rand() * 0.18;
+    const radius = 112 + rand() * 24;
+    const height = 8 + rand() * 13;
+    const baseRadius = 8 + rand() * 10;
+    const mountain = part(
+      scene,
+      new THREE.CylinderGeometry(
+        baseRadius * (0.3 + rand() * 0.18),
+        baseRadius,
+        height,
+        6 + Math.floor(rand() * 3)
+      ),
+      {
+        color: i % 3 === 0 ? 0x9f744c : i % 3 === 1 ? 0x86694c : 0xb18458,
+        roughness: 1,
+      },
+      Math.cos(angle) * radius,
+      height * 0.45 - 1,
+      Math.sin(angle) * radius
+    );
+    mountain.scale.z = 0.58 + rand() * 0.55;
+    mountain.scale.x = 1.15 + rand() * 0.9;
+    mountain.rotation.y = rand() * Math.PI;
+  }
+
   const clouds: THREE.Group[] = [];
   for (let i = 0; i < 7; i += 1) {
     const cloud = new THREE.Group();
@@ -359,13 +398,60 @@ export function buildSafariWorld(
   }
   scene.add(tufts);
 
+  // A small watering hole gives the hippo a believable habitat landmark.
+  const wateringHole = new THREE.Group();
+  const water = part(
+    wateringHole,
+    new THREE.CircleGeometry(5.8, 36),
+    { color: 0x4aa6b8, roughness: 0.18, metalness: 0.08 },
+    0,
+    0.08,
+    0
+  );
+  water.rotation.x = -Math.PI / 2;
+  water.scale.set(1.35, 0.75, 1);
+  for (let i = 0; i < 18; i += 1) {
+    const angle = (i / 18) * Math.PI * 2;
+    const reed = part(
+      wateringHole,
+      new THREE.CylinderGeometry(0.045, 0.07, 1.4 + rand(), 6),
+      { color: 0x8b8e3f, roughness: 1 },
+      Math.cos(angle) * (5.4 + rand()),
+      0.65,
+      Math.sin(angle) * (3.7 + rand() * 0.6)
+    );
+    reed.rotation.z = (rand() - 0.5) * 0.18;
+  }
+  placeBesideTrack(wateringHole, curve, 0.92, -1, 15);
+  scene.add(wateringHole);
+
   const vehicle = buildJeep();
   scene.add(vehicle);
+  const wheels = vehicle.getObjectsByProperty("name", "jeep-wheel");
+
+  // Soft local dust puffs communicate motion and speed while keeping the
+  // particle count tiny enough for tablets.
+  const dustPuffs: THREE.Mesh[] = [];
+  for (let i = 0; i < 12; i += 1) {
+    const puff = new THREE.Mesh(
+      new THREE.SphereGeometry(0.34, 8, 6),
+      new THREE.MeshBasicMaterial({
+        color: 0xd7b77a,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      })
+    );
+    puff.castShadow = false;
+    puff.renderOrder = 2;
+    vehicle.add(puff);
+    dustPuffs.push(puff);
+  }
   const vehicleFocus = curve.getPointAt(0);
 
   const animals: RideAnimalNode[] = SAFARI_RIDE.animals.map((spec: RideAnimalSpec) => {
     const group = figurines[spec.word];
-    placeBesideTrack(group, curve, spec.t, spec.side, 8.5);
+    placeBesideTrack(group, curve, spec.t, spec.side, 7.6);
     scene.add(group);
     return { spec, group, animate: SAFARI_MOTION[spec.word](group, vehicleFocus) };
   });
@@ -377,10 +463,22 @@ export function buildSafariWorld(
     laneHalfWidth: 2.2,
     cameraDistance: 9,
     cameraHeight: 4.2,
-    update: (time: number, vehiclePosition: THREE.Vector3) => {
+    update: (time: number, vehiclePosition: THREE.Vector3, speed: number, delta: number) => {
       vehicleFocus.copy(vehiclePosition);
       sun.position.set(vehiclePosition.x + 18, 32, vehiclePosition.z + 8);
       sun.target.position.copy(vehiclePosition);
+      wheels.forEach((wheel) => {
+        wheel.rotateY(-speed * delta * 1.08);
+      });
+      const dustStrength = THREE.MathUtils.clamp(Math.abs(speed) / 7, 0, 1);
+      dustPuffs.forEach((puff, index) => {
+        const cycle = (time * (0.75 + dustStrength * 0.4) + index / dustPuffs.length) % 1;
+        const spread = (index % 2 === 0 ? -1 : 1) * (0.55 + cycle * 0.8);
+        puff.position.set(spread, 0.22 + cycle * 0.8, -1.8 - cycle * 4.2);
+        puff.scale.setScalar(0.45 + cycle * 1.5);
+        (puff.material as THREE.MeshBasicMaterial).opacity =
+          dustStrength * (1 - cycle) * 0.3;
+      });
       clouds.forEach((cloud, index) => {
         cloud.position.x += Math.sin(time * 0.04 + index) * 0.012;
       });

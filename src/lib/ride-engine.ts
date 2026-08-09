@@ -37,7 +37,12 @@ export interface RideWorldBuild {
   cameraDistance: number;
   cameraHeight: number;
   /** Per-frame scenery animation (bubbles, clouds, follow-shadow light). */
-  update?: (time: number, vehiclePosition: THREE.Vector3) => void;
+  update?: (
+    time: number,
+    vehiclePosition: THREE.Vector3,
+    speed: number,
+    delta: number
+  ) => void;
 }
 
 export type RideWorldBuilder = (scene: THREE.Scene) => RideWorldBuild;
@@ -47,6 +52,15 @@ export interface RideEngineCallbacks {
   onEncounter: (word: string) => void;
   /** The moment has passed; hide the card. */
   onEncounterEnd: () => void;
+  /** Throttled motion data for the React dashboard. */
+  onTelemetry?: (telemetry: RideTelemetry) => void;
+}
+
+export interface RideTelemetry {
+  speed: number;
+  speedRatio: number;
+  progress: number;
+  steering: number;
 }
 
 const CRUISE_SPEED = 7; // world units / second
@@ -66,7 +80,7 @@ export class RideEngine {
   private world: RideWorldBuild;
   private callbacks: RideEngineCallbacks;
   private resizeObserver: ResizeObserver;
-  private clock = new THREE.Clock();
+  private timer = new THREE.Timer();
   private frame = 0;
   private disposed = false;
 
@@ -91,6 +105,7 @@ export class RideEngine {
   private animalBaseY = new Map<string, number>();
   private lookTarget: THREE.Vector3 | null = null;
   private activeSince = 0;
+  private lastTelemetryAt = -Infinity;
 
   constructor(
     container: HTMLElement,
@@ -102,7 +117,7 @@ export class RideEngine {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.domElement.style.display = "block";
@@ -112,6 +127,7 @@ export class RideEngine {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 400);
+    this.timer.connect(document);
 
     this.world = buildWorld(this.scene);
     this.trackLength = this.world.curve.getLength();
@@ -147,12 +163,13 @@ export class RideEngine {
     // Place the vehicle and camera before the first paint.
     this.updateVehicle(0);
     this.updateCamera(1);
-    const tick = () => {
+    const tick = (timestamp: number) => {
       if (this.disposed) return;
       this.frame = requestAnimationFrame(tick);
-      this.step(Math.min(this.clock.getDelta(), 0.1));
+      this.timer.update(timestamp);
+      this.step(Math.min(this.timer.getDelta(), 0.1));
     };
-    tick();
+    this.frame = requestAnimationFrame(tick);
   }
 
   setMode(mode: RideMode) {
@@ -160,6 +177,9 @@ export class RideEngine {
     this.mode = mode;
     this.autoPhase = "cruising";
     this.dwellRemaining = 0;
+    for (const input of Object.keys(this.pressed) as RideInput[]) {
+      this.pressed[input] = false;
+    }
   }
 
   getMode(): RideMode {
@@ -173,6 +193,7 @@ export class RideEngine {
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.frame);
+    this.timer.dispose();
     this.resizeObserver.disconnect();
     this.scene.traverse((object) => {
       const mesh = object as THREE.Mesh;
@@ -192,7 +213,7 @@ export class RideEngine {
   }
 
   private step(dt: number) {
-    const time = this.clock.elapsedTime;
+    const time = this.timer.getElapsed();
 
     if (this.mode === "auto") this.stepAuto(dt);
     else this.stepDrive(dt);
@@ -202,7 +223,16 @@ export class RideEngine {
     this.updateVehicle(time);
     this.updateAnimals(time);
     this.updateCamera(dt);
-    this.world.update?.(time, this.world.vehicle.position);
+    this.world.update?.(time, this.world.vehicle.position, this.speed, dt);
+    if (time - this.lastTelemetryAt >= 0.12) {
+      this.lastTelemetryAt = time;
+      this.callbacks.onTelemetry?.({
+        speed: this.speed,
+        speedRatio: THREE.MathUtils.clamp(Math.abs(this.speed) / CRUISE_SPEED, 0, 1),
+        progress: this.progress,
+        steering: this.sideOffset / this.world.laneHalfWidth,
+      });
+    }
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -293,7 +323,7 @@ export class RideEngine {
     );
     if (near) {
       this.activeEncounter = near.word;
-      this.activeSince = this.clock.elapsedTime;
+      this.activeSince = this.timer.getElapsed();
       this.callbacks.onEncounter(near.word);
       // In drive mode announce once per approach; auto mode mutes after dwelling.
       if (this.mode === "drive") this.muted.add(near.word);
@@ -314,6 +344,10 @@ export class RideEngine {
     const ahead = point.clone().add(tangent);
     ahead.y = vehicle.position.y;
     vehicle.lookAt(ahead);
+    // A small speed pitch and steering bank makes Drive mode feel physical
+    // without becoming uncomfortable for young children.
+    vehicle.rotateX(-THREE.MathUtils.clamp(this.speed / CRUISE_SPEED, -1, 1) * 0.025);
+    vehicle.rotateZ(-this.sideOffset / this.world.laneHalfWidth * 0.08);
   }
 
   private updateAnimals(time: number) {
@@ -370,5 +404,8 @@ export class RideEngine {
     if (!this.lookTarget) this.lookTarget = lookAt.clone();
     this.lookTarget.lerp(lookAt, Math.min(1, dt * 2.5));
     this.camera.lookAt(this.lookTarget);
+    const targetFov = 55 + Math.min(5, Math.abs(this.speed) * 0.7);
+    this.camera.fov += (targetFov - this.camera.fov) * Math.min(1, dt * 3);
+    this.camera.updateProjectionMatrix();
   }
 }

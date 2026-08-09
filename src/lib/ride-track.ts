@@ -38,6 +38,7 @@ export function createTrackRibbon(
   const segments = 160;
   const positions: number[] = [];
   const indices: number[] = [];
+  const uvs: number[] = [];
   const up = new THREE.Vector3(0, 1, 0);
 
   for (let i = 0; i <= segments; i += 1) {
@@ -49,6 +50,7 @@ export function createTrackRibbon(
     const right = point.clone().addScaledVector(side, width / 2);
     positions.push(left.x, left.y + yOffset, left.z);
     positions.push(right.x, right.y + yOffset, right.z);
+    uvs.push(0, i / segments, 1, i / segments);
     if (i < segments) {
       const a = i * 2;
       indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
@@ -57,9 +59,14 @@ export function createTrackRibbon(
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  const material = new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide });
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 1,
+    side: THREE.DoubleSide,
+  });
   return new THREE.Mesh(geometry, material);
 }
 

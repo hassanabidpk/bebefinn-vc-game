@@ -6,7 +6,7 @@ import { BubbleBackground, FloorWaves, Drifters } from "./ocean-stage";
 interface HomeScreenProps {
   onStart: () => void;
   onMode: (
-    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "safari" | "ocean"
+    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue" | "safari" | "ocean"
   ) => void;
 }
 
@@ -39,6 +39,7 @@ export function HomeScreen({ onStart, onMode }: HomeScreenProps) {
           <button className="home-chip" onClick={() => onMode("play")}>Play</button>
           <button className="home-chip" onClick={() => onMode("spelling")}>🔤 Spell</button>
           <button className="home-chip" onClick={() => onMode("notepad")}>📝 Notepad</button>
+          <button className="home-chip home-chip-rescue" onClick={() => onMode("rescue")}>🫧 Rescue</button>
           <button className="home-chip" onClick={() => onMode("safari")}>🚙 Safari</button>
           <button className="home-chip" onClick={() => onMode("ocean")}>🤿 Dive</button>
         </div>
