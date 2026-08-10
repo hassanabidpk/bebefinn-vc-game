@@ -16,6 +16,12 @@ import { getAnimalInfo } from "@/lib/animal-info";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { Confetti } from "./confetti";
+import {
+  getRideCompletePhrase,
+  getRideEncounterPhrase,
+  getRideModePhrase,
+  getRidePhotoPhrase,
+} from "@/lib/game-speech";
 
 const WORLD_BUILDERS = {
   safari: buildSafariWorld,
@@ -44,10 +50,6 @@ const KEY_TO_INPUT: Record<string, RideInput> = {
   " ": "forward",
 };
 
-function article(word: string): string {
-  return /^[aeiou]/i.test(word) ? "an" : "a";
-}
-
 interface RideScreenProps {
   worldId: RideWorldId;
   onHome: () => void;
@@ -58,6 +60,8 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<RideEngine | null>(null);
   const [figurines, setFigurines] = useState<Record<string, Group> | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [mode, setMode] = useState<RideMode>("auto");
   const [encounter, setEncounter] = useState<string | null>(null);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
@@ -95,19 +99,24 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   useEffect(() => {
     let cancelled = false;
     setFigurines(null);
+    setLoadError(false);
     const specs = MODEL_SPECS[worldId];
     Promise.all(
       config.animals.map(async (animal) => {
         const group = await loadAnimalModel(modelUrl(animal.word), specs[animal.word]);
         return [animal.word, group] as const;
       })
-    ).then((entries) => {
-      if (!cancelled) setFigurines(Object.fromEntries(entries));
-    });
+    )
+      .then((entries) => {
+        if (!cancelled) setFigurines(Object.fromEntries(entries));
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
     return () => {
       cancelled = true;
     };
-  }, [config, worldId]);
+  }, [config, loadAttempt, worldId]);
 
   // Callbacks handed to the engine read fresh state through this ref.
   const meetAnimalRef = useRef<(word: string) => void>(() => {});
@@ -121,7 +130,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     if (spec.soundKey) playAnimalSound(spec.soundKey);
     else playCelebrate();
     const fact = getAnimalInfo(word)?.en ?? "";
-    later(450, () => speak(`Look! It's ${article(word)} ${word}! ${fact}`));
+    later(450, () => speak(getRideEncounterPhrase(word, fact)));
 
     setSeen((prev) => {
       if (prev.has(word)) return prev;
@@ -132,7 +141,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
         later(3600, () => {
           setCelebration((c) => c + 1);
           playCelebrate();
-          speak(`Amazing! You saw all the ${config.id === "safari" ? "safari" : "ocean"} animals!`);
+          speak(getRideCompletePhrase(config.id));
           setSeen(new Set());
         });
       }
@@ -211,13 +220,31 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     };
   }, [pressArrow]);
 
+  const releaseInputs = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    (Object.values(KEY_TO_INPUT) as RideInput[]).forEach((input) => engine.press(input, false));
+  }, []);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) releaseInputs();
+    };
+    window.addEventListener("blur", releaseInputs);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("blur", releaseInputs);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [releaseInputs]);
+
   useEffect(() => stopSpeech, [stopSpeech]);
 
   const onModeButton = (next: RideMode) => {
     if (next === mode) return;
     playTap();
     switchMode(next);
-    speak(next === "auto" ? "I will drive! Enjoy the ride!" : "You drive! Use the arrows!");
+    speak(getRideModePhrase(next));
   };
 
   const takePhoto = (word: string) => {
@@ -227,7 +254,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     setPhotos((previous) => new Set(previous).add(word));
     setPhotoFlash(true);
     later(260, () => setPhotoFlash(false));
-    later(380, () => speak(`Great photo of the ${word}!`));
+    later(380, () => speak(getRidePhotoPhrase(word)));
   };
 
   const encounterSpec = encounter
@@ -255,9 +282,21 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     <div className={`ride-screen ride-${worldId}`}>
       <div ref={containerRef} className="ride-canvas" />
 
-      {!figurines ? (
+      {!figurines && !loadError ? (
         <div className="ride-loading" role="status" aria-label="Loading ride">
           <span className="ride-loading-emoji">{config.vehicleEmoji}</span>
+        </div>
+      ) : null}
+
+      {loadError ? (
+        <div className="ride-load-error" role="alert">
+          <span className="ride-load-error-icon">🐾</span>
+          <strong>The animals are hiding!</strong>
+          <span>Let&apos;s call them back.</span>
+          <div>
+            <button onClick={onHome}>⌂ Home</button>
+            <button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>↻ Try again</button>
+          </div>
         </div>
       ) : null}
 
@@ -287,6 +326,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
             className={`ride-mode-btn ${mode === "auto" ? "active" : ""}`}
             onClick={() => onModeButton("auto")}
             aria-pressed={mode === "auto"}
+            disabled={!figurines}
           >
             ✨ Auto
           </button>
@@ -294,6 +334,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
             className={`ride-mode-btn ${mode === "drive" ? "active" : ""}`}
             onClick={() => onModeButton("drive")}
             aria-pressed={mode === "drive"}
+            disabled={!figurines}
           >
             🎮 Drive
           </button>
@@ -321,7 +362,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
             aria-label={`Hear about the ${encounterSpec.word} again`}
             onClick={() =>
               speak(
-                `Look! It's ${article(encounterSpec.word)} ${encounterSpec.word}! ${encounterFact ?? ""}`
+                getRideEncounterPhrase(encounterSpec.word, encounterFact ?? "")
               )
             }
           >

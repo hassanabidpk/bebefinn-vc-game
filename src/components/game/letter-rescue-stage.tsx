@@ -107,8 +107,9 @@ export function LetterRescueStage({
     const container = containerRef.current;
     if (!container) return;
 
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    renderer.setPixelRatio(1);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -278,6 +279,7 @@ export function LetterRescueStage({
 
     const timer = new THREE.Timer();
     timer.connect(document);
+    const restingScale = new THREE.Vector3(1, 1, 1);
     let frame = 0;
     let disposed = false;
     const animate = (timestamp: number) => {
@@ -291,19 +293,19 @@ export function LetterRescueStage({
 
       bubbleGroups.forEach((group, index) => {
         const baseY = group.userData.baseY as number;
-        group.position.y = baseY + Math.sin(time * 1.25 + index * 1.7) * 0.24;
+        group.position.y = baseY + (reducedMotion ? 0 : Math.sin(time * 1.25 + index * 1.7) * 0.24);
         group.position.z = group.userData.baseZ as number;
-        group.rotation.y = Math.sin(time * 0.7 + index) * 0.08;
-        group.rotation.z = Math.sin(time * 0.9 + index) * 0.025;
-        group.scale.lerp(new THREE.Vector3(1, 1, 1), 0.08);
+        group.rotation.y = reducedMotion ? 0 : Math.sin(time * 0.7 + index) * 0.08;
+        group.rotation.z = reducedMotion ? 0 : Math.sin(time * 0.9 + index) * 0.025;
+        group.scale.lerp(restingScale, reducedMotion ? 1 : 1 - Math.exp(-5 * delta));
 
         if (currentFeedback?.index === index) {
-          if (currentFeedback.correct) {
+          if (currentFeedback.correct && !reducedMotion) {
             const lift = Math.min(1, Math.max(0, feedbackElapsed / 1.5));
             group.position.y += lift * 4.2;
             group.position.z -= lift * 4.5;
             group.scale.setScalar(1 + Math.sin(time * 8) * 0.07 + lift * 0.18);
-          } else {
+          } else if (!currentFeedback.correct && !reducedMotion) {
             group.position.x = (group.userData.baseX as number) + Math.sin(feedbackElapsed * 18) * 0.18;
           }
         } else {
@@ -311,13 +313,15 @@ export function LetterRescueStage({
         }
       });
 
-      gate.rotation.z = time * 0.25;
-      gateRing.scale.setScalar(1 + Math.sin(time * 2.2) * 0.05);
-      backgroundBubbles.forEach((bubble, index) => {
-        bubble.position.y += (0.36 + (index % 5) * 0.09) * delta;
-        if (bubble.position.y > 8) bubble.position.y = -4.5;
-      });
-      camera.position.x = Math.sin(time * 0.18) * 0.18;
+      gate.rotation.z = reducedMotion ? 0 : time * 0.25;
+      gateRing.scale.setScalar(reducedMotion ? 1 : 1 + Math.sin(time * 2.2) * 0.05);
+      if (!reducedMotion) {
+        backgroundBubbles.forEach((bubble, index) => {
+          bubble.position.y += (0.36 + (index % 5) * 0.09) * delta;
+          if (bubble.position.y > 8) bubble.position.y = -4.5;
+        });
+      }
+      camera.position.x = reducedMotion ? 0 : Math.sin(time * 0.18) * 0.18;
       camera.lookAt(0, 0.1, 0);
       renderer.render(scene, camera);
     };
@@ -325,6 +329,14 @@ export function LetterRescueStage({
     const resize = () => {
       const width = container.clientWidth || 1;
       const height = container.clientHeight || 1;
+      const visibleBounds = container.getBoundingClientRect();
+      // Area ratio remains correct when the portrait shell rotates 90°, while
+      // comparing width/height independently would swap the axes.
+      const visibleArea = visibleBounds.width * visibleBounds.height;
+      const visibleScale = visibleArea > 0
+        ? Math.sqrt(visibleArea / (width * height))
+        : 1;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio * visibleScale, 1.5));
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -332,6 +344,7 @@ export function LetterRescueStage({
     resize();
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
+    window.addEventListener("resize", resize);
     frame = requestAnimationFrame(animate);
 
     return () => {
@@ -339,6 +352,7 @@ export function LetterRescueStage({
       cancelAnimationFrame(frame);
       timer.dispose();
       resizeObserver.disconnect();
+      window.removeEventListener("resize", resize);
       bubbleGroupsRef.current = [];
       scene.traverse((object) => {
         const mesh = object as THREE.Mesh;

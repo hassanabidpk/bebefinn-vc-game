@@ -22,8 +22,15 @@ const sceneCache = new Map<string, Promise<THREE.Group>>();
 async function loadRaw(url: string): Promise<THREE.Group> {
   let pending = sceneCache.get(url);
   if (!pending) {
-    pending = loader.loadAsync(url).then((gltf) => gltf.scene);
-    sceneCache.set(url, pending);
+    const cachedPromise = loader.loadAsync(url).then((gltf) => gltf.scene);
+    sceneCache.set(url, cachedPromise);
+    // A transient network/decode failure must not poison every later retry.
+    // Keep successful scenes cached, but evict only the rejected entry that
+    // is still current for this URL.
+    void cachedPromise.catch(() => {
+      if (sceneCache.get(url) === cachedPromise) sceneCache.delete(url);
+    });
+    pending = cachedPromise;
   }
   const original = await pending;
   return original.clone(true);
