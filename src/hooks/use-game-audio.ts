@@ -360,6 +360,34 @@ export function useGameAudio() {
     playNotes(audioContext, [880, 1174.66], 0.08, 0.045, 0.045);
   }, [getAudioContext]);
 
+  const playRescuePrompt = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    playNotes(audioContext, [587.33, 739.99, 880], 0.09, 0.065, 0.03, "sine");
+  }, [getAudioContext]);
+
+  const playRescueRetry = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    playNotes(audioContext, [659.25, 587.33], 0.1, 0.08, 0.026, "sine");
+  }, [getAudioContext]);
+
+  const playRescueSuccess = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    playNotes(
+      audioContext,
+      [523.25, 659.25, 783.99, 1046.5],
+      0.11,
+      0.065,
+      0.05,
+      "triangle"
+    );
+  }, [getAudioContext]);
+
   const playNext = useCallback(() => {
     const audioContext = getAudioContext();
     if (!audioContext) return;
@@ -978,6 +1006,9 @@ export function useGameAudio() {
     playLetterCall,
     playNext,
     playPrevious,
+    playRescuePrompt,
+    playRescueRetry,
+    playRescueSuccess,
     playStart,
     playTap,
     startBackgroundMusic,

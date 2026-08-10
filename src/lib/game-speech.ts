@@ -19,7 +19,7 @@ export function getRescueRetryPhrase(prompt: string) {
 }
 
 export function getRescueSuccessPhrase(letter: string, spokenWord: string) {
-  return `${letter}! You rescued ${letter} for ${spokenWord}!`;
+  return `${letter} for ${spokenWord}!`;
 }
 
 export const RESCUE_COMPLETE_PHRASE = "Amazing! Your letter reef is complete!";
