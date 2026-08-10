@@ -66,7 +66,7 @@ interface SparkleSpec {
   delay: number;
 }
 
-function Sparkles({ x, y }: { x: number; y: number }) {
+function Sparkles() {
   const sparks = useMemo<SparkleSpec[]>(() => {
     return Array.from({ length: 8 }, (_, i) => {
       const a = (i / 8) * Math.PI * 2;
@@ -89,8 +89,8 @@ function Sparkles({ x, y }: { x: number; y: number }) {
           className="sparkle"
           style={
             {
-              left: x,
-              top: y,
+              left: "50%",
+              top: "50%",
               ["--dx" as string]: `${s.dx}px`,
               ["--dy" as string]: `${s.dy}px`,
               animationDelay: `${s.delay}s`,
@@ -114,7 +114,6 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [feedback, setFeedback] = useState<{ idx: number; correct: boolean } | null>(null);
-  const [sparkAt, setSparkAt] = useState<{ x: number; y: number } | null>(null);
   const [milestone, setMilestone] = useState(0);
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -147,22 +146,13 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
     };
   }, []);
 
-  const onTile = (e: React.MouseEvent<HTMLButtonElement>, i: number) => {
+  const onTile = (i: number) => {
     if (feedback) return;
     const tile = round.tiles[i];
     const correct = tile.word === round.target.word;
     setFeedback({ idx: i, correct });
 
     if (correct) {
-      const tileRect = e.currentTarget.getBoundingClientRect();
-      const screen = e.currentTarget.closest(".ipad-screen") as HTMLElement | null;
-      if (screen) {
-        const screenRect = screen.getBoundingClientRect();
-        setSparkAt({
-          x: tileRect.left + tileRect.width / 2 - screenRect.left,
-          y: tileRect.top + tileRect.height / 2 - screenRect.top,
-        });
-      }
       // Animal sound first for instant tactile feedback, then narration.
       playAnimalSound(tile.word.toLowerCase());
       setScore((s) => s + 10 + streak * 2);
@@ -185,7 +175,6 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       feedbackTimer.current = setTimeout(() => {
         setFeedback(null);
-        setSparkAt(null);
         setRound((rr) => buildRound(rr));
       }, 2400);
     } else {
@@ -244,18 +233,18 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
             className={`play-tile play-tile-animal ${
               feedback?.idx === i ? (feedback.correct ? "correct" : "wrong") : ""
             }`}
-            onClick={(e) => onTile(e, i)}
+            onClick={() => onTile(i)}
             aria-label={t.word}
           >
             <AnimalPhoto word={t.word} color={t.color} size={170} />
             <span className="play-tile-label" style={{ color: t.color }}>
               {t.word}
             </span>
+            {feedback?.idx === i && feedback.correct ? <Sparkles /> : null}
           </button>
         ))}
       </div>
 
-      {sparkAt ? <Sparkles x={sparkAt.x} y={sparkAt.y} /> : null}
       {milestone ? <Confetti key={`streak-${milestone}`} /> : null}
     </div>
   );

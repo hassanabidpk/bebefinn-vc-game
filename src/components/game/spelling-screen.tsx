@@ -31,6 +31,8 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   const [stars, setStars] = useState(0);
   const [celebrating, setCelebrating] = useState(false);
 
+  const roundRef = useRef(round);
+  const placedRef = useRef(placed);
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrongTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -42,6 +44,8 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
   const speakRef = useRef(speak);
   const prefetchRef = useRef(prefetch);
+  roundRef.current = round;
+  placedRef.current = placed;
   speakRef.current = speak;
   prefetchRef.current = prefetch;
 
@@ -59,23 +63,22 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   const scheduleHint = useCallback(() => {
     if (hintTimer.current) clearTimeout(hintTimer.current);
     hintTimer.current = setTimeout(() => {
-      setRound((r) => {
-        setPlaced((p) => {
-          const slot = p.length;
-          if (slot < r.letters.length) {
-            const want = r.letters[slot];
-            const tile = r.bank.find((t) => t.letter === want && !p.includes(t.id));
-            if (tile) {
-              setHintId(tile.id);
-              say(`Can you find ${want}?`);
-              if (hintOffTimer.current) clearTimeout(hintOffTimer.current);
-              hintOffTimer.current = setTimeout(() => setHintId(null), 1400);
-            }
-          }
-          return p;
-        });
-        return r;
-      });
+      const currentRound = roundRef.current;
+      const currentPlaced = placedRef.current;
+      const slot = currentPlaced.length;
+      if (slot < currentRound.letters.length) {
+        const want = currentRound.letters[slot];
+        const tile = currentRound.bank.find(
+          (candidate) =>
+            candidate.letter === want && !currentPlaced.includes(candidate.id)
+        );
+        if (tile) {
+          setHintId(tile.id);
+          say(`Can you find ${want}?`);
+          if (hintOffTimer.current) clearTimeout(hintOffTimer.current);
+          hintOffTimer.current = setTimeout(() => setHintId(null), 1400);
+        }
+      }
       scheduleHint();
     }, HINT_DELAY_MS);
   }, [say]);
@@ -177,10 +180,13 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   // unplaced bank tile. Harmless for touch users.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = e.key.toUpperCase();
       if (k.length !== 1 || k < "A" || k > "Z") return;
       const tile = round.bank.find((t) => t.letter === k && !placed.includes(t.id));
-      if (tile) onTile(tile);
+      if (!tile) return;
+      e.preventDefault();
+      onTile(tile);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

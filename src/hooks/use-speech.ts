@@ -38,6 +38,7 @@ export function useSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const bilingualTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -51,11 +52,19 @@ export function useSpeech() {
 
     return () => {
       window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
+      if (bilingualTimerRef.current) {
+        clearTimeout(bilingualTimerRef.current);
+        bilingualTimerRef.current = null;
+      }
       window.speechSynthesis.cancel();
     };
   }, []);
 
   const speak = useCallback((text: string, opts: SpeakOptions = {}) => {
+    if (bilingualTimerRef.current) {
+      clearTimeout(bilingualTimerRef.current);
+      bilingualTimerRef.current = null;
+    }
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
     // Detach old handlers before cancelling to prevent error events
@@ -108,7 +117,8 @@ export function useSpeech() {
         lang: "en",
         onEnd: () => {
           // Tiny pause so the two languages don't blur together.
-          setTimeout(() => {
+          bilingualTimerRef.current = setTimeout(() => {
+            bilingualTimerRef.current = null;
             speak(zh, { lang: "zh", rate: 0.78, onEnd: onAllDone });
           }, 250);
         },
@@ -118,6 +128,10 @@ export function useSpeech() {
   );
 
   const stop = useCallback(() => {
+    if (bilingualTimerRef.current) {
+      clearTimeout(bilingualTimerRef.current);
+      bilingualTimerRef.current = null;
+    }
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     setIsSpeaking(false);

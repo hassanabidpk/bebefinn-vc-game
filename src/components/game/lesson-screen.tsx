@@ -59,8 +59,6 @@ export function LessonScreen({
   const guessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animalSoundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoVideoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const revealEndFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealLessonRef = useRef<(correctGuess?: string) => void>(() => {});
@@ -80,28 +78,8 @@ export function LessonScreen({
       ? `${entry.letter} for ${spokenWord}!`
       : `${entry.letter}! ${entry.letter} for ${spokenWord}!`;
   };
-  const playVideoAfterSpeech = () => {
-    if (!hasAnimalVideo(item.word)) return;
-    autoVideoTimer.current = setTimeout(() => setVideoOpen(true), 180);
-  };
-
-  const speakReveal = (phrase: string, onEnd?: () => void) => {
-    let didFinish = false;
-    const finish = () => {
-      if (didFinish) return;
-      didFinish = true;
-      if (revealEndFallbackTimer.current) {
-        clearTimeout(revealEndFallbackTimer.current);
-        revealEndFallbackTimer.current = null;
-      }
-      onEnd?.();
-    };
-
-    if (onEnd) {
-      revealEndFallbackTimer.current = setTimeout(finish, 3600);
-    }
-
-    geminiPlay(phrase, { voice: "Leda", onEnd: finish }).catch(() => speak(phrase, { onEnd: finish }));
+  const speakReveal = (phrase: string) => {
+    geminiPlay(phrase, { voice: "Leda" }).catch(() => speak(phrase));
   };
   const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
 
@@ -145,8 +123,6 @@ export function LessonScreen({
       guessTimer,
       speechTimer,
       animalSoundTimer,
-      autoVideoTimer,
-      revealEndFallbackTimer,
       confettiTimer,
       speakOffTimer,
       flipBackTimer,
@@ -170,9 +146,9 @@ export function LessonScreen({
     const hasPhoto = hasAnimalPhoto(item.word);
     if (hasPhoto) {
       playAnimalSound(item.word.toLowerCase());
-      speechTimer.current = setTimeout(() => speakReveal(phrase, playVideoAfterSpeech), 900);
+      speechTimer.current = setTimeout(() => speakReveal(phrase), 900);
     } else {
-      speakReveal(phrase, playVideoAfterSpeech);
+      speakReveal(phrase);
     }
 
     setShowConfetti(true);
@@ -269,15 +245,19 @@ export function LessonScreen({
   }, [item]);
 
   const handleReplay = () => {
+    if (isGuessing) {
+      revealLessonRef.current();
+      return;
+    }
     clearAllTimers();
     setIsSpeaking(true);
     const hasPhoto = hasAnimalPhoto(item.word);
     const phrase = buildRevealPhrase(item);
     if (hasPhoto) {
       playAnimalSound(item.word.toLowerCase());
-      speechTimer.current = setTimeout(() => speakReveal(phrase, playVideoAfterSpeech), 900);
+      speechTimer.current = setTimeout(() => speakReveal(phrase), 900);
     } else {
-      speakReveal(phrase, playVideoAfterSpeech);
+      speakReveal(phrase);
     }
     speakOffTimer.current = setTimeout(() => setIsSpeaking(false), 3200);
   };
@@ -287,7 +267,10 @@ export function LessonScreen({
     onIndex(index - 1);
   };
   const handleNext = () => {
-    if (isLast) return;
+    if (isLast) {
+      onHome();
+      return;
+    }
     onIndex(index + 1);
   };
 
@@ -586,7 +569,6 @@ export function LessonScreen({
           <button
             className="nav-btn coral"
             onClick={handleNext}
-            disabled={isLast}
             aria-label={isLast ? "Finish" : "Next"}
           >
             {isLast ? "★" : "▶"}

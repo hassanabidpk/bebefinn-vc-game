@@ -1,6 +1,18 @@
 import { ANIMAL_INFO } from "./animal-info";
 import { alphabetData, getAlphabetEntriesWithVariants } from "./alphabet-data";
 import { spellingWords } from "./spelling-data";
+import { RIDE_CONFIGS } from "./ride-data";
+import {
+  getRescuePromptPhrase,
+  getRescueRetryPhrase,
+  getRescueSuccessPhrase,
+  getRideCompletePhrase,
+  getRideEncounterPhrase,
+  getRideModePhrase,
+  getRidePhotoPhrase,
+  RESCUE_COMPLETE_PHRASE,
+  type LetterRescueChallenge,
+} from "./game-speech";
 
 const allowedPhrases = new Set<string>();
 const coreGamePhrases = new Set<string>();
@@ -55,6 +67,26 @@ add("Almost! Try again.", "Wonderful spelling!", NOTEPAD_TAP_REMINDER);
 for (let streak = 5; streak <= 100; streak += 5) {
   add(`Amazing! ${streak} in a row!`);
 }
+
+const rescueChallenges: LetterRescueChallenge[] = ["match", "word", "sound"];
+for (const entry of alphabetData.filter((item) => /^[A-Z]$/.test(item.letter))) {
+  const spokenWord = entry.spokenWord ?? entry.word;
+  for (const challenge of rescueChallenges) {
+    const prompt = getRescuePromptPhrase(challenge, entry.letter, spokenWord);
+    add(prompt, getRescueRetryPhrase(prompt));
+  }
+  add(getRescueSuccessPhrase(entry.letter, spokenWord));
+}
+add(RESCUE_COMPLETE_PHRASE);
+
+for (const config of Object.values(RIDE_CONFIGS)) {
+  add(getRideCompletePhrase(config.id));
+  for (const animal of config.animals) {
+    const fact = ANIMAL_INFO[animal.word]?.en ?? "";
+    add(getRideEncounterPhrase(animal.word, fact), getRidePhotoPhrase(animal.word));
+  }
+}
+add(getRideModePhrase("auto"), getRideModePhrase("drive"));
 
 export function isAllowedTtsPhrase(text: string) {
   return allowedPhrases.has(text);

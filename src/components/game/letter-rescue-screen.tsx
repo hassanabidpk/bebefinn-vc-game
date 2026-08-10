@@ -5,8 +5,16 @@ import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import {
   buildLetterRescueRound,
+  getLetterRescueChallenge,
+  getReadableRescueColor,
   type LetterRescueRound,
 } from "@/lib/letter-rescue-data";
+import {
+  getRescuePromptPhrase,
+  getRescueRetryPhrase,
+  getRescueSuccessPhrase,
+  RESCUE_COMPLETE_PHRASE,
+} from "@/lib/game-speech";
 import { Confetti } from "./confetti";
 import {
   LetterRescueStage,
@@ -25,13 +33,45 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
   const [feedback, setFeedback] = useState<LetterRescueFeedback | null>(null);
   const [rescued, setRescued] = useState<LetterRescueRound["target"][]>([]);
   const [reefComplete, setReefComplete] = useState(false);
+  const [misses, setMisses] = useState(0);
   const nonceRef = useRef(0);
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const completionHomeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restartButtonRef = useRef<HTMLButtonElement | null>(null);
   const { speak, prefetch, stop } = useFriendlySpeech();
   const { playCelebrate, playTap } = useGameAudio();
 
-  const prompt = `Find the letter ${round.target.letter}!`;
+  // Keep the just-finished round's clue stable while its success narration
+  // plays. The next difficulty begins only when the next round appears.
+  const activeRoundIndex = Math.max(0, rescued.length - (feedback?.correct ? 1 : 0));
+  const challenge = getLetterRescueChallenge(activeRoundIndex);
+  const prompt = getRescuePromptPhrase(
+    challenge,
+    round.target.letter,
+    round.target.spokenWord
+  );
+  const successPhrase = getRescueSuccessPhrase(
+    round.target.letter,
+    round.target.spokenWord
+  );
+  const challengeLabel =
+    challenge === "match"
+      ? "Letter Match"
+      : challenge === "word"
+        ? "Word Clue"
+        : "Listening Challenge";
+
+  const clearPromptTimer = useCallback(() => {
+    if (!promptTimer.current) return;
+    clearTimeout(promptTimer.current);
+    promptTimer.current = null;
+  }, []);
+
+  const repeatNarration = useCallback(() => {
+    clearPromptTimer();
+    speak(feedback?.correct ? successPhrase : prompt);
+  }, [clearPromptTimer, feedback?.correct, prompt, speak, successPhrase]);
 
   useEffect(() => {
     prefetch(prompt);
@@ -40,9 +80,9 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
       speak(prompt);
     }, 320);
     return () => {
-      if (promptTimer.current) clearTimeout(promptTimer.current);
+      clearPromptTimer();
     };
-  }, [prefetch, prompt, speak]);
+  }, [clearPromptTimer, prefetch, prompt, speak]);
 
   useEffect(() => {
     return () => {
@@ -57,15 +97,14 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
     );
     setRoundKey((key) => key + 1);
     setFeedback(null);
+    setMisses(0);
   }, []);
 
   const choose = useCallback(
     (index: number) => {
       if (feedback || reefComplete) return;
-      if (promptTimer.current) {
-        clearTimeout(promptTimer.current);
-        promptTimer.current = null;
-      }
+      clearPromptTimer();
+      if (roundTimer.current) clearTimeout(roundTimer.current);
       const choice = round.options[index];
       const correct = choice.letter === round.target.letter;
       const nextFeedback = { index, correct, nonce: ++nonceRef.current };
@@ -73,30 +112,52 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
 
       if (!correct) {
         playTap();
-        speak(`${choice.letter}. Listen again. Find ${round.target.letter}!`);
-        roundTimer.current = setTimeout(() => setFeedback(null), 720);
+        setMisses((count) => count + 1);
+        speak(getRescueRetryPhrase(prompt));
+        roundTimer.current = setTimeout(() => setFeedback(null), 900);
         return;
       }
 
       playCelebrate();
-      speak(`${choice.letter}! You rescued ${choice.letter} for ${choice.word}!`);
       const nextRescued = [...rescued, round.target];
       setRescued(nextRescued);
 
-      if (nextRescued.length >= REEF_SIZE) {
+      let didAdvance = false;
+      const advanceAfterNarration = () => {
+        if (didAdvance) return;
+        didAdvance = true;
+        if (roundTimer.current) clearTimeout(roundTimer.current);
         roundTimer.current = setTimeout(() => {
+          if (nextRescued.length < REEF_SIZE) {
+            nextRound(nextRescued.map((rescue) => rescue.letter));
+            return;
+          }
           setReefComplete(true);
           playCelebrate();
-          speak("Amazing! Your letter reef is complete!");
-        }, 1500);
-      } else {
-        roundTimer.current = setTimeout(
-          () => nextRound(nextRescued.map((rescue) => rescue.letter)),
-          1750
-        );
-      }
-    }, [feedback, nextRound, playCelebrate, playTap, reefComplete, rescued, round, speak]
+          speak(RESCUE_COMPLETE_PHRASE);
+        }, 360);
+      };
+      speak(successPhrase, { onEnd: advanceAfterNarration });
+      roundTimer.current = setTimeout(advanceAfterNarration, 5200);
+    }, [
+      clearPromptTimer,
+      feedback,
+      nextRound,
+      playCelebrate,
+      playTap,
+      prompt,
+      reefComplete,
+      rescued,
+      round,
+      speak,
+      successPhrase,
+    ]
   );
+
+  useEffect(() => {
+    if (!reefComplete) return;
+    restartButtonRef.current?.focus();
+  }, [reefComplete]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -117,24 +178,32 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
     setRescued([]);
     setReefComplete(false);
     setFeedback(null);
+    setMisses(0);
     setRound((previous) => buildLetterRescueRound(previous.target.letter));
     setRoundKey((key) => key + 1);
   };
 
   return (
-    <div className="letter-rescue-screen">
+    <div className="letter-rescue-screen" data-challenge={challenge}>
       <LetterRescueStage options={round.options} roundKey={roundKey} feedback={feedback} />
 
       <header className="rescue-header">
-        <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
+        <button className="icon-btn" onClick={onHome} aria-label="Back home" disabled={reefComplete}>←</button>
         <div className="rescue-title-pill">
           <span>🫧</span>
           <span>
             <strong>Ocean Letter Rescue</strong>
-            <small>Build your letter reef</small>
+            <small>{challengeLabel}</small>
           </span>
         </div>
-        <button className="icon-btn" onClick={() => speak(prompt)} aria-label="Repeat the letter">🔊</button>
+        <button
+          className="icon-btn"
+          onClick={repeatNarration}
+          aria-label={feedback?.correct ? "Repeat the answer" : "Repeat the clue"}
+          disabled={reefComplete || Boolean(feedback?.correct)}
+        >
+          🔊
+        </button>
       </header>
 
       <div className="rescue-prompt" aria-live="polite">
@@ -143,15 +212,43 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
             <span className="rescue-prompt-emoji">{round.target.emoji}</span>
             <span>
               <small>Letter rescued!</small>
-              <strong style={{ color: round.target.color }}>
+              <strong style={{ color: getReadableRescueColor(round.target.color) }}>
                 {round.target.letter} is for {round.target.word}
               </strong>
+            </span>
+          </>
+        ) : feedback ? (
+          <>
+            <span className="rescue-prompt-emoji">👂</span>
+            <span>
+              <small>Almost!</small>
+              <strong>Listen and try again</strong>
+            </span>
+          </>
+        ) : challenge === "word" ? (
+          <>
+            <span className="rescue-prompt-emoji">{round.target.emoji}</span>
+            <span>
+              <small>Which letter goes with</small>
+              <strong style={{ color: getReadableRescueColor(round.target.color) }}>
+                {round.target.word}?
+              </strong>
+            </span>
+          </>
+        ) : challenge === "sound" ? (
+          <>
+            <span className="rescue-prompt-emoji">👂</span>
+            <span>
+              <small>Listen for</small>
+              <strong>the hidden letter</strong>
             </span>
           </>
         ) : (
           <>
             <span>Find</span>
-            <strong style={{ color: round.target.color }}>{round.target.letter}</strong>
+            <strong style={{ color: getReadableRescueColor(round.target.color) }}>
+              {round.target.letter}
+            </strong>
           </>
         )}
       </div>
@@ -159,15 +256,24 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
       <div className="rescue-options" role="group" aria-label={prompt}>
         {round.options.map((option, index) => {
           const selected = feedback?.index === index;
+          const showHint = misses >= 2 && !feedback && option.letter === round.target.letter;
           return (
             <button
               key={`${roundKey}-${option.letter}`}
-              className={`rescue-letter-button ${selected ? (feedback.correct ? "correct" : "try-again") : ""}`}
-              style={{ ["--letter-color" as string]: option.color } as React.CSSProperties}
+              className={`rescue-letter-button ${
+                selected ? (feedback?.correct ? "correct" : "try-again") : ""
+              } ${showHint ? "hint" : ""}`}
+              style={
+                {
+                  ["--letter-color" as string]: getReadableRescueColor(option.color),
+                  ["--letter-glow" as string]: option.color,
+                } as React.CSSProperties
+              }
               onClick={() => choose(index)}
               aria-label={`Letter ${option.letter}`}
+              disabled={reefComplete}
             >
-              {selected && feedback.correct ? "✓" : option.letter}
+              {selected && feedback?.correct ? "✓" : option.letter}
             </button>
           );
         })}
@@ -175,6 +281,7 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
 
       <div className="rescue-reef" aria-label={`${rescued.length} of ${REEF_SIZE} letters rescued`}>
         <span className="rescue-reef-label">My Reef</span>
+        <span className="rescue-round-count">{rescued.length}/{REEF_SIZE}</span>
         {Array.from({ length: REEF_SIZE }, (_, index) => {
           const rescue = rescued[index];
           return (
@@ -190,17 +297,38 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
       </div>
 
       {reefComplete ? (
-        <div className="rescue-complete" role="dialog" aria-label="Letter reef complete">
+        <div
+          className="rescue-complete"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rescue-complete-title"
+          onKeyDown={(event) => {
+            if (event.key !== "Tab") return;
+            const first = completionHomeButtonRef.current;
+            const last = restartButtonRef.current;
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first.focus();
+            }
+          }}
+        >
           <div className="rescue-complete-card">
             <span className="rescue-complete-icon">🪸</span>
-            <h2>Your reef is glowing!</h2>
+            <h2 id="rescue-complete-title">Your reef is glowing!</h2>
             <p>You rescued {REEF_SIZE} letters!</p>
             <div className="rescue-complete-letters">
               {rescued.map((rescue, index) => (
                 <span key={`${rescue.letter}-${index}`} style={{ color: rescue.color }}>{rescue.letter}</span>
               ))}
             </div>
-            <button onClick={restart}>🫧 Rescue more letters</button>
+            <div className="rescue-complete-actions">
+              <button ref={completionHomeButtonRef} className="secondary" onClick={onHome}>⌂ Home</button>
+              <button ref={restartButtonRef} onClick={restart}>🫧 Rescue more</button>
+            </div>
           </div>
           <Confetti />
         </div>
