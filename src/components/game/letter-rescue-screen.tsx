@@ -40,7 +40,12 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
   const completionHomeButtonRef = useRef<HTMLButtonElement | null>(null);
   const restartButtonRef = useRef<HTMLButtonElement | null>(null);
   const { speak, prefetch, stop } = useFriendlySpeech();
-  const { playCelebrate, playTap } = useGameAudio();
+  const {
+    playCelebrate,
+    playRescuePrompt,
+    playRescueRetry,
+    playRescueSuccess,
+  } = useGameAudio();
 
   // Keep the just-finished round's clue stable while its success narration
   // plays. The next difficulty begins only when the next round appears.
@@ -75,14 +80,18 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
 
   useEffect(() => {
     prefetch(prompt);
+    prefetch(successPhrase);
     promptTimer.current = setTimeout(() => {
-      promptTimer.current = null;
-      speak(prompt);
-    }, 320);
+      playRescuePrompt();
+      promptTimer.current = setTimeout(() => {
+        promptTimer.current = null;
+        speak(prompt);
+      }, 240);
+    }, 80);
     return () => {
       clearPromptTimer();
     };
-  }, [clearPromptTimer, prefetch, prompt, speak]);
+  }, [clearPromptTimer, playRescuePrompt, prefetch, prompt, speak, successPhrase]);
 
   useEffect(() => {
     return () => {
@@ -111,14 +120,16 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
       setFeedback(nextFeedback);
 
       if (!correct) {
-        playTap();
+        playRescueRetry();
         setMisses((count) => count + 1);
-        speak(getRescueRetryPhrase(prompt));
-        roundTimer.current = setTimeout(() => setFeedback(null), 900);
+        roundTimer.current = setTimeout(() => {
+          roundTimer.current = setTimeout(() => setFeedback(null), 900);
+          speak(getRescueRetryPhrase(prompt));
+        }, 200);
         return;
       }
 
-      playCelebrate();
+      playRescueSuccess();
       const nextRescued = [...rescued, round.target];
       setRescued(nextRescued);
 
@@ -137,14 +148,17 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
           speak(RESCUE_COMPLETE_PHRASE);
         }, 360);
       };
-      speak(successPhrase, { onEnd: advanceAfterNarration });
-      roundTimer.current = setTimeout(advanceAfterNarration, 5200);
+      roundTimer.current = setTimeout(() => {
+        roundTimer.current = setTimeout(advanceAfterNarration, 5200);
+        speak(successPhrase, { onEnd: advanceAfterNarration });
+      }, 330);
     }, [
       clearPromptTimer,
       feedback,
       nextRound,
       playCelebrate,
-      playTap,
+      playRescueRetry,
+      playRescueSuccess,
       prompt,
       reefComplete,
       rescued,
@@ -213,7 +227,7 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
             <span>
               <small>Letter rescued!</small>
               <strong style={{ color: getReadableRescueColor(round.target.color) }}>
-                {round.target.letter} is for {round.target.word}
+                {round.target.letter} for {round.target.word}!
               </strong>
             </span>
           </>

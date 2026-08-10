@@ -67,6 +67,14 @@ describe("TTS phrase allowlist", () => {
     expect(isAllowedTtsPhrase(RESCUE_COMPLETE_PHRASE)).toBe(true);
   });
 
+  it("uses short letter-for-word reinforcement after a Rescue guess", () => {
+    expect(getRescueSuccessPhrase("A", "Alpaca")).toBe("A for Alpaca!");
+    expect(getRescueSuccessPhrase("D", "Dog")).toBe("D for Dog!");
+    expect(getRescueSuccessPhrase("X", "Handsome Zaven")).toBe(
+      "X for Handsome Zaven!"
+    );
+  });
+
   it("accepts every generated Safari Ride and Ocean Dive narration phrase", () => {
     for (const config of Object.values(RIDE_CONFIGS)) {
       expect(isAllowedTtsPhrase(getRideCompletePhrase(config.id)), `${config.id} completion`).toBe(true);
