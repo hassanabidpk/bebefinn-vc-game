@@ -13,6 +13,7 @@ import { buildSafariWorld, SAFARI_MODELS } from "@/lib/safari-world";
 import { buildOceanWorld, OCEAN_MODELS } from "@/lib/ocean-world";
 import { loadAnimalModel } from "@/lib/ride-models";
 import { getAnimalInfo } from "@/lib/animal-info";
+import { earnSticker } from "@/lib/progress-store";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { Confetti } from "./confetti";
@@ -77,7 +78,15 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   const { speak, stop: stopSpeech } = useFriendlySpeech();
-  const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
+  const {
+    playAnimalSound,
+    playBubbleHorn,
+    playCelebrate,
+    playHorn,
+    playTap,
+    startRideAmbience,
+    stopRideAmbience,
+  } = useGameAudio();
 
   const later = useCallback((ms: number, fn: () => void) => {
     const timer = setTimeout(() => {
@@ -124,6 +133,7 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
     const spec = config.animals.find((a) => a.word === word);
     if (!spec) return;
     setEncounter(word);
+    earnSticker("rideAnimals", word);
 
     // Sound first for instant tactile feedback, then the voice line with
     // the same fact the child sees on the panel.
@@ -239,6 +249,18 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
   }, [releaseInputs]);
 
   useEffect(() => stopSpeech, [stopSpeech]);
+
+  // Soft world ambience (birdsong / bubbles) while the ride is on screen.
+  useEffect(() => {
+    if (!figurines) return;
+    startRideAmbience(worldId);
+    return stopRideAmbience;
+  }, [figurines, startRideAmbience, stopRideAmbience, worldId]);
+
+  const onHorn = () => {
+    if (worldId === "safari") playHorn();
+    else playBubbleHorn();
+  };
 
   const onModeButton = (next: RideMode) => {
     if (next === mode) return;
@@ -415,6 +437,15 @@ export function RideScreen({ worldId, onHome }: RideScreenProps) {
           {arrow("right", "Steer right", "▶")}
         </div>
       </div>
+
+      <button
+        className="ride-horn"
+        aria-label={worldId === "safari" ? "Honk the horn" : "Blow bubbles"}
+        onPointerDown={onHorn}
+        disabled={!figurines}
+      >
+        {worldId === "safari" ? "🎺" : "🫧"}
+      </button>
 
       {photoFlash ? <div className="ride-photo-flash" aria-hidden="true" /> : null}
 

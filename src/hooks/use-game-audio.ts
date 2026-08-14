@@ -264,6 +264,8 @@ export function useGameAudio() {
   const musicTimerRef = useRef<number | null>(null);
   const animalAudioCacheRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const currentAnimalAudioRef = useRef<HTMLAudioElement | null>(null);
+  const ambienceRef = useRef<{ gain: GainNode; stops: Array<() => void>; timer: number | null } | null>(null);
+  const lastHornAtRef = useRef(0);
 
   const getAudioContext = useCallback(() => {
     if (typeof window === "undefined") return null;
@@ -998,10 +1000,164 @@ export function useGameAudio() {
     };
   }, [clearMusicTimer]);
 
+  /** Soft generative background ambience for the ride worlds. */
+  const startRideAmbience = useCallback(
+    (world: "safari" | "ocean") => {
+      const audioContext = getAudioContext();
+      if (!audioContext || ambienceRef.current) return;
+
+      const master = audioContext.createGain();
+      master.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      master.gain.linearRampToValueAtTime(1, audioContext.currentTime + 1.2);
+      master.connect(audioContext.destination);
+      const stops: Array<() => void> = [];
+
+      // Continuous bed: filtered noise — savanna breeze / underwater room tone.
+      const noiseSeconds = 2;
+      const buffer = audioContext.createBuffer(1, audioContext.sampleRate * noiseSeconds, audioContext.sampleRate);
+      const channel = buffer.getChannelData(0);
+      let brown = 0;
+      for (let i = 0; i < channel.length; i += 1) {
+        const white = Math.random() * 2 - 1;
+        brown = (brown + 0.02 * white) / 1.02;
+        channel[i] = brown * 3.5;
+      }
+      const bed = audioContext.createBufferSource();
+      bed.buffer = buffer;
+      bed.loop = true;
+      const bedFilter = audioContext.createBiquadFilter();
+      bedFilter.type = "lowpass";
+      bedFilter.frequency.value = world === "ocean" ? 320 : 900;
+      const bedGain = audioContext.createGain();
+      bedGain.gain.value = world === "ocean" ? 0.05 : 0.028;
+      bed.connect(bedFilter).connect(bedGain).connect(master);
+      bed.start();
+      stops.push(() => {
+        try {
+          bed.stop();
+        } catch {
+          /* already stopped */
+        }
+      });
+
+      // Sparse accents: pentatonic bird chirps / rising bubble pops.
+      const accent = () => {
+        const now = audioContext.currentTime;
+        if (world === "safari") {
+          const scale = [880, 987.77, 1174.66, 1318.51, 1567.98];
+          const first = scale[Math.floor(Math.random() * scale.length)];
+          const second = scale[Math.floor(Math.random() * scale.length)];
+          [first, second].forEach((frequency, index) => {
+            playTone(audioContext, {
+              frequency,
+              endFrequency: frequency * 1.06,
+              start: now + index * 0.14,
+              duration: 0.11,
+              gain: 0.022,
+              type: "sine",
+              filterFrequency: 5200,
+            });
+          });
+        } else {
+          const base = 180 + Math.random() * 160;
+          for (let i = 0; i < 3; i += 1) {
+            playTone(audioContext, {
+              frequency: base + i * 60,
+              endFrequency: (base + i * 60) * 2.2,
+              start: now + i * 0.09,
+              duration: 0.09,
+              gain: 0.02,
+              type: "sine",
+              filterFrequency: 2400,
+            });
+          }
+        }
+        if (ambienceRef.current) {
+          ambienceRef.current.timer = window.setTimeout(accent, 2500 + Math.random() * 3500);
+        }
+      };
+      ambienceRef.current = { gain: master, stops, timer: null };
+      ambienceRef.current.timer = window.setTimeout(accent, 1200 + Math.random() * 1500);
+    },
+    [getAudioContext]
+  );
+
+  const stopRideAmbience = useCallback(() => {
+    const ambience = ambienceRef.current;
+    if (!ambience) return;
+    ambienceRef.current = null;
+    if (ambience.timer !== null) window.clearTimeout(ambience.timer);
+    const audioContext = audioContextRef.current;
+    if (audioContext) {
+      ambience.gain.gain.linearRampToValueAtTime(0.0001, audioContext.currentTime + 0.4);
+    }
+    window.setTimeout(() => {
+      ambience.stops.forEach((stop) => stop());
+      ambience.gain.disconnect();
+    }, 500);
+  }, []);
+
+  /** Cheerful jeep beep-beep for the safari horn button. */
+  const playHorn = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+    const now = audioContext.currentTime;
+    if (now - lastHornAtRef.current < 0.25) return;
+    lastHornAtRef.current = now;
+    [0, 0.18].forEach((offset) => {
+      playTone(audioContext, {
+        frequency: 620,
+        endFrequency: 590,
+        start: now + offset,
+        duration: 0.13,
+        gain: 0.12,
+        type: "square",
+        filterFrequency: 2200,
+      });
+      playTone(audioContext, {
+        frequency: 930,
+        start: now + offset,
+        duration: 0.12,
+        gain: 0.05,
+        type: "triangle",
+        filterFrequency: 3200,
+      });
+    });
+  }, [getAudioContext]);
+
+  /** Bubbly submarine blurp for the ocean horn button. */
+  const playBubbleHorn = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+    const now = audioContext.currentTime;
+    if (now - lastHornAtRef.current < 0.25) return;
+    lastHornAtRef.current = now;
+    [0, 0.09, 0.2, 0.33].forEach((offset, index) => {
+      playTone(audioContext, {
+        frequency: 240 + index * 90,
+        endFrequency: (240 + index * 90) * 2.4,
+        start: now + offset,
+        duration: 0.12,
+        gain: 0.08,
+        type: "sine",
+        filterFrequency: 2600,
+      });
+    });
+    playNoise(audioContext, {
+      start: now + 0.05,
+      duration: 0.2,
+      gain: 0.02,
+      filterFrequency: 1800,
+      filterType: "bandpass",
+    });
+  }, [getAudioContext]);
+
   return {
     isMusicPlaying,
     playAnimalSound,
+    playBubbleHorn,
     playCelebrate,
+    playHorn,
     playGuessSuspense,
     playLetterCall,
     playNext,
@@ -1012,7 +1168,9 @@ export function useGameAudio() {
     playStart,
     playTap,
     startBackgroundMusic,
+    startRideAmbience,
     stopBackgroundMusic,
+    stopRideAmbience,
     toggleBackgroundMusic,
   };
 }
