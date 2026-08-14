@@ -32,12 +32,12 @@ type Animate = (time: number, active: boolean, activeElapsed: number) => void;
 
 /** Model sizing for each sea animal (world units). */
 export const OCEAN_MODELS: Record<string, AnimalModelOptions> = {
-  Whale: { height: 3.6, yaw: Math.PI },
-  Dolphin: { height: 2.2, yaw: Math.PI },
-  Turtle: { height: 2, yaw: Math.PI },
-  Octopus: { height: 3.2, yaw: Math.PI },
-  Shark: { height: 2.4, yaw: Math.PI },
-  Jellyfish: { height: 3.2, yaw: Math.PI },
+  Whale: { height: 3.6 },
+  Dolphin: { height: 2.2 },
+  Turtle: { height: 2 },
+  Octopus: { height: 3.2 },
+  Shark: { height: 2.4 },
+  Jellyfish: { height: 3.2 },
 };
 
 function gesturePulse(elapsed: number, start: number, duration: number): number {
@@ -122,7 +122,8 @@ const OCEAN_MOTION: Record<string, (g: THREE.Group, vp: THREE.Vector3) => Animat
     ].forEach(([x, y, radius]) => {
       part(spout, new THREE.SphereGeometry(radius, 10, 8), { color: 0xdff2fc, roughness: 0.1, opacity: 0.55, shadows: false }, x, y, 0);
     });
-    spout.position.y = height * 0.95;
+    // Anchor over the blowhole — forward of centre on the nose-first model.
+    spout.position.set(0, height * 0.95, height * 0.3);
     spout.scale.setScalar(0.001);
     g.add(spout);
     return (time, active, elapsed) => {
@@ -144,7 +145,9 @@ const OCEAN_MOTION: Record<string, (g: THREE.Group, vp: THREE.Vector3) => Animat
         const t = (elapsed - start) / 1.4;
         if (t > 0 && t < 1) flip = t * t * (3 - 2 * t) * Math.PI * 2;
       }
-      spinner.rotation.z = -flip;
+      // Pitch around the lateral axis — a true nose-over-tail somersault
+      // now that the model swims nose-forward (z-roll would corkscrew).
+      spinner.rotation.x = -flip;
       if (active && flip === 0) g.position.y += Math.abs(Math.sin(time * 5)) * 0.4 * rampIn(elapsed);
     };
   },
