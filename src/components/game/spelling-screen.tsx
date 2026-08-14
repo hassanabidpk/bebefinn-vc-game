@@ -10,6 +10,7 @@ import {
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { getStandaloneLetterSpeech } from "@/lib/tts-phrases";
+import { earnSticker } from "@/lib/progress-store";
 import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto } from "./animal-photo";
 import { Confetti } from "./confetti";
@@ -120,6 +121,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
       const completedStars = stars + 1;
       setCelebrating(true);
       setStars(completedStars);
+      earnSticker("spellWords", word);
       if (hintTimer.current) clearTimeout(hintTimer.current);
       playCelebrate();
       const chant = `${letters.join(". ")}. ${word}!`;

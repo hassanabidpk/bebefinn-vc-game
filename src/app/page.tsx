@@ -13,6 +13,7 @@ import { SpellingScreen } from "@/components/game/spelling-screen";
 import { RideScreen } from "@/components/game/ride-screen";
 import { LetterRescueScreen } from "@/components/game/letter-rescue-screen";
 import type { RideWorldId } from "@/lib/ride-data";
+import { StickerBookScreen } from "@/components/game/sticker-book-screen";
 
 type Screen =
   | "home"
@@ -23,7 +24,8 @@ type Screen =
   | "spelling"
   | "rescue"
   | "safari"
-  | "ocean";
+  | "ocean"
+  | "stickers";
 
 interface Route {
   screen: Screen;
@@ -85,6 +87,12 @@ export default function Home() {
     // No background music — animal announcements need to be clearly heard.
     setRoute({ screen: world, index: 0 });
   };
+  const goStickers = () => {
+    playStart();
+    warmUp();
+    // No background music — sticker names need to be clearly heard.
+    setRoute({ screen: "stickers", index: 0 });
+  };
   const goRescue = () => {
     playStart();
     warmUp();
@@ -107,7 +115,7 @@ export default function Home() {
   return (
     <IpadShell>
       {route.screen === "home" ? (
-        <HomeScreen onStart={() => goLesson(0)} onMode={onMode} />
+        <HomeScreen onStart={() => goLesson(0)} onMode={onMode} onStickers={goStickers} />
       ) : null}
       {route.screen === "lesson" ? (
         <LessonScreen
@@ -128,6 +136,7 @@ export default function Home() {
       {route.screen === "notepad" ? <NotepadScreen onHome={goHome} /> : null}
       {route.screen === "spelling" ? <SpellingScreen onHome={goHome} /> : null}
       {route.screen === "rescue" ? <LetterRescueScreen onHome={goHome} /> : null}
+      {route.screen === "stickers" ? <StickerBookScreen onHome={goHome} /> : null}
       {route.screen === "safari" ? (
         <RideScreen worldId="safari" onHome={goHome} />
       ) : null}

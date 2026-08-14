@@ -15,6 +15,7 @@ import {
   getRescueSuccessPhrase,
   RESCUE_COMPLETE_PHRASE,
 } from "@/lib/game-speech";
+import { earnSticker } from "@/lib/progress-store";
 import { Confetti } from "./confetti";
 import {
   LetterRescueStage,
@@ -130,6 +131,7 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
       }
 
       playRescueSuccess();
+      earnSticker("rescueLetters", round.target.letter);
       const nextRescued = [...rescued, round.target];
       setRescued(nextRescued);
 
