@@ -92,8 +92,9 @@ ocean-buddy-alphabet-game/
 4. **Puzzle Time** — Simple jigsaw and matching puzzles
 5. **Coloring Book** — Digital coloring with original characters
 6. **Memory Match** — Card-flipping memory game with sea creatures
-7. **Safari Ride** — Three.js jeep ride past savanna animals; Auto mode self-drives and announces each animal, Drive mode uses arrows (`src/components/game/ride-screen.tsx` + `src/lib/ride-*.ts`)
+7. **Safari Ride** — Three.js jeep ride past savanna animals; Auto mode self-drives and announces each animal, Drive mode uses arrows (`src/components/game/ride-screen.tsx` + `src/lib/ride-*.ts`); animals are Poly by Google glb models (CC-BY 3.0, see `ATTRIBUTIONS.md`)
 8. **Ocean Dive** — Same ride engine underwater with a submarine and sea animals
+9. **Ocean Letter Rescue** — Bubble letter-match game with reef sticker progress (`src/components/game/letter-rescue-*.tsx` + `src/lib/letter-rescue-data.ts`)
 
 ## Coding Conventions
 

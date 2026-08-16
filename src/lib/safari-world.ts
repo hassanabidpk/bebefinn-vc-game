@@ -30,12 +30,12 @@ type Animate = (time: number, active: boolean, activeElapsed: number) => void;
 
 /** Model sizing for each safari animal (world units). */
 export const SAFARI_MODELS: Record<string, AnimalModelOptions> = {
-  Lion: { height: 3.5, yaw: Math.PI },
-  Elephant: { height: 5.1, yaw: Math.PI },
-  Giraffe: { height: 6.9, yaw: Math.PI },
-  Zebra: { height: 3.35, yaw: Math.PI },
-  Monkey: { height: 2.45, yaw: Math.PI },
-  Hippo: { height: 3.25, yaw: Math.PI },
+  Lion: { height: 3.5 },
+  Elephant: { height: 5.1 },
+  Giraffe: { height: 6.9 },
+  Zebra: { height: 3.35 },
+  Monkey: { height: 2.45 },
+  Hippo: { height: 3.25 },
 };
 
 function gesturePulse(elapsed: number, start: number, duration: number): number {
