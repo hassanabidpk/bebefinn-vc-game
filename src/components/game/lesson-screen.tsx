@@ -59,9 +59,14 @@ export function LessonScreen({
   const guessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animalSoundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoVideoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealEndFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealLessonRef = useRef<(correctGuess?: string) => void>(() => {});
+  // Bumped on every reveal and lesson change so a narration that finishes
+  // late cannot auto-open the video for an animal we already moved past.
+  const revealGeneration = useRef(0);
   const lastPickedWordByLetter = useRef<Record<string, string>>({});
   const { speak, speakBilingual, stop } = useSpeech();
   const {
@@ -78,8 +83,33 @@ export function LessonScreen({
       ? `${entry.letter} for ${spokenWord}!`
       : `${entry.letter}! ${entry.letter} for ${spokenWord}!`;
   };
-  const speakReveal = (phrase: string) => {
-    geminiPlay(phrase, { voice: "Leda" }).catch(() => speak(phrase));
+  const playVideoAfterSpeech = (generation: number) => {
+    if (!hasAnimalVideo(item.word)) return;
+    autoVideoTimer.current = setTimeout(() => {
+      if (generation !== revealGeneration.current) return;
+      setVideoOpen(true);
+    }, 180);
+  };
+
+  const speakReveal = (phrase: string, onEnd?: () => void) => {
+    let didFinish = false;
+    const finish = () => {
+      if (didFinish) return;
+      didFinish = true;
+      if (revealEndFallbackTimer.current) {
+        clearTimeout(revealEndFallbackTimer.current);
+        revealEndFallbackTimer.current = null;
+      }
+      onEnd?.();
+    };
+
+    // Playback can end without reporting it (device voice, interrupted
+    // audio), so a timer guarantees the video still opens.
+    if (onEnd) revealEndFallbackTimer.current = setTimeout(finish, 3600);
+
+    geminiPlay(phrase, { voice: "Leda", onEnd: finish }).catch(() =>
+      speak(phrase, { onEnd: finish })
+    );
   };
   const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
 
@@ -123,6 +153,8 @@ export function LessonScreen({
       guessTimer,
       speechTimer,
       animalSoundTimer,
+      autoVideoTimer,
+      revealEndFallbackTimer,
       confettiTimer,
       speakOffTimer,
       flipBackTimer,
@@ -142,13 +174,15 @@ export function LessonScreen({
 
     if (correctGuess) playCelebrate();
 
+    const generation = ++revealGeneration.current;
+    const afterSpeech = () => playVideoAfterSpeech(generation);
     const phrase = buildRevealPhrase(item);
     const hasPhoto = hasAnimalPhoto(item.word);
     if (hasPhoto) {
       playAnimalSound(item.word.toLowerCase());
-      speechTimer.current = setTimeout(() => speakReveal(phrase), 900);
+      speechTimer.current = setTimeout(() => speakReveal(phrase, afterSpeech), 900);
     } else {
-      speakReveal(phrase);
+      speakReveal(phrase, afterSpeech);
     }
 
     setShowConfetti(true);
@@ -222,6 +256,8 @@ export function LessonScreen({
   // Guess → reveal → speak → confetti, kicked off whenever the lesson changes.
   useEffect(() => {
     clearAllTimers();
+    // Invalidate any narration still finishing for the previous lesson.
+    revealGeneration.current += 1;
     setIsGuessing(true);
     setIsSpeaking(false);
     setShowConfetti(false);
@@ -251,13 +287,15 @@ export function LessonScreen({
     }
     clearAllTimers();
     setIsSpeaking(true);
+    const generation = ++revealGeneration.current;
+    const afterSpeech = () => playVideoAfterSpeech(generation);
     const hasPhoto = hasAnimalPhoto(item.word);
     const phrase = buildRevealPhrase(item);
     if (hasPhoto) {
       playAnimalSound(item.word.toLowerCase());
-      speechTimer.current = setTimeout(() => speakReveal(phrase), 900);
+      speechTimer.current = setTimeout(() => speakReveal(phrase, afterSpeech), 900);
     } else {
-      speakReveal(phrase);
+      speakReveal(phrase, afterSpeech);
     }
     speakOffTimer.current = setTimeout(() => setIsSpeaking(false), 3200);
   };
