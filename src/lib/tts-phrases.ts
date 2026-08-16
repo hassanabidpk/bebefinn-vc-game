@@ -10,6 +10,7 @@ import {
   getRideEncounterPhrase,
   getRideModePhrase,
   getRidePhotoPhrase,
+  getStickerPhrase,
   RESCUE_COMPLETE_PHRASE,
   type LetterRescueChallenge,
 } from "./game-speech";
@@ -87,6 +88,14 @@ for (const config of Object.values(RIDE_CONFIGS)) {
   }
 }
 add(getRideModePhrase("auto"), getRideModePhrase("drive"));
+
+// Sticker book: tapping any earned sticker says its name. Without these the
+// TTS route rejects the phrase and the child hears the robotic device voice
+// instead of the game voice.
+for (const config of Object.values(RIDE_CONFIGS)) {
+  for (const animal of config.animals) add(getStickerPhrase(animal.word));
+}
+for (const { word } of spellingWords) add(getStickerPhrase(word));
 
 export function isAllowedTtsPhrase(text: string) {
   return allowedPhrases.has(text);

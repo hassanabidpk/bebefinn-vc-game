@@ -9,10 +9,12 @@ import {
   getRideEncounterPhrase,
   getRideModePhrase,
   getRidePhotoPhrase,
+  getStickerPhrase,
   RESCUE_COMPLETE_PHRASE,
   type LetterRescueChallenge,
 } from "./game-speech";
 import { RIDE_CONFIGS } from "./ride-data";
+import { spellingWords } from "./spelling-data";
 import {
   getAllowedTtsPhraseCount,
   getStandaloneLetterSpeech,
@@ -94,5 +96,15 @@ describe("TTS phrase allowlist", () => {
 
     expect(isAllowedTtsPhrase(getRideModePhrase("auto"))).toBe(true);
     expect(isAllowedTtsPhrase(getRideModePhrase("drive"))).toBe(true);
+  });
+  it("accepts every sticker book name so none fall back to the device voice", () => {
+    const stickerWords = [
+      ...Object.values(RIDE_CONFIGS).flatMap((config) => config.animals.map((animal) => animal.word)),
+      ...spellingWords.map((entry) => entry.word),
+    ];
+    expect(stickerWords.length).toBeGreaterThan(0);
+    for (const word of stickerWords) {
+      expect(isAllowedTtsPhrase(getStickerPhrase(word))).toBe(true);
+    }
   });
 });

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { RIDE_CONFIGS } from "@/lib/ride-data";
 import { spellingWords } from "@/lib/spelling-data";
 import { getStandaloneLetterSpeech } from "@/lib/tts-phrases";
+import { getStickerPhrase } from "@/lib/game-speech";
 import { countStickers, emptyProgress, loadProgress, type StickerProgress } from "@/lib/progress-store";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
@@ -33,7 +34,7 @@ export function StickerBookScreen({ onHome }: StickerBookScreenProps) {
   const tapAnimal = (word: string, soundKey?: string) => {
     playTap();
     if (soundKey) playAnimalSound(soundKey);
-    speak(`${word}!`);
+    speak(getStickerPhrase(word));
   };
 
   return (
@@ -113,7 +114,7 @@ export function StickerBookScreen({ onHome }: StickerBookScreenProps) {
                   onClick={() => {
                     if (!earned) return;
                     playTap();
-                    speak(`${entry.word}!`);
+                    speak(getStickerPhrase(entry.word));
                   }}
                   aria-label={earned ? entry.word : "Locked sticker"}
                   disabled={!earned}

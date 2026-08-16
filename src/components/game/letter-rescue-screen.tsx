@@ -170,9 +170,15 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
     ]
   );
 
+  const restartRef = useRef<() => void>(() => {});
+
   useEffect(() => {
     if (!reefComplete) return;
     restartButtonRef.current?.focus();
+    // Celebrate, then roll straight into a fresh reef — a 4-year-old
+    // shouldn't have to read a button to keep playing.
+    const timer = setTimeout(() => restartRef.current(), 3600);
+    return () => clearTimeout(timer);
   }, [reefComplete]);
 
   useEffect(() => {
@@ -198,6 +204,7 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
     setRound((previous) => buildLetterRescueRound(previous.target.letter));
     setRoundKey((key) => key + 1);
   };
+  restartRef.current = restart;
 
   return (
     <div className="letter-rescue-screen" data-challenge={challenge}>
