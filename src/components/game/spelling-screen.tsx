@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildSpellingRound,
-  spellingMaxLettersForStars,
+  getSpellingDifficulty,
+  nextSpellingStreak,
   type BankTile,
   type SpellingRound,
 } from "@/lib/spelling-data";
@@ -24,12 +25,13 @@ interface SpellingScreenProps {
 
 export function SpellingScreen({ onHome }: SpellingScreenProps) {
   const [round, setRound] = useState<SpellingRound>(() =>
-    buildSpellingRound(undefined, spellingMaxLettersForStars(0))
+    buildSpellingRound()
   );
   const [placed, setPlaced] = useState<number[]>([]);
   const [wrongId, setWrongId] = useState<number | null>(null);
   const [hintId, setHintId] = useState<number | null>(null);
   const [stars, setStars] = useState(0);
+  const [flawlessStreak, setFlawlessStreak] = useState(0);
   const [celebrating, setCelebrating] = useState(false);
 
   const roundRef = useRef(round);
@@ -40,6 +42,8 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
   const hintOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const narrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const celebrationId = useRef(0);
+  const recentWordsRef = useRef<string[]>([round.word.word]);
+  const roundMistakesRef = useRef(0);
 
   const { speak, prefetch } = useFriendlySpeech();
   const { playAnimalSound, playCelebrate, playTap } = useGameAudio();
@@ -107,20 +111,32 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
     };
   }, []);
 
-  const advance = useCallback((completedStars: number) => {
+  const advance = useCallback((nextStreak: number) => {
     setCelebrating(false);
     setPlaced([]);
     setWrongId(null);
     setHintId(null);
-    setRound((r) => buildSpellingRound(r, spellingMaxLettersForStars(completedStars)));
+    roundMistakesRef.current = 0;
+    setRound((current) => {
+      const next = buildSpellingRound(
+        recentWordsRef.current,
+        getSpellingDifficulty(nextStreak),
+        Math.random,
+        current.key
+      );
+      recentWordsRef.current = [...recentWordsRef.current, next.word.word].slice(-6);
+      return next;
+    });
   }, []);
 
   const finish = useCallback(
     (letters: string[], word: string) => {
       const id = ++celebrationId.current;
       const completedStars = stars + 1;
+      const nextStreak = nextSpellingStreak(flawlessStreak, roundMistakesRef.current);
       setCelebrating(true);
       setStars(completedStars);
+      setFlawlessStreak(nextStreak);
       earnSticker("spellWords", word);
       if (hintTimer.current) clearTimeout(hintTimer.current);
       playCelebrate();
@@ -130,7 +146,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
         if (id !== celebrationId.current) return;
         celebrationId.current += 1;
         if (advanceTimer.current) clearTimeout(advanceTimer.current);
-        advance(completedStars);
+        advance(nextStreak);
       };
 
       // Advance from real audio completion, not a word-length estimate.
@@ -150,7 +166,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
       // A failed browser/audio completion event must never trap the child.
       advanceTimer.current = setTimeout(goNext, CELEBRATION_FALLBACK_MS);
     },
-    [stars, say, playAnimalSound, playCelebrate, advance]
+    [stars, flawlessStreak, say, playAnimalSound, playCelebrate, advance]
   );
 
   const onTile = useCallback(
@@ -169,6 +185,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
           finish(round.letters, round.word.word);
         }
       } else {
+        roundMistakesRef.current += 1;
         setWrongId(tile.id);
         say("Almost! Try again.");
         if (wrongTimer.current) clearTimeout(wrongTimer.current);
@@ -210,6 +227,7 @@ export function SpellingScreen({ onHome }: SpellingScreenProps) {
         <div className="progress-pill">
           <div className="progress-pill-row">
             <span className="progress-letter">🔤 Spell</span>
+            <span className="progress-count">Level {round.difficulty.level} · {round.difficulty.label}</span>
           </div>
         </div>
         <div />

@@ -5,8 +5,9 @@ import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import {
   buildLetterRescueRound,
-  getLetterRescueChallenge,
+  getLetterRescueDifficulty,
   getReadableRescueColor,
+  nextLetterRescueStreak,
   type LetterRescueRound,
 } from "@/lib/letter-rescue-data";
 import {
@@ -35,6 +36,8 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
   const [rescued, setRescued] = useState<LetterRescueRound["target"][]>([]);
   const [reefComplete, setReefComplete] = useState(false);
   const [misses, setMisses] = useState(0);
+  const [correctStreak, setCorrectStreak] = useState(0);
+  const roundNumberRef = useRef(0);
   const nonceRef = useRef(0);
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,10 +51,7 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
     playRescueSuccess,
   } = useGameAudio();
 
-  // Keep the just-finished round's clue stable while its success narration
-  // plays. The next difficulty begins only when the next round appears.
-  const activeRoundIndex = Math.max(0, rescued.length - (feedback?.correct ? 1 : 0));
-  const challenge = getLetterRescueChallenge(activeRoundIndex);
+  const { challenge } = round.difficulty;
   const prompt = getRescuePromptPhrase(
     challenge,
     round.target.letter,
@@ -61,12 +61,7 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
     round.target.letter,
     round.target.spokenWord
   );
-  const challengeLabel =
-    challenge === "match"
-      ? "Letter Match"
-      : challenge === "word"
-        ? "Word Clue"
-        : "Listening Challenge";
+  const challengeLabel = `Level ${round.difficulty.level} · ${round.difficulty.label}`;
 
   const clearPromptTimer = useCallback(() => {
     if (!promptTimer.current) return;
@@ -101,9 +96,11 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
     };
   }, [stop]);
 
-  const nextRound = useCallback((alreadyRescued: readonly string[] = []) => {
+  const nextRound = useCallback((alreadyRescued: readonly string[] = [], nextStreak = 0) => {
+    roundNumberRef.current += 1;
+    const difficulty = getLetterRescueDifficulty(nextStreak, roundNumberRef.current);
     setRound((previous) =>
-      buildLetterRescueRound(previous.target.letter, Math.random, alreadyRescued)
+      buildLetterRescueRound(previous.target.letter, Math.random, alreadyRescued, difficulty)
     );
     setRoundKey((key) => key + 1);
     setFeedback(null);
@@ -132,6 +129,8 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
 
       playRescueSuccess();
       earnSticker("rescueLetters", round.target.letter);
+      const nextStreak = nextLetterRescueStreak(correctStreak, misses);
+      setCorrectStreak(nextStreak);
       const nextRescued = [...rescued, round.target];
       setRescued(nextRescued);
 
@@ -142,7 +141,7 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
         if (roundTimer.current) clearTimeout(roundTimer.current);
         roundTimer.current = setTimeout(() => {
           if (nextRescued.length < REEF_SIZE) {
-            nextRound(nextRescued.map((rescue) => rescue.letter));
+            nextRound(nextRescued.map((rescue) => rescue.letter), nextStreak);
             return;
           }
           setReefComplete(true);
@@ -156,7 +155,9 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
       }, 330);
     }, [
       clearPromptTimer,
+      correctStreak,
       feedback,
+      misses,
       nextRound,
       playCelebrate,
       playRescueRetry,
@@ -201,14 +202,25 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
     setReefComplete(false);
     setFeedback(null);
     setMisses(0);
-    setRound((previous) => buildLetterRescueRound(previous.target.letter));
+    roundNumberRef.current += 1;
+    setRound((previous) => buildLetterRescueRound(
+      previous.target.letter,
+      Math.random,
+      [],
+      getLetterRescueDifficulty(correctStreak, roundNumberRef.current)
+    ));
     setRoundKey((key) => key + 1);
   };
   restartRef.current = restart;
 
   return (
     <div className="letter-rescue-screen" data-challenge={challenge}>
-      <LetterRescueStage options={round.options} roundKey={roundKey} feedback={feedback} />
+      <LetterRescueStage
+        key={`rescue-stage-${round.options.length}`}
+        options={round.options}
+        roundKey={roundKey}
+        feedback={feedback}
+      />
 
       <header className="rescue-header">
         <button className="icon-btn" onClick={onHome} aria-label="Back home" disabled={reefComplete}>←</button>
@@ -276,7 +288,12 @@ export function LetterRescueScreen({ onHome }: LetterRescueScreenProps) {
         )}
       </div>
 
-      <div className="rescue-options" role="group" aria-label={prompt}>
+      <div
+        className="rescue-options"
+        data-option-count={round.options.length}
+        role="group"
+        aria-label={prompt}
+      >
         {round.options.map((option, index) => {
           const selected = feedback?.index === index;
           const showHint = misses >= 2 && !feedback && option.letter === round.target.letter;

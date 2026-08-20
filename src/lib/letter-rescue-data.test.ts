@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { alphabetData } from "./alphabet-data";
 import {
   buildLetterRescueRound,
-  getLetterRescueChallenge,
+  getLetterRescueDifficulty,
   getReadableRescueColor,
+  nextLetterRescueStreak,
 } from "./letter-rescue-data";
 
 function srgbChannel(value: number) {
@@ -27,6 +28,20 @@ describe("buildLetterRescueRound", () => {
     expect(round.options).toHaveLength(3);
     expect(new Set(round.options.map((option) => option.letter)).size).toBe(3);
     expect(round.options.some((option) => option.letter === round.target.letter)).toBe(true);
+  });
+
+  it("grows from three random choices to five nearby choices", () => {
+    const medium = getLetterRescueDifficulty(2, 2);
+    const hard = getLetterRescueDifficulty(6, 6);
+    expect(buildLetterRescueRound(undefined, () => 0.25, [], medium).options).toHaveLength(4);
+
+    const hardRound = buildLetterRescueRound(undefined, () => 0.5, [], hard);
+    expect(hardRound.options).toHaveLength(5);
+    const targetCode = hardRound.target.letter.charCodeAt(0);
+    const distractorDistances = hardRound.options
+      .filter((option) => option.letter !== hardRound.target.letter)
+      .map((option) => Math.abs(option.letter.charCodeAt(0) - targetCode));
+    expect(Math.max(...distractorDistances)).toBeLessThanOrEqual(2);
   });
 
   it("does not repeat the previous target", () => {
@@ -57,17 +72,20 @@ describe("buildLetterRescueRound", () => {
   });
 });
 
-describe("getLetterRescueChallenge", () => {
-  it.each([
-    [0, "match"],
-    [1, "match"],
-    [2, "word"],
-    [3, "word"],
-    [4, "sound"],
-    [5, "sound"],
-    [6, "sound"],
-  ] as const)("uses the expected challenge after %i rescues", (rescuedCount, expected) => {
-    expect(getLetterRescueChallenge(rescuedCount)).toBe(expected);
+describe("adaptive Rescue difficulty", () => {
+  it("adds clue variation and choices as the correct streak grows", () => {
+    expect(getLetterRescueDifficulty(0, 0)).toMatchObject({ level: 1, challenge: "match", optionCount: 3 });
+    expect(getLetterRescueDifficulty(2, 2)).toMatchObject({ level: 2, challenge: "word", optionCount: 4 });
+    expect(getLetterRescueDifficulty(4, 4)).toMatchObject({ level: 3, challenge: "sound", optionCount: 4 });
+    expect(getLetterRescueDifficulty(6, 6)).toMatchObject({ level: 4, challenge: "word", optionCount: 5 });
+    expect(getLetterRescueDifficulty(6, 7).challenge).toBe("sound");
+    expect(getLetterRescueDifficulty(6, 8).challenge).toBe("match");
+  });
+
+  it("raises a clean streak and eases down after misses", () => {
+    expect(nextLetterRescueStreak(3, 0)).toBe(4);
+    expect(nextLetterRescueStreak(3, 1)).toBe(1);
+    expect(nextLetterRescueStreak(1, 2)).toBe(0);
   });
 });
 
