@@ -1642,6 +1642,14 @@ html, body {
   width: 860px; display: grid; grid-template-columns: repeat(3, 190px);
   justify-content: space-between; align-items: center;
 }
+.rescue-options[data-option-count="4"] {
+  width: 920px;
+  grid-template-columns: repeat(4, 160px);
+}
+.rescue-options[data-option-count="5"] {
+  width: 980px;
+  grid-template-columns: repeat(5, 138px);
+}
 .rescue-letter-button {
   width: 190px; height: 190px; border-radius: 50%;
   border: 5px solid rgba(255,255,255,0.82); cursor: pointer;
@@ -1654,6 +1662,12 @@ html, body {
     inset 0 0 30px rgba(255,255,255,0.26);
   backdrop-filter: blur(1px); touch-action: manipulation;
   transition: transform 0.14s ease, opacity 0.18s ease, background 0.18s ease;
+}
+.rescue-options[data-option-count="4"] .rescue-letter-button {
+  width: 160px; height: 160px; font-size: 94px;
+}
+.rescue-options[data-option-count="5"] .rescue-letter-button {
+  width: 138px; height: 138px; font-size: 80px;
 }
 .rescue-letter-button:hover { transform: scale(1.06); background: rgba(255,255,255,0.25); }
 .rescue-letter-button:active { transform: scale(0.94); }

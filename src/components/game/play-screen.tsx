@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
+import { findAnimalGuessIndex } from "@/lib/animal-guess";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { BubbleBackground } from "./ocean-stage";
@@ -146,7 +147,7 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
     };
   }, []);
 
-  const onTile = (i: number) => {
+  const onTile = useCallback((i: number) => {
     if (feedback) return;
     const tile = round.tiles[i];
     const correct = tile.word === round.target.word;
@@ -183,7 +184,19 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       feedbackTimer.current = setTimeout(() => setFeedback(null), 700);
     }
-  };
+  }, [feedback, playAnimalSound, round, speakPrompt, streak]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || feedback) return;
+      const index = findAnimalGuessIndex(event.key, round.tiles);
+      if (index < 0) return;
+      event.preventDefault();
+      onTile(index);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [feedback, onTile, round.tiles]);
 
   const overlay = `radial-gradient(circle at 50% 10%, ${round.target.color}55 0%, transparent 32%), linear-gradient(180deg, ${round.target.color}33 0%, #0495d9 48%, #005580 100%)`;
 

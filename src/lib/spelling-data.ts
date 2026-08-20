@@ -72,7 +72,7 @@ export interface Slot {
 
 export interface BankTile {
   letter: string;
-  /** Index into the round's letters this tile fills. */
+  /** Source index for stable identity only; equal-letter tiles are interchangeable. */
   slot: number;
   /** Stable id so identical letters render as distinct tiles. */
   id: number;
@@ -85,7 +85,16 @@ export interface SpellingRound {
   /** Upper-case tappable letters, in order (gaps excluded). */
   letters: string[];
   bank: BankTile[];
+  difficulty: SpellingDifficulty;
   key: number;
+}
+
+export interface SpellingDifficulty {
+  level: 1 | 2 | 3 | 4;
+  label: string;
+  minLetters: number;
+  maxLetters: number;
+  shuffleBank: boolean;
 }
 
 export function buildSpellingSlots(word: string) {
@@ -106,48 +115,77 @@ export function buildSpellingSlots(word: string) {
   };
 }
 
-export function spellingMaxLettersForStars(stars: number) {
-  if (stars < 3) return 3;
-  if (stars < 7) return 4;
-  if (stars < 11) return 6;
-  return Number.POSITIVE_INFINITY;
+export function getSpellingDifficulty(flawlessStreak: number): SpellingDifficulty {
+  if (flawlessStreak < 2) {
+    return { level: 1, label: "Warm Up", minLetters: 3, maxLetters: 3, shuffleBank: false };
+  }
+  if (flawlessStreak < 4) {
+    return { level: 2, label: "Letter Mix", minLetters: 4, maxLetters: 4, shuffleBank: true };
+  }
+  if (flawlessStreak < 6) {
+    return { level: 3, label: "Word Builder", minLetters: 5, maxLetters: 6, shuffleBank: true };
+  }
+  return {
+    level: 4,
+    label: "Super Speller",
+    minLetters: 7,
+    maxLetters: Number.POSITIVE_INFINITY,
+    shuffleBank: true,
+  };
+}
+
+export function nextSpellingStreak(current: number, mistakes: number) {
+  return mistakes === 0 ? current + 1 : Math.max(0, current - 1);
+}
+
+function shuffled<T>(items: readonly T[], random: () => number) {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapWith = Math.floor(random() * (index + 1));
+    [result[index], result[swapWith]] = [result[swapWith], result[index]];
+  }
+  return result;
 }
 
 /**
- * Pure round builder. Picks a word (never the previous one) and splits it into
- * ordered slots (spaces become non-tappable gaps). The bank holds exactly the
- * word's letters in reading order — no distractors, no shuffle — so a toddler
- * sees "C A T" under the slots, not a jumble, and matches left to right.
+ * Pure round builder. Recent words are excluded when the active pool is large
+ * enough, so a child sees variety instead of the same few cards. Beginner
+ * banks stay in reading order; later levels shuffle the same exact letters.
  */
 export function buildSpellingRound(
-  prev?: SpellingRound,
-  maxLetters = Number.POSITIVE_INFINITY
+  recentWords: readonly string[] = [],
+  difficulty: SpellingDifficulty = getSpellingDifficulty(0),
+  random: () => number = Math.random,
+  previousKey = 0
 ): SpellingRound {
   const eligible = spellingWords.filter(
-    (entry) => entry.word.replace(/[^A-Za-z]/g, "").length <= maxLetters
+    (entry) => {
+      const length = entry.word.replace(/[^A-Za-z]/g, "").length;
+      return length >= difficulty.minLetters && length <= difficulty.maxLetters;
+    }
   );
   const pool = eligible.length ? eligible : spellingWords;
-  let idx = Math.floor(Math.random() * pool.length);
-  if (prev && pool.length > 1) {
-    while (pool[idx].word === prev.word.word) {
-      idx = Math.floor(Math.random() * pool.length);
-    }
-  }
-  const word = pool[idx];
+  const historyWindow = Math.min(5, Math.max(0, pool.length - 1));
+  const excluded = new Set(recentWords.slice(-historyWindow));
+  const fresh = pool.filter((entry) => !excluded.has(entry.word));
+  const candidates = fresh.length ? fresh : pool;
+  const word = candidates[Math.floor(random() * candidates.length)];
 
   const { slots, letters } = buildSpellingSlots(word.word);
 
-  const bank: BankTile[] = letters.map((letter, slot) => ({
+  const orderedBank: BankTile[] = letters.map((letter, slot) => ({
     letter,
     slot,
     id: slot,
   }));
+  const bank = difficulty.shuffleBank ? shuffled(orderedBank, random) : orderedBank;
 
   return {
     word,
     slots,
     letters,
     bank,
-    key: (prev?.key ?? 0) + 1,
+    difficulty,
+    key: previousKey + 1,
   };
 }

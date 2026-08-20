@@ -16,6 +16,18 @@ interface LetterRescueStageProps {
   feedback: LetterRescueFeedback | null;
 }
 
+function bubbleLayout(index: number, count: number) {
+  // Match the CSS grid's visual centers through the perspective camera so the
+  // transparent toddler-sized buttons remain centered over every 3D bubble.
+  const spacing = count === 3 ? 5.05 : count === 4 ? 3.85 : 3.2;
+  const scale = count === 3 ? 1 : count === 4 ? 0.82 : 0.7;
+  return {
+    x: (index - (count - 1) / 2) * spacing,
+    y: -0.35,
+    scale,
+  };
+}
+
 function letterTexture(letter: string, color: string): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
@@ -94,9 +106,10 @@ export function LetterRescueStage({
       letter.material.map = letterTexture(option.letter, option.color);
       letter.material.needsUpdate = true;
 
-      group.position.set((index - 1) * 4.7, -0.35, 0);
+      const layout = bubbleLayout(index, options.length);
+      group.position.set(layout.x, layout.y, 0);
       group.rotation.set(0, 0, 0);
-      group.scale.setScalar(1);
+      group.scale.setScalar(layout.scale);
       group.userData.baseX = group.position.x;
       group.userData.baseY = group.position.y;
       group.userData.baseZ = group.position.z;
@@ -252,10 +265,13 @@ export function LetterRescueStage({
       );
       letter.position.z = 1.48;
       group.add(letter);
-      group.position.set((index - 1) * 4.7, -0.35, 0);
+      const layout = bubbleLayout(index, optionsRef.current.length);
+      group.position.set(layout.x, layout.y, 0);
+      group.scale.setScalar(layout.scale);
       group.userData.baseX = group.position.x;
       group.userData.baseY = group.position.y;
       group.userData.baseZ = group.position.z;
+      group.userData.baseScale = layout.scale;
       scene.add(group);
       return group;
     });
@@ -279,7 +295,7 @@ export function LetterRescueStage({
 
     const timer = new THREE.Timer();
     timer.connect(document);
-    const restingScale = new THREE.Vector3(1, 1, 1);
+    const restingScale = new THREE.Vector3();
     let frame = 0;
     let disposed = false;
     const animate = (timestamp: number) => {
@@ -297,6 +313,8 @@ export function LetterRescueStage({
         group.position.z = group.userData.baseZ as number;
         group.rotation.y = reducedMotion ? 0 : Math.sin(time * 0.7 + index) * 0.08;
         group.rotation.z = reducedMotion ? 0 : Math.sin(time * 0.9 + index) * 0.025;
+        const baseScale = group.userData.baseScale as number;
+        restingScale.setScalar(baseScale);
         group.scale.lerp(restingScale, reducedMotion ? 1 : 1 - Math.exp(-5 * delta));
 
         if (currentFeedback?.index === index) {
@@ -304,7 +322,7 @@ export function LetterRescueStage({
             const lift = Math.min(1, Math.max(0, feedbackElapsed / 1.5));
             group.position.y += lift * 4.2;
             group.position.z -= lift * 4.5;
-            group.scale.setScalar(1 + Math.sin(time * 8) * 0.07 + lift * 0.18);
+            group.scale.setScalar(baseScale * (1 + Math.sin(time * 8) * 0.07 + lift * 0.18));
           } else if (!currentFeedback.correct && !reducedMotion) {
             group.position.x = (group.userData.baseX as number) + Math.sin(feedbackElapsed * 18) * 0.18;
           }

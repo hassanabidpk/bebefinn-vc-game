@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   buildSpellingRound,
   buildSpellingSlots,
-  spellingMaxLettersForStars,
+  getSpellingDifficulty,
+  nextSpellingStreak,
   spellingWords,
-  type SpellingRound,
 } from "./spelling-data";
 
 describe("buildSpellingRound", () => {
   it("builds a bank of exactly the word's letters, in reading order", () => {
     for (let i = 0; i < 200; i += 1) {
-      const round = buildSpellingRound();
+      const round = buildSpellingRound([], getSpellingDifficulty(0));
       // One tile per letter, no distractors.
       expect(round.bank).toHaveLength(round.letters.length);
       // Bank order matches the word's letter order (C, A, T — not shuffled).
@@ -25,25 +25,41 @@ describe("buildSpellingRound", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("never repeats the previous word", () => {
-    let prev: SpellingRound = buildSpellingRound();
-    for (let i = 0; i < 200; i += 1) {
-      const next = buildSpellingRound(prev);
-      expect(next.word.word).not.toBe(prev.word.word);
-      prev = next;
+  it("does not repeat any of the five most recent words", () => {
+    const recent = ["Cat", "Dog", "Cow", "Pig", "Bee"];
+    for (let i = 0; i < 100; i += 1) {
+      const next = buildSpellingRound(recent, getSpellingDifficulty(0));
+      expect(recent).not.toContain(next.word.word);
     }
   });
 
-  it("starts with short words and unlocks longer words gradually", () => {
-    expect(spellingMaxLettersForStars(0)).toBe(3);
-    expect(spellingMaxLettersForStars(3)).toBe(4);
-    expect(spellingMaxLettersForStars(7)).toBe(6);
-    expect(spellingMaxLettersForStars(11)).toBe(Number.POSITIVE_INFINITY);
+  it("increases word length and shuffles after flawless rounds", () => {
+    expect(getSpellingDifficulty(0)).toMatchObject({ level: 1, minLetters: 3, maxLetters: 3, shuffleBank: false });
+    expect(getSpellingDifficulty(2)).toMatchObject({ level: 2, minLetters: 4, maxLetters: 4, shuffleBank: true });
+    expect(getSpellingDifficulty(4)).toMatchObject({ level: 3, minLetters: 5, maxLetters: 6, shuffleBank: true });
+    expect(getSpellingDifficulty(6)).toMatchObject({ level: 4, minLetters: 7, shuffleBank: true });
 
     for (let i = 0; i < 100; i += 1) {
-      const round = buildSpellingRound(undefined, spellingMaxLettersForStars(0));
-      expect(round.letters.length).toBeLessThanOrEqual(3);
+      const round = buildSpellingRound([], getSpellingDifficulty(4));
+      expect(round.letters.length).toBeGreaterThanOrEqual(5);
+      expect(round.letters.length).toBeLessThanOrEqual(6);
     }
+  });
+
+  it("raises a flawless streak and eases difficulty after a mistake", () => {
+    expect(nextSpellingStreak(2, 0)).toBe(3);
+    expect(nextSpellingStreak(2, 1)).toBe(1);
+    expect(nextSpellingStreak(0, 3)).toBe(0);
+  });
+
+  it("keeps beginner letters ordered and mixes advanced banks", () => {
+    const beginner = buildSpellingRound([], getSpellingDifficulty(0), () => 0);
+    expect(beginner.bank.map((tile) => tile.letter)).toEqual(beginner.letters);
+
+    const advanced = buildSpellingRound([], getSpellingDifficulty(2), () => 0);
+    expect(advanced.bank.map((tile) => tile.id)).not.toEqual(
+      advanced.letters.map((_, index) => index)
+    );
   });
 
   it("only draws from the configured word pool", () => {
