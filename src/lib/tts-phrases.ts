@@ -2,11 +2,15 @@ import { ANIMAL_INFO } from "./animal-info";
 import { alphabetData, getAlphabetEntriesWithVariants } from "./alphabet-data";
 import { spellingWords } from "./spelling-data";
 import { STICKER_ANIMALS } from "./sticker-animals";
+import { DANCE_MOVES } from "./dance-cues";
 import {
   getRescuePromptPhrase,
   getRescueRetryPhrase,
   getRescueSuccessPhrase,
   getStickerPhrase,
+  getDanceMovePhrase,
+  getDancePartnerPhrase,
+  DANCE_COMPLETE_PHRASE,
   RESCUE_COMPLETE_PHRASE,
   type LetterRescueChallenge,
 } from "./game-speech";
@@ -82,6 +86,11 @@ add(RESCUE_COMPLETE_PHRASE);
 for (const animal of STICKER_ANIMALS) add(getStickerPhrase(animal.word));
 for (const { word } of spellingWords) add(getStickerPhrase(word));
 
+// ABC Dance Party: end-of-song praise, the dance partner line and the move stickers.
+add(DANCE_COMPLETE_PHRASE);
+for (const animal of STICKER_ANIMALS) add(getDancePartnerPhrase(animal.word));
+for (const move of DANCE_MOVES) add(getDanceMovePhrase(move.label));
+
 export function isAllowedTtsPhrase(text: string) {
   return allowedPhrases.has(text);
 }
@@ -118,6 +127,9 @@ for (const { word } of spellingWords) {
 coreGamePhrases.add("Almost! Try again.");
 coreGamePhrases.add("Wonderful spelling!");
 coreGamePhrases.add(NOTEPAD_TAP_REMINDER);
+coreGamePhrases.add(DANCE_COMPLETE_PHRASE);
+for (const animal of STICKER_ANIMALS) coreGamePhrases.add(getDancePartnerPhrase(animal.word));
+for (const move of DANCE_MOVES) coreGamePhrases.add(getDanceMovePhrase(move.label));
 
 export function getCoreGameTtsPhrases() {
   return [...coreGamePhrases];

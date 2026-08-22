@@ -28,3 +28,15 @@ export const RESCUE_COMPLETE_PHRASE = "Amazing! Your letter reef is complete!";
 export function getStickerPhrase(word: string) {
   return `${word}!`;
 }
+
+export const DANCE_COMPLETE_PHRASE = "Amazing dancing!";
+
+/** Spoken after the song by the animal friend who danced along. */
+export function getDancePartnerPhrase(word: string) {
+  return `${word} loved your dance!`;
+}
+
+/** Spoken when a child taps a dance move sticker. */
+export function getDanceMovePhrase(label: string) {
+  return `${label}!`;
+}

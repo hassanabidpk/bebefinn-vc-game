@@ -5,10 +5,14 @@ import {
   getRescueRetryPhrase,
   getRescueSuccessPhrase,
   getStickerPhrase,
+  getDanceMovePhrase,
+  getDancePartnerPhrase,
+  DANCE_COMPLETE_PHRASE,
   RESCUE_COMPLETE_PHRASE,
   type LetterRescueChallenge,
 } from "./game-speech";
 import { STICKER_ANIMALS } from "./sticker-animals";
+import { DANCE_MOVES } from "./dance-cues";
 import { spellingWords } from "./spelling-data";
 import {
   getAllowedTtsPhraseCount,
@@ -80,6 +84,15 @@ describe("TTS phrase allowlist", () => {
     expect(stickerWords.length).toBeGreaterThan(0);
     for (const word of stickerWords) {
       expect(isAllowedTtsPhrase(getStickerPhrase(word))).toBe(true);
+    }
+  });
+  it("accepts every ABC Dance Party phrase", () => {
+    expect(isAllowedTtsPhrase(DANCE_COMPLETE_PHRASE)).toBe(true);
+    for (const animal of STICKER_ANIMALS) {
+      expect(isAllowedTtsPhrase(getDancePartnerPhrase(animal.word)), animal.word).toBe(true);
+    }
+    for (const move of DANCE_MOVES) {
+      expect(isAllowedTtsPhrase(getDanceMovePhrase(move.label)), move.id).toBe(true);
     }
   });
 });

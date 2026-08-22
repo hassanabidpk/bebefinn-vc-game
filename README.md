@@ -17,6 +17,7 @@ A bright, toddler-friendly **alphabet, numbers, colors, and animals** game built
 - **Bilingual flip card** — tap the `i` pip to flip the lesson card and hear the word + a short fact in English and 中文 (with pinyin).
 - **Real CC0 animal sounds** — natural recordings sourced from Wikimedia Commons play alongside the photo so kids hear what each animal actually sounds like.
 - **Cheerful generated music** — looping background track and interaction SFX synthesized via the Web Audio API.
+- **ABC Dance Party** — an original alphabet dance song composed and sung by **Lyria 3 Pro**; kids tap Clap / Jump / Spin / Wiggle on cue while the sung letters light up and an animal friend dances along.
 - **Suspense → reveal flow** — each lesson plays a short anticipation cue before revealing the answer.
 - **Toddler-grade UI** — large rounded buttons (≥64 px touch targets), no text inputs, no external links, no in-app purchases, no data collection.
 - **Keyboard shortcuts** — `A–Z` jump to a letter, `1–9` to numbers, `0` to ten, `←` / `→` to navigate, `Space` to replay, `Esc` to exit.
@@ -100,6 +101,7 @@ Original art and audio for this project are produced with Google's generative AI
 | Realistic animal photos | **Imagen 4.0** + **Nano Banana 2** | `public/animals/*.png`, `*.jpeg` |
 | Short animal video clips | **Veo 3.1** | `public/assets/videos/*.mp4` |
 | Lesson narration (en + zh) | **Gemini Flash 3.1 TTS** (`gemini-3.1-flash-tts-preview`) | Pre-generated to `public/tts/*.wav` by `scripts/generate-tts.ts`; runtime fallback via `/api/tts` |
+| ABC dance song (vocals + music) | **Lyria 3 Pro** (`lyria-3-pro-preview`) | `public/music/abc-dance.mp3` + lyric timestamps in `src/lib/dance-song.ts`, by `scripts/generate-music.ts` (manual, paid) |
 
 The TTS pipeline runs as a `prebuild` step on Vercel — set `GEMINI_API_KEY` in your project env vars and the build will only generate the WAVs missing from the repo. Existing files are skipped, so deploys stay fast.
 
@@ -209,7 +211,7 @@ vercel --prod
 - [ ] Parent gate for settings / exit
 - [ ] Korean (primary) + English bilingual i18n
 - [ ] PWA / offline support so kids can play without Wi-Fi
-- [ ] More mini-games: Ocean Adventure, Music & Dance, Puzzle Time, Coloring Book, Memory Match
+- [ ] More mini-games: Ocean Adventure, Puzzle Time, Coloring Book, Memory Match
 - [ ] Keep character art original or use properly licensed custom assets
 - [ ] Lottie or GLTF realistic animal animations (currently stylized procedural Three.js rigs)
 

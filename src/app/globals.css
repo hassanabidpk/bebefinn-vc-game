@@ -1647,3 +1647,196 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .home-stickers-btn, .sticker-card, .sticker-letter { transition: none; }
 }
+
+/* ---- ABC DANCE PARTY ---- */
+.home-chip-dance {
+  color: #5a1d3f;
+  background: linear-gradient(135deg, #ffd6e8, #ff9fc4);
+  box-shadow: 0 6px 18px rgba(120,0,60,0.22), inset 0 0 0 2px rgba(255,255,255,0.65);
+}
+.home-chip-dance:hover { background: linear-gradient(135deg, #ffe6f1, #ffb3d1); }
+
+.dance-screen {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  padding: 16px 20px 16px;
+  background: linear-gradient(180deg, #ff8fb8 0%, #b86bff 38%, #0aa3e0 72%, #005580 100%);
+  overflow: hidden; isolation: isolate;
+}
+.dance-header {
+  position: relative; z-index: 20;
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 12px;
+}
+.dance-stage {
+  position: relative; z-index: 20; flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 10px;
+}
+.dance-cue {
+  min-height: 150px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center;
+}
+.dance-letters { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.dance-letter {
+  width: 58px; height: 58px; display: flex; align-items: center; justify-content: center;
+  border-radius: 16px; background: rgba(255,255,255,0.3); color: #fff;
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 30px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.dance-letter.sung { background: rgba(255,255,255,0.55); color: #6b2d8f; }
+.dance-letter.lit {
+  background: var(--sunny, #ffd93d); color: #6b4d00; transform: scale(1.28) rotate(-4deg);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+.dance-lyric {
+  max-width: 640px; padding: 6px 20px;
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 28px; line-height: 1.2;
+  color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.22);
+}
+.dance-cue-move {
+  display: flex; align-items: center; gap: 12px; padding: 8px 24px;
+  border-radius: 999px; background: rgba(255,255,255,0.92); color: #5a1d3f;
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 30px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.22);
+  animation: dance-cue-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.dance-cue-move.hit { background: var(--sunny, #ffd93d); color: #6b4d00; }
+.dance-cue-emoji { font-size: 40px; line-height: 1; }
+.dance-cue-star { font-size: 30px; animation: dance-star-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes dance-cue-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes dance-star-pop { from { transform: scale(0) rotate(-90deg); } to { transform: scale(1) rotate(0); } }
+
+.dance-floor {
+  position: relative; display: flex; align-items: flex-end; justify-content: center; gap: 18px;
+  width: 100%; min-height: 250px;
+}
+.dance-mascot {
+  width: 240px; height: 240px; padding: 0; border: none; background: none; cursor: pointer;
+  animation: mascot-idle 2.5s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+.dance-mascot img { width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; }
+.dance-mascot[data-move="clap"] { animation: dance-clap 0.6s ease-in-out 2; }
+.dance-mascot[data-move="jump"] { animation: dance-jump 0.55s cubic-bezier(0.3, 0, 0.2, 1) 2; }
+.dance-mascot[data-move="spin"] { animation: dance-spin 0.9s ease-in-out 1; }
+.dance-mascot[data-move="wiggle"] { animation: dance-wiggle 0.2s ease-in-out 6; }
+@keyframes dance-clap {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.16, 0.9); }
+}
+@keyframes dance-jump {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-70px) scale(0.96, 1.06); }
+  60% { transform: translateY(-50px); }
+}
+@keyframes dance-spin {
+  from { transform: rotateY(0); }
+  to { transform: rotateY(360deg); }
+}
+@keyframes dance-wiggle {
+  0%, 100% { transform: rotate(-9deg); }
+  50% { transform: rotate(9deg); }
+}
+.dance-partner {
+  position: absolute; right: max(6%, 24px); bottom: 12px;
+  width: 112px; height: 112px; border-radius: 28px; overflow: hidden;
+  border: 5px solid #fff; background: #fff;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+  animation: dance-partner-idle 2.5s ease-in-out infinite;
+}
+.dance-partner img { width: 100%; height: 100%; object-fit: cover; }
+.dance-partner.dancing { animation: dance-partner-bounce 0.5s ease-in-out infinite; }
+@keyframes dance-partner-idle { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-8px) rotate(3deg); } }
+@keyframes dance-partner-bounce { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-26px) rotate(8deg); } }
+
+.dance-play-btn {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 150px; height: 150px; border-radius: 50%; border: 8px solid #fff;
+  background: var(--sunny, #ffd93d); color: #6b4d00; cursor: pointer;
+  font-size: 68px; line-height: 1; padding-left: 14px;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.3);
+  animation: dance-play-pulse 1.4s ease-in-out infinite;
+}
+.dance-play-btn:active { transform: translate(-50%, -50%) scale(0.92); }
+.dance-play-btn:focus-visible { outline: 6px solid #fff; outline-offset: 4px; }
+@keyframes dance-play-pulse { 0%, 100% { box-shadow: 0 14px 32px rgba(0,0,0,0.3); } 50% { box-shadow: 0 14px 32px rgba(0,0,0,0.3), 0 0 0 18px rgba(255,255,255,0.25); } }
+
+.dance-error {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 14px; font-size: 64px;
+}
+.dance-error button {
+  width: 110px; height: 110px; border-radius: 50%; border: 6px solid #fff;
+  background: #fff; font-size: 50px; cursor: pointer; box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+}
+
+.dance-done {
+  position: absolute; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 40, 80, 0.35);
+}
+.dance-done-card {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 26px 36px; border-radius: 32px; background: #fff;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.35);
+  animation: dance-cue-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.dance-done-card img { width: 150px; height: 150px; object-fit: cover; border-radius: 28px; }
+.dance-done-card strong {
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 34px; color: #5a1d3f;
+}
+.dance-done-stars { font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 30px; color: #b37400; }
+.dance-done-actions { display: flex; gap: 18px; }
+.dance-done-actions button {
+  width: 96px; height: 96px; border-radius: 50%; border: none; cursor: pointer;
+  font-size: 44px; background: var(--sunny, #ffd93d);
+  box-shadow: 0 8px 0 #c9a400;
+}
+.dance-done-actions button:active { transform: translateY(5px); box-shadow: 0 3px 0 #c9a400; }
+
+.dance-moves {
+  position: relative; z-index: 20;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  width: 100%; max-width: 760px; margin: 6px auto 0;
+}
+.dance-move-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 96px; border-radius: 28px; border: 5px solid rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.92); color: #5a1d3f; cursor: pointer;
+  font-family: 'Fredoka', sans-serif; font-weight: 800;
+  box-shadow: 0 8px 0 rgba(90,29,63,0.35);
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+.dance-move-btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(90,29,63,0.35); }
+.dance-move-btn:focus-visible { outline: 6px solid #fff; outline-offset: 3px; }
+.dance-move-btn:disabled { opacity: 0.5; cursor: default; }
+.dance-move-btn.cued {
+  background: var(--sunny, #ffd93d); border-color: #fff;
+  animation: dance-cued 0.5s ease-in-out infinite alternate;
+}
+@keyframes dance-cued { from { transform: scale(1); } to { transform: scale(1.07); } }
+.dance-move-emoji { font-size: 44px; line-height: 1; }
+.dance-move-label { font-size: 20px; }
+
+.sticker-card-emoji { font-size: 60px; line-height: 1; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; }
+.sticker-card.locked .sticker-card-emoji { filter: grayscale(1); opacity: 0.4; }
+
+@media (max-width: 720px) {
+  .dance-letter { width: 44px; height: 44px; font-size: 24px; border-radius: 12px; }
+  .dance-lyric { font-size: 22px; }
+  .dance-cue-move { font-size: 24px; padding: 6px 18px; }
+  .dance-cue-emoji { font-size: 32px; }
+  .dance-mascot { width: 180px; height: 180px; }
+  .dance-floor { min-height: 190px; }
+  .dance-partner { width: 84px; height: 84px; }
+  .dance-move-btn { min-height: 82px; }
+  .dance-move-emoji { font-size: 34px; }
+  .dance-move-label { font-size: 16px; }
+  .dance-play-btn { width: 120px; height: 120px; font-size: 54px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dance-mascot, .dance-partner, .dance-play-btn, .dance-move-btn.cued, .dance-cue-move, .dance-cue-star, .dance-done-card { animation: none; }
+  .dance-letter, .dance-move-btn { transition: none; }
+}

@@ -13,14 +13,16 @@ export interface StickerProgress {
   rescueLetters: string[];
   /** Words completed in the Spelling game. */
   spellWords: string[];
+  /** Moves tapped on cue in ABC Dance Party. */
+  danceMoves: string[];
 }
 
-export type StickerKind = "rideAnimals" | "rescueLetters" | "spellWords";
+export type StickerKind = "rideAnimals" | "rescueLetters" | "spellWords" | "danceMoves";
 
 const STORAGE_KEY = "ocean-buddy-progress-v1";
 
 export function emptyProgress(): StickerProgress {
-  return { version: 1, rideAnimals: [], rescueLetters: [], spellWords: [] };
+  return { version: 1, rideAnimals: [], rescueLetters: [], spellWords: [], danceMoves: [] };
 }
 
 /** Add one sticker, keeping insertion order and ignoring duplicates. */
@@ -34,7 +36,12 @@ export function withSticker(
 }
 
 export function countStickers(progress: StickerProgress): number {
-  return progress.rideAnimals.length + progress.rescueLetters.length + progress.spellWords.length;
+  return (
+    progress.rideAnimals.length +
+    progress.rescueLetters.length +
+    progress.spellWords.length +
+    progress.danceMoves.length
+  );
 }
 
 /** Parse a stored payload defensively — anything unexpected resets clean. */
@@ -50,6 +57,7 @@ export function parseProgress(raw: string | null): StickerProgress {
       rideAnimals: list(data.rideAnimals),
       rescueLetters: list(data.rescueLetters),
       spellWords: list(data.spellWords),
+      danceMoves: list(data.danceMoves),
     };
   } catch {
     return emptyProgress();
