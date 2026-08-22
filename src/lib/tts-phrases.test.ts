@@ -1,19 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { alphabetData } from "./alphabet-data";
-import { ANIMAL_INFO } from "./animal-info";
 import {
   getRescuePromptPhrase,
   getRescueRetryPhrase,
   getRescueSuccessPhrase,
-  getRideCompletePhrase,
-  getRideEncounterPhrase,
-  getRideModePhrase,
-  getRidePhotoPhrase,
   getStickerPhrase,
   RESCUE_COMPLETE_PHRASE,
   type LetterRescueChallenge,
 } from "./game-speech";
-import { RIDE_CONFIGS } from "./ride-data";
+import { STICKER_ANIMALS } from "./sticker-animals";
 import { spellingWords } from "./spelling-data";
 import {
   getAllowedTtsPhraseCount,
@@ -77,29 +72,9 @@ describe("TTS phrase allowlist", () => {
     );
   });
 
-  it("accepts every generated Safari Ride and Ocean Dive narration phrase", () => {
-    for (const config of Object.values(RIDE_CONFIGS)) {
-      expect(isAllowedTtsPhrase(getRideCompletePhrase(config.id)), `${config.id} completion`).toBe(true);
-
-      for (const animal of config.animals) {
-        const fact = ANIMAL_INFO[animal.word]?.en ?? "";
-        expect(
-          isAllowedTtsPhrase(getRideEncounterPhrase(animal.word, fact)),
-          `${config.id} ${animal.word} encounter`
-        ).toBe(true);
-        expect(
-          isAllowedTtsPhrase(getRidePhotoPhrase(animal.word)),
-          `${config.id} ${animal.word} photo`
-        ).toBe(true);
-      }
-    }
-
-    expect(isAllowedTtsPhrase(getRideModePhrase("auto"))).toBe(true);
-    expect(isAllowedTtsPhrase(getRideModePhrase("drive"))).toBe(true);
-  });
   it("accepts every sticker book name so none fall back to the device voice", () => {
     const stickerWords = [
-      ...Object.values(RIDE_CONFIGS).flatMap((config) => config.animals.map((animal) => animal.word)),
+      ...STICKER_ANIMALS.map((animal) => animal.word),
       ...spellingWords.map((entry) => entry.word),
     ];
     expect(stickerWords.length).toBeGreaterThan(0);

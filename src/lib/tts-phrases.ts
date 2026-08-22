@@ -1,15 +1,11 @@
 import { ANIMAL_INFO } from "./animal-info";
 import { alphabetData, getAlphabetEntriesWithVariants } from "./alphabet-data";
 import { spellingWords } from "./spelling-data";
-import { RIDE_CONFIGS } from "./ride-data";
+import { STICKER_ANIMALS } from "./sticker-animals";
 import {
   getRescuePromptPhrase,
   getRescueRetryPhrase,
   getRescueSuccessPhrase,
-  getRideCompletePhrase,
-  getRideEncounterPhrase,
-  getRideModePhrase,
-  getRidePhotoPhrase,
   getStickerPhrase,
   RESCUE_COMPLETE_PHRASE,
   type LetterRescueChallenge,
@@ -80,21 +76,10 @@ for (const entry of alphabetData.filter((item) => /^[A-Z]$/.test(item.letter))) 
 }
 add(RESCUE_COMPLETE_PHRASE);
 
-for (const config of Object.values(RIDE_CONFIGS)) {
-  add(getRideCompletePhrase(config.id));
-  for (const animal of config.animals) {
-    const fact = ANIMAL_INFO[animal.word]?.en ?? "";
-    add(getRideEncounterPhrase(animal.word, fact), getRidePhotoPhrase(animal.word));
-  }
-}
-add(getRideModePhrase("auto"), getRideModePhrase("drive"));
-
 // Sticker book: tapping any earned sticker says its name. Without these the
 // TTS route rejects the phrase and the child hears the robotic device voice
 // instead of the game voice.
-for (const config of Object.values(RIDE_CONFIGS)) {
-  for (const animal of config.animals) add(getStickerPhrase(animal.word));
-}
+for (const animal of STICKER_ANIMALS) add(getStickerPhrase(animal.word));
 for (const { word } of spellingWords) add(getStickerPhrase(word));
 
 export function isAllowedTtsPhrase(text: string) {

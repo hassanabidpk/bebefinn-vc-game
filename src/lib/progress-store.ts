@@ -7,7 +7,7 @@
 
 export interface StickerProgress {
   version: 1;
-  /** Animal words met in Safari Ride / Ocean Dive. */
+  /** Animal friends collected (dance partners; formerly ride encounters). */
   rideAnimals: string[];
   /** Letters rescued in Ocean Letter Rescue. */
   rescueLetters: string[];

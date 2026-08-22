@@ -10,9 +10,7 @@ import { ListenScreen } from "@/components/game/listen-screen";
 import { PlayScreen } from "@/components/game/play-screen";
 import { NotepadScreen } from "@/components/game/notepad-screen";
 import { SpellingScreen } from "@/components/game/spelling-screen";
-import { RideScreen } from "@/components/game/ride-screen";
 import { LetterRescueScreen } from "@/components/game/letter-rescue-screen";
-import type { RideWorldId } from "@/lib/ride-data";
 import { StickerBookScreen } from "@/components/game/sticker-book-screen";
 
 type Screen =
@@ -23,8 +21,6 @@ type Screen =
   | "notepad"
   | "spelling"
   | "rescue"
-  | "safari"
-  | "ocean"
   | "stickers";
 
 interface Route {
@@ -81,12 +77,6 @@ export default function Home() {
     // No background music — letter chant needs to be clearly heard.
     setRoute({ screen: "spelling", index: 0 });
   };
-  const goRide = (world: RideWorldId) => {
-    playStart();
-    warmUp();
-    // No background music — animal announcements need to be clearly heard.
-    setRoute({ screen: world, index: 0 });
-  };
   const goStickers = () => {
     playStart();
     warmUp();
@@ -101,14 +91,13 @@ export default function Home() {
   };
 
   const onMode = (
-    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue" | "safari" | "ocean"
+    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue"
   ) => {
     if (mode === "lesson") goLesson(0);
     else if (mode === "listen") goListen();
     else if (mode === "play") goPlay();
     else if (mode === "spelling") goSpelling();
     else if (mode === "rescue") goRescue();
-    else if (mode === "safari" || mode === "ocean") goRide(mode);
     else goNotepad();
   };
 
@@ -137,12 +126,6 @@ export default function Home() {
       {route.screen === "spelling" ? <SpellingScreen onHome={goHome} /> : null}
       {route.screen === "rescue" ? <LetterRescueScreen onHome={goHome} /> : null}
       {route.screen === "stickers" ? <StickerBookScreen onHome={goHome} /> : null}
-      {route.screen === "safari" ? (
-        <RideScreen worldId="safari" onHome={goHome} />
-      ) : null}
-      {route.screen === "ocean" ? (
-        <RideScreen worldId="ocean" onHome={goHome} />
-      ) : null}
     </IpadShell>
   );
 }

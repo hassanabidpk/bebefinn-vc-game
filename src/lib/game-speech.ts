@@ -24,23 +24,7 @@ export function getRescueSuccessPhrase(letter: string, spokenWord: string) {
 
 export const RESCUE_COMPLETE_PHRASE = "Amazing! Your letter reef is complete!";
 
-export function getRideEncounterPhrase(word: string, fact: string) {
-  return `Look! It's ${article(word)} ${word}!${fact ? ` ${fact}` : ""}`;
-}
-
-export function getRidePhotoPhrase(word: string) {
-  return `Great photo of the ${word}!`;
-}
-
-export function getRideCompletePhrase(world: "safari" | "ocean") {
-  return `Amazing! You saw all the ${world} animals!`;
-}
-
 /** Spoken when a child taps a sticker in the sticker book. */
 export function getStickerPhrase(word: string) {
   return `${word}!`;
-}
-
-export function getRideModePhrase(mode: "auto" | "drive") {
-  return mode === "auto" ? "I will drive! Enjoy the ride!" : "You drive! Use the arrows!";
 }

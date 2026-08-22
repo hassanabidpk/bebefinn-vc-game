@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RIDE_CONFIGS } from "@/lib/ride-data";
 import { spellingWords } from "@/lib/spelling-data";
 import { getStandaloneLetterSpeech } from "@/lib/tts-phrases";
 import { getStickerPhrase } from "@/lib/game-speech";
@@ -12,7 +11,7 @@ import { AnimalPhoto } from "./animal-photo";
 import { BubbleBackground } from "./ocean-stage";
 
 const ALPHABET = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
-const RIDE_ANIMALS = [...RIDE_CONFIGS.safari.animals, ...RIDE_CONFIGS.ocean.animals];
+import { STICKER_ANIMALS } from "@/lib/sticker-animals";
 
 interface StickerBookScreenProps {
   onHome: () => void;
@@ -29,7 +28,7 @@ export function StickerBookScreen({ onHome }: StickerBookScreenProps) {
   const { playAnimalSound, playTap } = useGameAudio();
 
   const total = countStickers(progress);
-  const possible = RIDE_ANIMALS.length + ALPHABET.length + spellingWords.length;
+  const possible = STICKER_ANIMALS.length + ALPHABET.length + spellingWords.length;
 
   const tapAnimal = (word: string, soundKey?: string) => {
     playTap();
@@ -55,7 +54,7 @@ export function StickerBookScreen({ onHome }: StickerBookScreenProps) {
         <section className="sticker-shelf">
           <h2 className="sticker-shelf-title">🐾 Animal friends</h2>
           <div className="sticker-grid sticker-grid-animals">
-            {RIDE_ANIMALS.map((animal) => {
+            {STICKER_ANIMALS.map((animal) => {
               const earned = progress.rideAnimals.includes(animal.word);
               return (
                 <button
