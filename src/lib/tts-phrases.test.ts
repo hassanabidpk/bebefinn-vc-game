@@ -1,19 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { alphabetData } from "./alphabet-data";
-import { ANIMAL_INFO } from "./animal-info";
 import {
   getRescuePromptPhrase,
   getRescueRetryPhrase,
   getRescueSuccessPhrase,
-  getRideCompletePhrase,
-  getRideEncounterPhrase,
-  getRideModePhrase,
-  getRidePhotoPhrase,
   getStickerPhrase,
+  getDanceMovePhrase,
+  getDancePartnerPhrase,
+  DANCE_COMPLETE_PHRASE,
   RESCUE_COMPLETE_PHRASE,
   type LetterRescueChallenge,
 } from "./game-speech";
-import { RIDE_CONFIGS } from "./ride-data";
+import { STICKER_ANIMALS } from "./sticker-animals";
+import { DANCE_MOVES } from "./dance-cues";
 import { spellingWords } from "./spelling-data";
 import {
   getAllowedTtsPhraseCount,
@@ -77,34 +76,23 @@ describe("TTS phrase allowlist", () => {
     );
   });
 
-  it("accepts every generated Safari Ride and Ocean Dive narration phrase", () => {
-    for (const config of Object.values(RIDE_CONFIGS)) {
-      expect(isAllowedTtsPhrase(getRideCompletePhrase(config.id)), `${config.id} completion`).toBe(true);
-
-      for (const animal of config.animals) {
-        const fact = ANIMAL_INFO[animal.word]?.en ?? "";
-        expect(
-          isAllowedTtsPhrase(getRideEncounterPhrase(animal.word, fact)),
-          `${config.id} ${animal.word} encounter`
-        ).toBe(true);
-        expect(
-          isAllowedTtsPhrase(getRidePhotoPhrase(animal.word)),
-          `${config.id} ${animal.word} photo`
-        ).toBe(true);
-      }
-    }
-
-    expect(isAllowedTtsPhrase(getRideModePhrase("auto"))).toBe(true);
-    expect(isAllowedTtsPhrase(getRideModePhrase("drive"))).toBe(true);
-  });
   it("accepts every sticker book name so none fall back to the device voice", () => {
     const stickerWords = [
-      ...Object.values(RIDE_CONFIGS).flatMap((config) => config.animals.map((animal) => animal.word)),
+      ...STICKER_ANIMALS.map((animal) => animal.word),
       ...spellingWords.map((entry) => entry.word),
     ];
     expect(stickerWords.length).toBeGreaterThan(0);
     for (const word of stickerWords) {
       expect(isAllowedTtsPhrase(getStickerPhrase(word))).toBe(true);
+    }
+  });
+  it("accepts every ABC Dance Party phrase", () => {
+    expect(isAllowedTtsPhrase(DANCE_COMPLETE_PHRASE)).toBe(true);
+    for (const animal of STICKER_ANIMALS) {
+      expect(isAllowedTtsPhrase(getDancePartnerPhrase(animal.word)), animal.word).toBe(true);
+    }
+    for (const move of DANCE_MOVES) {
+      expect(isAllowedTtsPhrase(getDanceMovePhrase(move.label)), move.id).toBe(true);
     }
   });
 });

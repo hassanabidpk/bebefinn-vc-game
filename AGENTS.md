@@ -15,7 +15,7 @@ A fun, educational, and interactive game for young children (ages 2-6) featuring
 - **Framework**: Next.js (React) with TypeScript
 - **Styling**: Tailwind CSS v4
 - **3D / Game Rendering**: Three.js for animated animal stages; HTML/CSS for the main alphabet UI
-- **Audio**: Web Audio API for generated background music, interaction sounds, alphabet calls, and animal sounds
+- **Audio**: Web Audio API for generated background music, interaction sounds, alphabet calls, and animal sounds; the ABC Dance Party song is a static MP3 generated once with Google Lyria 3 Pro (`scripts/generate-music.ts`)
 - **Speech**: Browser speech synthesis through `src/hooks/use-speech.ts`
 - **Animation**: Framer Motion for UI transitions; Three.js `requestAnimationFrame` loops for animal scenes
 - **State Management**: Local React state for the current game flow
@@ -88,13 +88,11 @@ ocean-buddy-alphabet-game/
 
 1. **Learn & Play** — Alphabet, numbers, colors, shapes with Ocean Buddy
 2. **Ocean Adventure** — Tap-to-swim exploration collecting items
-3. **Music & Dance** — Rhythm/music game with original songs
+3. **ABC Dance Party** — Tap-along dance game to an original Lyria 3 Pro alphabet song (`src/components/game/dance-screen.tsx`, cues in `src/lib/dance-cues.ts`, song manifest in `src/lib/dance-song.ts`); every move tapped on cue earns a sticker and an animal friend joins as dance partner
 4. **Puzzle Time** — Simple jigsaw and matching puzzles
 5. **Coloring Book** — Digital coloring with original characters
 6. **Memory Match** — Card-flipping memory game with sea creatures
-7. **Safari Ride** — Three.js jeep ride past savanna animals; Auto mode self-drives and announces each animal, Drive mode uses arrows (`src/components/game/ride-screen.tsx` + `src/lib/ride-*.ts`); animals are Poly by Google glb models (CC-BY 3.0, see `ATTRIBUTIONS.md`)
-8. **Ocean Dive** — Same ride engine underwater with a submarine and sea animals
-9. **Ocean Letter Rescue** — Bubble letter-match game with reef sticker progress (`src/components/game/letter-rescue-*.tsx` + `src/lib/letter-rescue-data.ts`)
+7. **Ocean Letter Rescue** — Bubble letter-match game with reef sticker progress (`src/components/game/letter-rescue-*.tsx` + `src/lib/letter-rescue-data.ts`)
 
 ## Coding Conventions
 
@@ -154,6 +152,7 @@ export function CharacterSprite({ character, animation, size = 128 }: CharacterS
 ```bash
 npm run dev          # Start development server
 npm run build        # Production build
+npm run music:generate  # Regenerate the ABC dance song with Lyria 3 Pro (manual, paid, skips if the MP3 exists)
 npx tsc --noEmit     # TypeScript check
 ```
 

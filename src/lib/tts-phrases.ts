@@ -1,16 +1,16 @@
 import { ANIMAL_INFO } from "./animal-info";
 import { alphabetData, getAlphabetEntriesWithVariants } from "./alphabet-data";
 import { spellingWords } from "./spelling-data";
-import { RIDE_CONFIGS } from "./ride-data";
+import { STICKER_ANIMALS } from "./sticker-animals";
+import { DANCE_MOVES } from "./dance-cues";
 import {
   getRescuePromptPhrase,
   getRescueRetryPhrase,
   getRescueSuccessPhrase,
-  getRideCompletePhrase,
-  getRideEncounterPhrase,
-  getRideModePhrase,
-  getRidePhotoPhrase,
   getStickerPhrase,
+  getDanceMovePhrase,
+  getDancePartnerPhrase,
+  DANCE_COMPLETE_PHRASE,
   RESCUE_COMPLETE_PHRASE,
   type LetterRescueChallenge,
 } from "./game-speech";
@@ -80,22 +80,16 @@ for (const entry of alphabetData.filter((item) => /^[A-Z]$/.test(item.letter))) 
 }
 add(RESCUE_COMPLETE_PHRASE);
 
-for (const config of Object.values(RIDE_CONFIGS)) {
-  add(getRideCompletePhrase(config.id));
-  for (const animal of config.animals) {
-    const fact = ANIMAL_INFO[animal.word]?.en ?? "";
-    add(getRideEncounterPhrase(animal.word, fact), getRidePhotoPhrase(animal.word));
-  }
-}
-add(getRideModePhrase("auto"), getRideModePhrase("drive"));
-
 // Sticker book: tapping any earned sticker says its name. Without these the
 // TTS route rejects the phrase and the child hears the robotic device voice
 // instead of the game voice.
-for (const config of Object.values(RIDE_CONFIGS)) {
-  for (const animal of config.animals) add(getStickerPhrase(animal.word));
-}
+for (const animal of STICKER_ANIMALS) add(getStickerPhrase(animal.word));
 for (const { word } of spellingWords) add(getStickerPhrase(word));
+
+// ABC Dance Party: end-of-song praise, the dance partner line and the move stickers.
+add(DANCE_COMPLETE_PHRASE);
+for (const animal of STICKER_ANIMALS) add(getDancePartnerPhrase(animal.word));
+for (const move of DANCE_MOVES) add(getDanceMovePhrase(move.label));
 
 export function isAllowedTtsPhrase(text: string) {
   return allowedPhrases.has(text);
@@ -133,6 +127,9 @@ for (const { word } of spellingWords) {
 coreGamePhrases.add("Almost! Try again.");
 coreGamePhrases.add("Wonderful spelling!");
 coreGamePhrases.add(NOTEPAD_TAP_REMINDER);
+coreGamePhrases.add(DANCE_COMPLETE_PHRASE);
+for (const animal of STICKER_ANIMALS) coreGamePhrases.add(getDancePartnerPhrase(animal.word));
+for (const move of DANCE_MOVES) coreGamePhrases.add(getDanceMovePhrase(move.label));
 
 export function getCoreGameTtsPhrases() {
   return [...coreGamePhrases];

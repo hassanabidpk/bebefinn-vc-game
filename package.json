@@ -10,6 +10,7 @@
     "tts:generate": "tsx scripts/generate-tts.ts",
     "videos:generate": "tsx scripts/generate-videos.ts",
     "videos:upload": "tsx scripts/upload-videos-blob.ts",
+    "music:generate": "tsx scripts/generate-music.ts",
     "prebuild": "npm run tts:generate",
     "build": "next build",
     "start": "next start",

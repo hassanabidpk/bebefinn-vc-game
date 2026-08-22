@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RIDE_CONFIGS } from "@/lib/ride-data";
 import { spellingWords } from "@/lib/spelling-data";
 import { getStandaloneLetterSpeech } from "@/lib/tts-phrases";
-import { getStickerPhrase } from "@/lib/game-speech";
+import { getDanceMovePhrase, getStickerPhrase } from "@/lib/game-speech";
+import { DANCE_MOVES } from "@/lib/dance-cues";
 import { countStickers, emptyProgress, loadProgress, type StickerProgress } from "@/lib/progress-store";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
@@ -12,7 +12,7 @@ import { AnimalPhoto } from "./animal-photo";
 import { BubbleBackground } from "./ocean-stage";
 
 const ALPHABET = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
-const RIDE_ANIMALS = [...RIDE_CONFIGS.safari.animals, ...RIDE_CONFIGS.ocean.animals];
+import { STICKER_ANIMALS } from "@/lib/sticker-animals";
 
 interface StickerBookScreenProps {
   onHome: () => void;
@@ -29,7 +29,7 @@ export function StickerBookScreen({ onHome }: StickerBookScreenProps) {
   const { playAnimalSound, playTap } = useGameAudio();
 
   const total = countStickers(progress);
-  const possible = RIDE_ANIMALS.length + ALPHABET.length + spellingWords.length;
+  const possible = STICKER_ANIMALS.length + ALPHABET.length + spellingWords.length + DANCE_MOVES.length;
 
   const tapAnimal = (word: string, soundKey?: string) => {
     playTap();
@@ -55,7 +55,7 @@ export function StickerBookScreen({ onHome }: StickerBookScreenProps) {
         <section className="sticker-shelf">
           <h2 className="sticker-shelf-title">🐾 Animal friends</h2>
           <div className="sticker-grid sticker-grid-animals">
-            {RIDE_ANIMALS.map((animal) => {
+            {STICKER_ANIMALS.map((animal) => {
               const earned = progress.rideAnimals.includes(animal.word);
               return (
                 <button
@@ -123,6 +123,31 @@ export function StickerBookScreen({ onHome }: StickerBookScreenProps) {
                   <span className="sticker-card-label" style={{ color: earned ? entry.color : undefined }}>
                     {earned ? entry.word : "?"}
                   </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="sticker-shelf">
+          <h2 className="sticker-shelf-title">🕺 Dance moves</h2>
+          <div className="sticker-grid sticker-grid-moves">
+            {DANCE_MOVES.map((move) => {
+              const earned = progress.danceMoves.includes(move.id);
+              return (
+                <button
+                  key={move.id}
+                  className={`sticker-card sticker-card-move ${earned ? "earned" : "locked"}`}
+                  onClick={() => {
+                    if (!earned) return;
+                    playTap();
+                    speak(getDanceMovePhrase(move.label));
+                  }}
+                  aria-label={earned ? move.label : "Locked sticker"}
+                  disabled={!earned}
+                >
+                  <span className="sticker-card-emoji">{move.emoji}</span>
+                  <span className="sticker-card-label">{earned ? move.label : "?"}</span>
                 </button>
               );
             })}

@@ -52,3 +52,22 @@ describe("parseProgress", () => {
     expect(parseProgress(sneaky).rideAnimals).toEqual(["Lion"]);
   });
 });
+
+describe("dance move stickers", () => {
+  it("stores dance moves and counts them", () => {
+    const progress = withSticker(withSticker(emptyProgress(), "danceMoves", "clap"), "danceMoves", "clap");
+    expect(progress.danceMoves).toEqual(["clap"]);
+    expect(countStickers(progress)).toBe(1);
+  });
+
+  it("reads payloads saved before dance moves existed", () => {
+    const legacy = JSON.stringify({ version: 1, rideAnimals: ["Lion"], rescueLetters: [], spellWords: [] });
+    expect(parseProgress(legacy)).toEqual({
+      version: 1,
+      rideAnimals: ["Lion"],
+      rescueLetters: [],
+      spellWords: [],
+      danceMoves: [],
+    });
+  });
+});
