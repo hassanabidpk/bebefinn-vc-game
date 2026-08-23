@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findAnimalGuessIndex } from "./animal-guess";
+import { findAnimalGuessIndex, pickAnimalTargetIndex } from "./animal-guess";
 
 const animals = [
   { letter: "E" },
@@ -21,5 +21,22 @@ describe("findAnimalGuessIndex", () => {
   it("ignores keys that do not represent a visible animal", () => {
     expect(findAnimalGuessIndex("ArrowLeft", animals)).toBe(-1);
     expect(findAnimalGuessIndex("q", animals)).toBe(-1);
+  });
+});
+
+describe("pickAnimalTargetIndex", () => {
+  const targets = "ABCDEFGH".split("").map((word) => ({ word }));
+
+  it("excludes the six most recent targets", () => {
+    expect(pickAnimalTargetIndex(targets, ["A", "B", "C", "D", "E", "F"], () => 0)).toBe(6);
+    expect(pickAnimalTargetIndex(targets, ["A", "B", "C", "D", "E", "F"], () => 0.99)).toBe(7);
+  });
+
+  it("always leaves one candidate for a small animal pool", () => {
+    expect(pickAnimalTargetIndex([{ word: "Cat" }, { word: "Dog" }], ["Cat"], () => 0)).toBe(1);
+  });
+
+  it("returns -1 for an empty pool", () => {
+    expect(pickAnimalTargetIndex([], [], () => 0)).toBe(-1);
   });
 });
