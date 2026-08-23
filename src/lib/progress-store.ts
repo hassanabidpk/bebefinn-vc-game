@@ -52,12 +52,13 @@ export function parseProgress(raw: string | null): StickerProgress {
     if (data?.version !== 1) return emptyProgress();
     const list = (value: unknown) =>
       Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+    const danceMoves = list(data.danceMoves).map((move) => move === "spin" ? "stomp" : move);
     return {
       version: 1,
       rideAnimals: list(data.rideAnimals),
       rescueLetters: list(data.rescueLetters),
       spellWords: list(data.spellWords),
-      danceMoves: list(data.danceMoves),
+      danceMoves: [...new Set(danceMoves)],
     };
   } catch {
     return emptyProgress();

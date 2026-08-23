@@ -60,15 +60,15 @@ describe("parseLyriaLyrics", () => {
 describe("moveForLyric", () => {
   it("maps chorus keywords to moves", () => {
     expect(moveForLyric("Clap your hands", 0)).toBe("clap");
-    expect(moveForLyric("stomp your feet", 0)).toBe("jump");
+    expect(moveForLyric("stomp your feet", 0)).toBe("stomp");
     expect(moveForLyric("wiggle wiggle to the beat", 0)).toBe("wiggle");
-    expect(moveForLyric("dance with me", 0)).toBe("spin");
+    expect(moveForLyric("dance with me", 0)).toBe("wiggle");
   });
 
   it("round-robins the moves for plain letter lines", () => {
     const moves = [0, 1, 2, 3, 4].map((i) => moveForLyric("A B C", i));
-    expect(moves).toEqual(["clap", "jump", "spin", "wiggle", "clap"]);
-    expect(DANCE_MOVES.map((m) => m.id)).toEqual(["clap", "jump", "spin", "wiggle"]);
+    expect(moves).toEqual(["clap", "jump", "stomp", "wiggle", "clap"]);
+    expect(DANCE_MOVES.map((m) => m.id)).toEqual(["clap", "jump", "stomp", "wiggle"]);
   });
 });
 
@@ -83,9 +83,9 @@ describe("buildDanceCues", () => {
   });
 
   it("uses the chorus lyric to pick the move and cycles through all four moves", () => {
-    expect(cues[4].move).toBe("spin");
+    expect(cues[4].move).toBe("wiggle");
     expect(cues[5].move).toBe("clap");
-    expect(new Set(cues.map((c) => c.move))).toEqual(new Set(["clap", "jump", "spin", "wiggle"]));
+    expect(new Set(cues.map((c) => c.move))).toEqual(new Set(["clap", "jump", "stomp", "wiggle"]));
   });
 });
 

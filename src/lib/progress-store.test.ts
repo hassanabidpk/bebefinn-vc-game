@@ -70,4 +70,15 @@ describe("dance move stickers", () => {
       danceMoves: [],
     });
   });
+
+  it("migrates the retired spin move to stomp without duplicates", () => {
+    const legacy = JSON.stringify({
+      version: 1,
+      rideAnimals: [],
+      rescueLetters: [],
+      spellWords: [],
+      danceMoves: ["clap", "spin", "stomp"],
+    });
+    expect(parseProgress(legacy).danceMoves).toEqual(["clap", "stomp"]);
+  });
 });
