@@ -179,6 +179,18 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
   const cue = cueIndex >= 0 ? CUES[cueIndex] : null;
   const cueMove = cue ? MOVE_BY_ID[cue.move] : null;
   const chorus = Boolean(cue && cue.letters.length === 0);
+  const demonstratedMove = status === "playing" && cue
+    ? cue.move
+    : mascotMove?.move ?? "idle";
+  const motionGuide = demonstratedMove === "clap"
+    ? "👏"
+    : demonstratedMove === "jump"
+      ? "⬆️"
+      : demonstratedMove === "spin"
+        ? "↻"
+        : demonstratedMove === "wiggle"
+          ? "↔"
+          : "";
 
   return (
     <div className="dance-screen">
@@ -223,16 +235,20 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
         </div>
 
         <div className="dance-floor">
-          <button
-            key={mascotMove?.nonce ?? "idle"}
-            className="dance-mascot"
-            data-move={mascotMove?.move ?? "idle"}
-            onClick={() => tapMove("wiggle")}
-            aria-label="Ocean Buddy — tap to wiggle"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/images/ocean-buddy.png" alt="" draggable={false} />
-          </button>
+          <div className="dance-mascot-wrap">
+            <span className="dance-mascot-shadow" aria-hidden="true" />
+            <button
+              key={`${cueIndex}-${mascotMove?.nonce ?? "idle"}`}
+              className={`dance-mascot ${status === "playing" && cue ? "demonstrating" : ""}`}
+              data-move={demonstratedMove}
+              onClick={() => tapMove("wiggle")}
+              aria-label="Ocean Buddy — tap to wiggle"
+            >
+              {motionGuide ? <span className="dance-motion-guide" aria-hidden="true">{motionGuide}</span> : null}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/assets/images/ocean-buddy.png" alt="" draggable={false} />
+            </button>
+          </div>
           {partner ? (
             <div className={`dance-partner ${chorus ? "dancing" : ""}`} style={{ borderColor: partner.color }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}

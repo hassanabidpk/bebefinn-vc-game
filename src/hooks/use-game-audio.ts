@@ -256,6 +256,9 @@ const ANIMAL_SOUND_FILES: Record<string, string> = {
   zebra: "/sounds/zebra.mp3",
 };
 
+// Longest synthesized cue ends at 1.95 seconds (the narwhal call).
+const SYNTH_ANIMAL_SOUND_DURATION_MS = 2100;
+
 export function useGameAudio() {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -264,6 +267,7 @@ export function useGameAudio() {
   const musicTimerRef = useRef<number | null>(null);
   const animalAudioCacheRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const currentAnimalAudioRef = useRef<HTMLAudioElement | null>(null);
+  const animalSoundTimerRef = useRef<number | null>(null);
 
   const getAudioContext = useCallback(() => {
     if (typeof window === "undefined") return null;
@@ -502,8 +506,13 @@ export function useGameAudio() {
     });
   }, [getAudioContext]);
 
-  const playAnimalSound = useCallback((word: string) => {
+  const playAnimalSound = useCallback((word: string, onEnd?: () => void) => {
     if (typeof window === "undefined") return;
+
+    if (animalSoundTimerRef.current !== null) {
+      clearTimeout(animalSoundTimerRef.current);
+      animalSoundTimerRef.current = null;
+    }
 
     const key = word.toLowerCase();
     const file = ANIMAL_SOUND_FILES[key];
@@ -511,6 +520,8 @@ export function useGameAudio() {
     if (file) {
       // Stop any currently playing animal sound
       if (currentAnimalAudioRef.current) {
+        currentAnimalAudioRef.current.onended = null;
+        currentAnimalAudioRef.current.onerror = null;
         currentAnimalAudioRef.current.pause();
         currentAnimalAudioRef.current.currentTime = 0;
       }
@@ -525,15 +536,27 @@ export function useGameAudio() {
 
       audio.currentTime = 0;
       currentAnimalAudioRef.current = audio;
-      void audio.play().catch(() => {
-        // Autoplay block — fall through silently
-      });
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        audio.onended = null;
+        audio.onerror = null;
+        if (currentAnimalAudioRef.current === audio) currentAnimalAudioRef.current = null;
+        onEnd?.();
+      };
+      audio.onended = finish;
+      audio.onerror = finish;
+      void audio.play().catch(finish);
       return;
     }
 
     // Fallback to synthesized sound for unmapped animals
     const audioContext = getAudioContext();
-    if (!audioContext) return;
+    if (!audioContext) {
+      onEnd?.();
+      return;
+    }
 
     const now = audioContext.currentTime;
 
@@ -979,7 +1002,17 @@ export function useGameAudio() {
         });
         break;
       default:
-        break;
+        onEnd?.();
+        return;
+    }
+
+    if (onEnd) {
+      // Synthesized animal cues finish within one second; keep the callback
+      // slightly later so reinforcement never talks over the animal sound.
+      animalSoundTimerRef.current = window.setTimeout(() => {
+        animalSoundTimerRef.current = null;
+        onEnd();
+      }, SYNTH_ANIMAL_SOUND_DURATION_MS);
     }
   }, [getAudioContext]);
 
@@ -987,9 +1020,15 @@ export function useGameAudio() {
     const cache = animalAudioCacheRef.current;
     return () => {
       clearMusicTimer();
+      if (animalSoundTimerRef.current !== null) {
+        clearTimeout(animalSoundTimerRef.current);
+        animalSoundTimerRef.current = null;
+      }
       void audioContextRef.current?.close();
       audioContextRef.current = null;
       cache.forEach((audio) => {
+        audio.onended = null;
+        audio.onerror = null;
         audio.pause();
         audio.src = "";
       });

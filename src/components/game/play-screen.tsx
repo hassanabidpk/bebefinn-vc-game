@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
-import { findAnimalGuessIndex } from "@/lib/animal-guess";
+import { findAnimalGuessIndex, pickAnimalTargetIndex } from "@/lib/animal-guess";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { BubbleBackground } from "./ocean-stage";
@@ -29,14 +29,8 @@ interface Round {
   key: number;
 }
 
-function buildRound(prev?: Round): Round {
-  // Avoid repeating the previous target back-to-back.
-  let targetIdx = Math.floor(Math.random() * ANIMAL_LESSONS.length);
-  if (prev) {
-    while (ANIMAL_LESSONS[targetIdx].word === prev.target.word) {
-      targetIdx = Math.floor(Math.random() * ANIMAL_LESSONS.length);
-    }
-  }
+function buildRound(recentWords: readonly string[] = [], previousKey = 0): Round {
+  const targetIdx = pickAnimalTargetIndex(ANIMAL_LESSONS, recentWords);
   const distractors = new Set<number>();
   while (distractors.size < TILE_COUNT - 1) {
     const r = Math.floor(Math.random() * ANIMAL_LESSONS.length);
@@ -55,7 +49,7 @@ function buildRound(prev?: Round): Round {
   return {
     target: { letter: target.letter, word: target.word, color: target.color },
     tiles,
-    key: (prev?.key ?? 0) + 1,
+    key: previousKey + 1,
   };
 }
 
@@ -116,22 +110,25 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
   const [streak, setStreak] = useState(0);
   const [feedback, setFeedback] = useState<{ idx: number; correct: boolean } | null>(null);
   const [milestone, setMilestone] = useState(0);
+  const recentTargetsRef = useRef<string[]>([round.target.word]);
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const narrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const milestoneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roundWatchdogTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak, prefetch } = useFriendlySpeech();
   const { playAnimalSound } = useGameAudio();
 
   // Immediate device speech keeps tap feedback responsive when cloud TTS is unavailable.
-  const speakPrompt = useCallback((text: string) => {
-    speak(text);
+  const speakPrompt = useCallback((text: string, onEnd?: () => void) => {
+    speak(text, { onEnd });
   }, [speak]);
 
   useEffect(() => {
     if (promptTimer.current) clearTimeout(promptTimer.current);
     const phrase = `Find the ${round.target.word}!`;
     prefetch(phrase);
+    prefetch(`${round.target.letter}! ${round.target.word}!`);
     promptTimer.current = setTimeout(() => speakPrompt(phrase), 250);
     return () => {
       if (promptTimer.current) clearTimeout(promptTimer.current);
@@ -144,40 +141,64 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       if (narrationTimer.current) clearTimeout(narrationTimer.current);
       if (milestoneTimer.current) clearTimeout(milestoneTimer.current);
+      if (roundWatchdogTimer.current) clearTimeout(roundWatchdogTimer.current);
     };
   }, []);
 
   const onTile = useCallback((i: number) => {
     if (feedback) return;
+    if (promptTimer.current) {
+      clearTimeout(promptTimer.current);
+      promptTimer.current = null;
+    }
     const tile = round.tiles[i];
     const correct = tile.word === round.target.word;
     setFeedback({ idx: i, correct });
 
     if (correct) {
-      // Animal sound first for instant tactile feedback, then narration.
-      playAnimalSound(tile.word.toLowerCase());
       setScore((s) => s + 10 + streak * 2);
       const newStreak = streak + 1;
       setStreak(newStreak);
+      const successPhrase = newStreak % 5 === 0
+        ? `Amazing! ${newStreak} in a row!`
+        : `${tile.letter}! ${tile.word}!`;
+
+      let advancing = false;
+      const advanceRound = () => {
+        if (advancing) return;
+        advancing = true;
+        if (roundWatchdogTimer.current) {
+          clearTimeout(roundWatchdogTimer.current);
+          roundWatchdogTimer.current = null;
+        }
+        if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+        feedbackTimer.current = setTimeout(() => {
+          setFeedback(null);
+          setRound((currentRound) => {
+            const next = buildRound(recentTargetsRef.current, currentRound.key);
+            recentTargetsRef.current = [...recentTargetsRef.current, next.target.word].slice(-6);
+            return next;
+          });
+        }, 300);
+      };
+      // A stalled HTMLAudioElement or speech engine must never trap a child
+      // on a disabled round. Healthy four-second clips and praise finish first.
+      roundWatchdogTimer.current = setTimeout(advanceRound, 12000);
+
       // Every 5 in a row, celebrate out loud — toddlers can't read the count.
       if (newStreak % 5 === 0) {
         setMilestone((m) => m + 1);
-        narrationTimer.current = setTimeout(
-          () => speakPrompt(`Amazing! ${newStreak} in a row!`),
-          350
-        );
         milestoneTimer.current = setTimeout(() => setMilestone(0), 3000);
-      } else {
-        narrationTimer.current = setTimeout(
-          () => speakPrompt(`${tile.letter}! ${tile.word}!`),
-          350
-        );
       }
-      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
-      feedbackTimer.current = setTimeout(() => {
-        setFeedback(null);
-        setRound((rr) => buildRound(rr));
-      }, 2400);
+
+      // Play the full animal clip, then the full spoken praise, and only
+      // then reveal the next animal. Long four-second clips are never cut off.
+      playAnimalSound(tile.word.toLowerCase(), () => {
+        narrationTimer.current = setTimeout(
+          () => speakPrompt(successPhrase, advanceRound),
+          180
+        );
+      });
     } else {
       speakPrompt("Almost! Try again.");
       setStreak(0);
@@ -232,6 +253,7 @@ export function PlayScreen({ onHome }: PlayScreenProps) {
               e.stopPropagation();
               speakPrompt(`Find the ${round.target.word}!`);
             }}
+            disabled={Boolean(feedback)}
             aria-label="Speak target word"
           >
             🔊
