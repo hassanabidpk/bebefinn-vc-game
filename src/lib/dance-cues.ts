@@ -5,7 +5,7 @@
  * analysis, good enough for a toddler tapping along.
  */
 
-export type DanceMove = "clap" | "jump" | "spin" | "wiggle";
+export type DanceMove = "clap" | "jump" | "stomp" | "wiggle";
 
 export interface DanceMoveSpec {
   id: DanceMove;
@@ -16,7 +16,7 @@ export interface DanceMoveSpec {
 export const DANCE_MOVES: DanceMoveSpec[] = [
   { id: "clap", emoji: "👏", label: "Clap" },
   { id: "jump", emoji: "🦘", label: "Jump" },
-  { id: "spin", emoji: "🔄", label: "Spin" },
+  { id: "stomp", emoji: "👣", label: "Stomp" },
   { id: "wiggle", emoji: "🐙", label: "Wiggle" },
 ];
 
@@ -105,9 +105,9 @@ function spreadLines(lines: RawLine[], start: number, end: number): LyricLine[] 
 
 const KEYWORD_MOVES: Array<[RegExp, DanceMove]> = [
   [/\bclap/i, "clap"],
-  [/\b(stomp|jump|hop|feet)/i, "jump"],
-  [/\bwiggle/i, "wiggle"],
-  [/\b(spin|dance|turn)/i, "spin"],
+  [/\b(stomp|feet)/i, "stomp"],
+  [/\b(jump|hop)/i, "jump"],
+  [/\b(wiggle|dance|turn)/i, "wiggle"],
 ];
 
 export function moveForLyric(text: string, lineIndex: number): DanceMove {

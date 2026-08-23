@@ -16,13 +16,14 @@ import { STICKER_ANIMALS, type StickerAnimal } from "@/lib/sticker-animals";
 import { earnSticker, loadProgress } from "@/lib/progress-store";
 import { DANCE_COMPLETE_PHRASE, getDancePartnerPhrase } from "@/lib/game-speech";
 import { Confetti } from "./confetti";
+import { DanceMascotStage } from "./dance-mascot-stage";
 import { BubbleBackground } from "./ocean-stage";
 
 type Status = "idle" | "playing" | "done" | "error";
 
 const CUES = buildDanceCues(parseLyriaLyrics(DANCE_SONG.lyrics, DANCE_SONG.durationSec));
 const MOVE_BY_ID = Object.fromEntries(DANCE_MOVES.map((move) => [move.id, move]));
-const KEY_TO_MOVE: Record<string, DanceMove> = { "1": "clap", "2": "jump", "3": "spin", "4": "wiggle" };
+const KEY_TO_MOVE: Record<string, DanceMove> = { "1": "clap", "2": "jump", "3": "stomp", "4": "wiggle" };
 
 /** Next animal friend the child hasn't collected yet, else any of them. */
 function pickPartner(earned: readonly string[]): StickerAnimal {
@@ -186,8 +187,8 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
     ? "👏"
     : demonstratedMove === "jump"
       ? "⬆️"
-      : demonstratedMove === "spin"
-        ? "↻"
+      : demonstratedMove === "stomp"
+        ? "👣"
         : demonstratedMove === "wiggle"
           ? "↔"
           : "";
@@ -235,24 +236,17 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
         </div>
 
         <div className="dance-floor">
-          <div className="dance-mascot-wrap">
-            <span className="dance-mascot-shadow" aria-hidden="true" />
-            <button
-              key={`${cueIndex}-${mascotMove?.nonce ?? "idle"}`}
-              className={`dance-mascot ${status === "playing" && cue ? "demonstrating" : ""}`}
-              data-move={demonstratedMove}
-              onClick={() => tapMove("wiggle")}
-              aria-label="Ocean Buddy — tap to wiggle"
-            >
-              {motionGuide ? <span className="dance-motion-guide" aria-hidden="true">{motionGuide}</span> : null}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/assets/images/ocean-buddy.png" alt="" draggable={false} />
-            </button>
-          </div>
+          <DanceMascotStage
+            move={demonstratedMove}
+            actionKey={`${cueIndex}-${mascotMove?.nonce ?? "song"}`}
+            guide={motionGuide}
+            onTap={() => tapMove("wiggle")}
+          />
           {partner ? (
             <div className={`dance-partner ${chorus ? "dancing" : ""}`} style={{ borderColor: partner.color }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={partner.photo} alt={partner.word} draggable={false} />
+              <img src={partner.photo} alt="" draggable={false} />
+              <span>{partner.word}</span>
             </div>
           ) : null}
         </div>
