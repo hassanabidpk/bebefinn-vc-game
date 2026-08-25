@@ -243,7 +243,10 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
             onTap={() => tapMove("wiggle")}
           />
           {partner ? (
-            <div className={`dance-partner ${chorus ? "dancing" : ""}`} style={{ borderColor: partner.color }}>
+            <div
+              className={`dance-partner ${chorus || status === "playing" ? "dancing" : ""} dancing-${demonstratedMove}`}
+              style={{ borderColor: partner.color }}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={partner.photo} alt="" draggable={false} />
               <span>{partner.word}</span>
@@ -284,18 +287,22 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
       </div>
 
       <div className="dance-moves">
-        {DANCE_MOVES.map((move) => (
-          <button
-            key={move.id}
-            className={`dance-move-btn ${status === "playing" && cue?.move === move.id ? "cued" : ""}`}
-            onClick={() => tapMove(move.id)}
-            disabled={status === "done"}
-            aria-label={move.label}
-          >
-            <span className="dance-move-emoji">{move.emoji}</span>
-            <span className="dance-move-label">{move.label}</span>
-          </button>
-        ))}
+        {DANCE_MOVES.map((move) => {
+          const isCued = status === "playing" && cue?.move === move.id;
+          const isActive = mascotMove?.move === move.id;
+          return (
+            <button
+              key={move.id}
+              className={`dance-move-btn ${isCued ? "cued" : ""} ${isActive ? "active-move" : ""}`}
+              onClick={() => tapMove(move.id)}
+              disabled={status === "done"}
+              aria-label={move.label}
+            >
+              <span className="dance-move-emoji">{move.emoji}</span>
+              <span className="dance-move-label">{move.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
