@@ -1737,6 +1737,7 @@ html, body {
   border: 5px solid #fff; background: #fff;
   box-shadow: 0 10px 24px rgba(0,0,0,0.25);
   animation: dance-partner-idle 2.5s ease-in-out infinite;
+  transform-origin: bottom center;
 }
 .dance-partner img { width: 100%; height: 100%; object-fit: cover; }
 .dance-partner span {
@@ -1746,8 +1747,55 @@ html, body {
   text-align: center;
 }
 .dance-partner.dancing { animation: dance-partner-bounce 0.5s ease-in-out infinite; }
-@keyframes dance-partner-idle { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-8px) rotate(3deg); } }
-@keyframes dance-partner-bounce { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-26px) rotate(8deg); } }
+.dance-partner.dancing-clap {
+  animation: dance-partner-clap 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+.dance-partner.dancing-jump {
+  animation: dance-partner-jump 1.25s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+.dance-partner.dancing-stomp {
+  animation: dance-partner-stomp 1.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.dance-partner.dancing-wiggle {
+  animation: dance-partner-wiggle 1.0s ease-in-out infinite;
+}
+
+@keyframes dance-partner-idle {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
+@keyframes dance-partner-bounce {
+  0%, 100% { transform: translateY(0) scale(1, 1) rotate(-6deg); }
+  50% { transform: translateY(-22px) scale(0.94, 1.06) rotate(6deg); }
+}
+@keyframes dance-partner-clap {
+  0%, 100% { transform: translateY(0) scale(1, 1) rotate(-3deg); }
+  40% { transform: translateY(-14px) scale(0.92, 1.08) rotate(3deg); }
+  75% { transform: translateY(0) scale(1.08, 0.92) rotate(-1deg); }
+}
+@keyframes dance-partner-jump {
+  0% { transform: translateY(0) scale(1, 1); }
+  18% { transform: translateY(8px) scale(1.15, 0.84); }
+  35% { transform: translateY(-40px) scale(0.88, 1.2) rotate(-6deg); }
+  55% { transform: translateY(-48px) scale(1.04, 0.96) rotate(6deg); }
+  75% { transform: translateY(6px) scale(1.2, 0.82); }
+  90% { transform: translateY(-6px) scale(0.95, 1.05); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes dance-partner-stomp {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  25% { transform: translateY(-16px) rotate(-10deg); }
+  45% { transform: translateY(4px) scale(1.08, 0.92) rotate(-2deg); }
+  50% { transform: translateY(0) rotate(6deg); }
+  75% { transform: translateY(-16px) rotate(10deg); }
+  95% { transform: translateY(4px) scale(1.08, 0.92) rotate(2deg); }
+}
+@keyframes dance-partner-wiggle {
+  0%, 100% { transform: translateX(0) translateY(0) rotate(-8deg); }
+  25% { transform: translateX(-10px) translateY(-6px) rotate(0deg); }
+  50% { transform: translateX(0) translateY(-2px) rotate(8deg); }
+  75% { transform: translateX(10px) translateY(-6px) rotate(0deg); }
+}
 
 .dance-play-btn {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -1806,9 +1854,12 @@ html, body {
   font-family: 'Fredoka', sans-serif; font-weight: 800;
   box-shadow: 0 8px 0 rgba(90,29,63,0.35);
   touch-action: manipulation; user-select: none; -webkit-user-select: none;
-  transition: transform 0.08s ease, background 0.15s ease;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
 }
-.dance-move-btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(90,29,63,0.35); }
+.dance-move-btn:active, .dance-move-btn.active-move {
+  transform: translateY(5px) scale(0.98);
+  box-shadow: 0 3px 0 rgba(90,29,63,0.35);
+}
 .dance-move-btn:focus-visible { outline: 6px solid #fff; outline-offset: 3px; }
 .dance-move-btn:disabled { opacity: 0.5; cursor: default; }
 .dance-move-btn.cued {
