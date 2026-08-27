@@ -97,17 +97,33 @@ function cycle(time: number, duration: number) {
 }
 
 function buildOceanBuddy(): MascotRig {
-  // Warm plush-toy palette — soft cocoa tones, high roughness for a velvety fur look
-  const brown = material(0xb0713d, 0.88);
-  const darkBrown = material(0x84512a, 0.88);
-  const cream = material(0xffe6be, 0.85);
-  // Match the 2D character art: green overalls + red kerchief + star badge
-  const teal = material(0x3fa06a, 0.62);
-  const coral = material(0xff6782, 0.55);
-  const scarf = material(0xe8563c, 0.6);
-  const sunny = material(0xffd93d, 0.5);
-  const white = material(0xffffff, 0.35);
-  const black = material(0x181822, 0.4);
+  // Cel-shaded look: a 4-step gradient map quantizes lighting into cartoon bands,
+  // which reads as a stylized animated character instead of shaded clay balls
+  const gradientData = new Uint8Array([
+    120, 120, 120, 255,
+    178, 178, 178, 255,
+    236, 236, 236, 255,
+    255, 255, 255, 255,
+  ]);
+  const gradientMap = new THREE.DataTexture(gradientData, 4, 1, THREE.RGBAFormat);
+  gradientMap.minFilter = THREE.NearestFilter;
+  gradientMap.magFilter = THREE.NearestFilter;
+  gradientMap.needsUpdate = true;
+  const toon = (color: number) => new THREE.MeshToonMaterial({ color, gradientMap });
+
+  // Warm plush palette, on-model with the 2D art: green overalls + red kerchief
+  const brown = toon(0xb0713d);
+  const darkBrown = toon(0x84512a);
+  const cream = toon(0xffe6be);
+  const teal = toon(0x3fa06a);
+  const coral = toon(0xff6782);
+  const scarf = toon(0xe8563c);
+  const sunny = toon(0xffd93d);
+  const white = toon(0xffffff);
+  const black = toon(0x241a2e);
+  const glossWhite = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const inkBlack = new THREE.MeshBasicMaterial({ color: 0x1c1424 });
+  const mouthDark = toon(0x6e2740);
 
   const root = new THREE.Group();
   root.position.y = 0.14;
@@ -171,27 +187,69 @@ function buildOceanBuddy(): MascotRig {
     return ear;
   });
 
-  // Snout & Cheeks
+  // Snout & nose
   head.add(mesh(new THREE.SphereGeometry(0.4, 22, 16), cream, [-0.25, -0.18, 0.7], [1, 0.8, 0.55]));
   head.add(mesh(new THREE.SphereGeometry(0.4, 22, 16), cream, [0.25, -0.18, 0.7], [1, 0.8, 0.55]));
   head.add(mesh(new THREE.SphereGeometry(0.19, 18, 12), black, [0, -0.02, 0.95], [1.18, 0.84, 0.68]));
 
-  // Eyes
+  // Big glossy cartoon eyes: sclera, warm iris, deep pupil, twin catchlights
+  const iris = toon(0x5a3620);
   const eyes = [-0.3, 0.3].map((x) => {
     const eye = new THREE.Group();
-    eye.position.set(x, 0.26, 0.78);
-    eye.add(mesh(new THREE.SphereGeometry(0.155, 16, 12), white, [0, 0, 0], [1, 1.2, 0.5]));
-    eye.add(mesh(new THREE.SphereGeometry(0.08, 14, 10), black, [0, -0.01, 0.1], [1, 1.2, 0.55]));
-    // Catchlight twinkle
-    eye.add(mesh(new THREE.SphereGeometry(0.035, 10, 8), white, [0.03, 0.05, 0.16]));
+    eye.position.set(x, 0.26, 0.72);
+    eye.add(mesh(new THREE.SphereGeometry(0.2, 20, 16), white, [0, 0, 0], [1, 1.18, 0.6]));
+    eye.add(mesh(new THREE.SphereGeometry(0.125, 16, 12), iris, [0, -0.01, 0.09], [1, 1.15, 0.55]));
+    eye.add(mesh(new THREE.SphereGeometry(0.075, 14, 10), inkBlack, [0, -0.01, 0.14], [1, 1.15, 0.5]));
+    eye.add(mesh(new THREE.SphereGeometry(0.05, 10, 8), glossWhite, [0.055, 0.07, 0.18]));
+    eye.add(mesh(new THREE.SphereGeometry(0.024, 8, 6), glossWhite, [-0.05, -0.05, 0.19]));
     head.add(eye);
     return eye;
   });
 
-  // Smile
-  const smile = mesh(new THREE.TorusGeometry(0.22, 0.026, 8, 24, Math.PI), black, [0, -0.32, 0.95]);
-  smile.rotation.z = Math.PI;
-  head.add(smile);
+  // Expressive eyebrows
+  for (const x of [-0.3, 0.3]) {
+    const brow = mesh(new THREE.CapsuleGeometry(0.035, 0.16, 6, 8), darkBrown, [x, 0.52, 0.6], [1, 1, 0.7]);
+    brow.rotation.z = Math.PI / 2 + (x < 0 ? -0.22 : 0.22);
+    head.add(brow);
+  }
+
+  // Open singing smile with tongue
+  head.add(mesh(new THREE.SphereGeometry(0.14, 18, 12), mouthDark, [0, -0.35, 0.84], [1.4, 0.55, 0.45]));
+  head.add(mesh(new THREE.SphereGeometry(0.08, 14, 10), coral, [0, -0.38, 0.9], [1.35, 0.42, 0.45]));
+
+  // Blush circles
+  for (const x of [-0.56, 0.56]) {
+    const blush = mesh(new THREE.SphereGeometry(0.11, 12, 10), toon(0xff9db0), [x, -0.08, 0.58], [1, 0.68, 0.25]);
+    blush.rotation.y = x < 0 ? -0.55 : 0.55;
+    head.add(blush);
+  }
+
+  // Otter whiskers
+  const whiskerMat = new THREE.MeshBasicMaterial({ color: 0xfff6e6, transparent: true, opacity: 0.75 });
+  for (const side of [-1, 1]) {
+    for (const [tilt, y] of [
+      [0.28, -0.1],
+      [0.02, -0.2],
+    ] as const) {
+      const whisker = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.34, 6), whiskerMat);
+      whisker.position.set(side * 0.52, y, 0.66);
+      whisker.rotation.z = Math.PI / 2 + side * tilt;
+      whisker.rotation.y = side * 0.45;
+      head.add(whisker);
+    }
+  }
+
+  // Hair tuft swoosh on top
+  for (const [tx, tz, lean] of [
+    [-0.08, 0.16, -0.35],
+    [0.08, 0.1, 0.15],
+    [0.2, 0.02, 0.55],
+  ] as const) {
+    const tuft = mesh(new THREE.ConeGeometry(0.1, 0.3, 10), brown, [tx, 0.84, tz]);
+    tuft.rotation.z = lean;
+    tuft.rotation.x = -0.15;
+    head.add(tuft);
+  }
 
   // Arms with proper shoulder -> elbow -> wrist kinetic chain
   const makeArm = (side: -1 | 1) => {
@@ -951,7 +1009,7 @@ export function DanceMascotStage({ move, actionKey, guide, onTap }: DanceMascotS
     }
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 0.92;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setClearColor(0x000000, 0);
@@ -967,9 +1025,9 @@ export function DanceMascotStage({ move, actionKey, guide, onTap }: DanceMascotS
     camera.lookAt(0, 0, 0);
 
     // Enhanced Stage Lighting
-    scene.add(new THREE.HemisphereLight(0xe8fbff, 0x244b70, 2.6));
+    scene.add(new THREE.HemisphereLight(0xe8fbff, 0x244b70, 1.9));
 
-    const keyLight = new THREE.DirectionalLight(0xfff5ea, 3.8);
+    const keyLight = new THREE.DirectionalLight(0xfff5ea, 3.0);
     keyLight.position.set(-4, 7, 7);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(1024, 1024);
@@ -1002,6 +1060,48 @@ export function DanceMascotStage({ move, actionKey, guide, onTap }: DanceMascotS
     ring.material.emissive.set(0xffd93d);
     ring.material.emissiveIntensity = 0.3;
     scene.add(ring);
+
+    // Soft radial glow behind the mascot + concert spotlight cone from above
+    const glowCanvas = document.createElement("canvas");
+    glowCanvas.width = glowCanvas.height = 256;
+    const glowCtx = glowCanvas.getContext("2d");
+    let glowTexture: THREE.CanvasTexture | null = null;
+    if (glowCtx) {
+      const grad = glowCtx.createRadialGradient(128, 128, 12, 128, 128, 128);
+      grad.addColorStop(0, "rgba(255, 250, 235, 0.9)");
+      grad.addColorStop(0.45, "rgba(255, 205, 240, 0.35)");
+      grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+      glowCtx.fillStyle = grad;
+      glowCtx.fillRect(0, 0, 256, 256);
+      glowTexture = new THREE.CanvasTexture(glowCanvas);
+      const glow = new THREE.Mesh(
+        new THREE.PlaneGeometry(6.4, 6.4),
+        new THREE.MeshBasicMaterial({
+          map: glowTexture,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        })
+      );
+      glow.position.set(0, 0.5, -1.8);
+      glow.renderOrder = -1;
+      scene.add(glow);
+    }
+
+    const spotCone = new THREE.Mesh(
+      new THREE.ConeGeometry(2.35, 6.6, 32, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0xfff3c4,
+        transparent: true,
+        opacity: 0.09,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      })
+    );
+    spotCone.position.set(0, 1.1, -0.7);
+    scene.add(spotCone);
 
     const rig = buildOceanBuddy();
     scene.add(rig.root);
@@ -1120,7 +1220,11 @@ export function DanceMascotStage({ move, actionKey, guide, onTap }: DanceMascotS
         if (!(object instanceof THREE.Mesh)) return;
         object.geometry.dispose();
         const materials = Array.isArray(object.material) ? object.material : [object.material];
-        materials.forEach((item) => item.dispose());
+        materials.forEach((item) => {
+          if (item instanceof THREE.MeshToonMaterial) item.gradientMap?.dispose();
+          if ("map" in item && item.map instanceof THREE.Texture) item.map.dispose();
+          item.dispose();
+        });
       });
       renderer.dispose();
       renderer.forceContextLoss();
