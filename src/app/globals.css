@@ -1656,6 +1656,13 @@ html, body {
 }
 .home-chip-dance:hover { background: linear-gradient(135deg, #ffe6f1, #ffb3d1); }
 
+.home-chip-draw {
+  color: #4a2a00;
+  background: linear-gradient(135deg, #ffe9b8, #ffc46b);
+  box-shadow: 0 6px 18px rgba(140,80,0,0.22), inset 0 0 0 2px rgba(255,255,255,0.65);
+}
+.home-chip-draw:hover { background: linear-gradient(135deg, #fff2d1, #ffd48a); }
+
 .dance-screen {
   position: absolute; inset: 0; z-index: 10;
   display: flex; flex-direction: column;
@@ -1891,4 +1898,165 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .dance-motion-guide, .dance-partner, .dance-play-btn, .dance-move-btn.cued, .dance-cue-move, .dance-cue-star, .dance-done-card { animation: none; }
   .dance-letter, .dance-move-btn { transition: none; }
+}
+
+/* ---- Draw game ---- */
+.draw-screen {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 20px 18px;
+  background: linear-gradient(180deg, #ffe9a8 0%, #ffc48a 30%, #6fd0ef 70%, #005580 100%);
+  overflow: hidden; isolation: isolate;
+}
+.draw-header {
+  position: relative; z-index: 20;
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 12px;
+}
+.draw-header-spacer { display: block; width: 64px; height: 1px; }
+.draw-step-dots { display: flex; align-items: center; gap: 8px; }
+.draw-step-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  border: 3px solid rgba(255,255,255,0.9);
+  transition: transform 0.15s ease;
+}
+.draw-step-dot.now { transform: scale(1.45); box-shadow: 0 4px 10px rgba(0,0,0,0.22); }
+
+/* Picker */
+.draw-picker {
+  position: relative; z-index: 20; flex: 1; min-height: 0;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px; align-content: center;
+  overflow-y: auto; padding: 6px 2px;
+}
+.draw-animal-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 140px; padding: 10px;
+  border-radius: 30px; border: 5px solid #fff;
+  background: rgba(255,255,255,0.94);
+  cursor: pointer; touch-action: manipulation;
+  box-shadow: 0 8px 0 rgba(0,60,90,0.22), 0 12px 26px rgba(0,0,0,0.16);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.draw-animal-card:hover { transform: translateY(-3px); }
+.draw-animal-card:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,60,90,0.22); }
+.draw-animal-card:focus-visible { outline: 6px solid #fff; outline-offset: 3px; }
+.draw-animal-emoji { font-size: 62px; line-height: 1; }
+.draw-animal-word {
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 22px;
+  color: var(--ocean-700);
+}
+
+/* Tutorial */
+.draw-tutorial {
+  position: relative; z-index: 20; flex: 1; min-height: 0;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.draw-panels {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.draw-panel {
+  position: relative;
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 0; padding: 14px;
+  border-radius: 32px; border: 5px solid #fff;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+}
+.draw-panel-tag {
+  position: absolute; top: -14px; left: 18px;
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; background: var(--sunny, #FFD93D);
+  box-shadow: 0 5px 0 #c9a400;
+}
+.draw-demo { flex: 1; min-height: 0; width: 100%; display: block; }
+.draw-canvas-wrap {
+  flex: 1; min-height: 0; width: 100%;
+  border-radius: 22px; background: #fdfdff;
+  border: 3px dashed rgba(0,85,128,0.25);
+  overflow: hidden;
+}
+.draw-canvas {
+  display: block; width: 100%; height: 100%;
+  touch-action: none; cursor: crosshair;
+}
+.draw-crayons {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
+}
+.draw-crayon {
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 5px solid #fff; cursor: pointer; padding: 0;
+  touch-action: manipulation;
+  box-shadow: 0 6px 0 rgba(0,60,90,0.25);
+  transition: transform 0.1s ease;
+}
+.draw-crayon:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,60,90,0.25); }
+.draw-crayon:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 3px; }
+.draw-crayon.picked { transform: scale(1.14); border-color: var(--ocean-700); }
+.draw-eraser {
+  background: #ffffff; font-size: 32px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.draw-controls {
+  display: flex; align-items: center; justify-content: center; gap: 22px;
+}
+.draw-ctrl-btn {
+  min-width: 120px; height: 84px; border-radius: 30px;
+  border: 5px solid #fff; cursor: pointer; touch-action: manipulation;
+  font-size: 42px; line-height: 1;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 8px 0 rgba(0,60,90,0.28);
+  transition: transform 0.08s ease;
+}
+.draw-ctrl-btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,60,90,0.28); }
+.draw-ctrl-btn:focus-visible { outline: 6px solid #fff; outline-offset: 3px; }
+.draw-ctrl-next { background: var(--sunny, #FFD93D); box-shadow: 0 8px 0 #c9a400; }
+.draw-ctrl-next:active { box-shadow: 0 3px 0 #c9a400; }
+
+.draw-done {
+  position: absolute; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 40, 80, 0.35);
+}
+.draw-done-card {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 26px 36px; border-radius: 32px; background: #fff;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.35);
+  animation: draw-done-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes draw-done-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.draw-done-emoji { font-size: 92px; line-height: 1; }
+.draw-done-card strong {
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 34px;
+}
+.draw-again-btn {
+  min-height: 76px; padding: 0 28px; border-radius: 28px;
+  border: 5px solid #fff; cursor: pointer; touch-action: manipulation;
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 26px;
+  color: #6b4d00; background: var(--sunny, #FFD93D);
+  box-shadow: 0 8px 0 #c9a400;
+}
+.draw-again-btn:active { transform: translateY(5px); box-shadow: 0 3px 0 #c9a400; }
+.draw-again-btn:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 3px; }
+
+@media (max-width: 720px) {
+  .draw-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .draw-animal-card { min-height: 112px; border-radius: 24px; }
+  .draw-animal-emoji { font-size: 44px; }
+  .draw-animal-word { font-size: 17px; }
+  .draw-panels { grid-template-columns: 1fr; overflow-y: auto; }
+  .draw-panel { min-height: 240px; padding: 12px; border-radius: 26px; }
+  .draw-crayon { width: 56px; height: 56px; }
+  .draw-ctrl-btn { min-width: 96px; height: 72px; font-size: 34px; }
+  .draw-done-emoji { font-size: 64px; }
+  .draw-done-card strong { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .draw-demo-live { transition: none !important; stroke-dashoffset: 0 !important; }
+  .draw-done-card { animation: none; }
+  .draw-animal-card, .draw-crayon, .draw-ctrl-btn, .draw-step-dot { transition: none; }
 }

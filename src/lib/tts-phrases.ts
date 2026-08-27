@@ -3,6 +3,7 @@ import { alphabetData, getAlphabetEntriesWithVariants } from "./alphabet-data";
 import { spellingWords } from "./spelling-data";
 import { STICKER_ANIMALS } from "./sticker-animals";
 import { DANCE_MOVES } from "./dance-cues";
+import { DRAW_ANIMALS } from "./draw-animals";
 import {
   getRescuePromptPhrase,
   getRescueRetryPhrase,
@@ -91,6 +92,13 @@ add(DANCE_COMPLETE_PHRASE);
 for (const animal of STICKER_ANIMALS) add(getDancePartnerPhrase(animal.word));
 for (const move of DANCE_MOVES) add(getDanceMovePhrase(move.label));
 
+// Draw game: animal name on pick, every step instruction, and the
+// end-of-tutorial praise line.
+for (const animal of DRAW_ANIMALS) {
+  add(`${animal.word}!`, `Wow! You drew a ${animal.word}! Great job!`);
+  for (const step of animal.steps) add(step.say);
+}
+
 export function isAllowedTtsPhrase(text: string) {
   return allowedPhrases.has(text);
 }
@@ -130,6 +138,11 @@ coreGamePhrases.add(NOTEPAD_TAP_REMINDER);
 coreGamePhrases.add(DANCE_COMPLETE_PHRASE);
 for (const animal of STICKER_ANIMALS) coreGamePhrases.add(getDancePartnerPhrase(animal.word));
 for (const move of DANCE_MOVES) coreGamePhrases.add(getDanceMovePhrase(move.label));
+for (const animal of DRAW_ANIMALS) {
+  coreGamePhrases.add(`${animal.word}!`);
+  coreGamePhrases.add(`Wow! You drew a ${animal.word}! Great job!`);
+  for (const step of animal.steps) coreGamePhrases.add(step.say);
+}
 
 export function getCoreGameTtsPhrases() {
   return [...coreGamePhrases];

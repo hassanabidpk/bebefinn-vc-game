@@ -13,6 +13,7 @@ import { SpellingScreen } from "@/components/game/spelling-screen";
 import { LetterRescueScreen } from "@/components/game/letter-rescue-screen";
 import { StickerBookScreen } from "@/components/game/sticker-book-screen";
 import { DanceScreen } from "@/components/game/dance-screen";
+import { DrawScreen } from "@/components/game/draw-screen";
 
 type Screen =
   | "home"
@@ -23,6 +24,7 @@ type Screen =
   | "spelling"
   | "rescue"
   | "dance"
+  | "draw"
   | "stickers";
 
 interface Route {
@@ -97,9 +99,15 @@ export default function Home() {
     // Keep narration crisp while the child identifies each letter.
     setRoute({ screen: "rescue", index: 0 });
   };
+  const goDraw = () => {
+    playStart();
+    warmUp();
+    // No background music — step-by-step drawing narration needs to be clear.
+    setRoute({ screen: "draw", index: 0 });
+  };
 
   const onMode = (
-    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue" | "dance"
+    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue" | "dance" | "draw"
   ) => {
     if (mode === "lesson") goLesson(0);
     else if (mode === "listen") goListen();
@@ -107,6 +115,7 @@ export default function Home() {
     else if (mode === "spelling") goSpelling();
     else if (mode === "rescue") goRescue();
     else if (mode === "dance") goDance();
+    else if (mode === "draw") goDraw();
     else goNotepad();
   };
 
@@ -136,6 +145,7 @@ export default function Home() {
       {route.screen === "rescue" ? <LetterRescueScreen onHome={goHome} /> : null}
       {route.screen === "stickers" ? <StickerBookScreen onHome={goHome} /> : null}
       {route.screen === "dance" ? <DanceScreen onHome={goHome} /> : null}
+      {route.screen === "draw" ? <DrawScreen onHome={goHome} /> : null}
     </IpadShell>
   );
 }
