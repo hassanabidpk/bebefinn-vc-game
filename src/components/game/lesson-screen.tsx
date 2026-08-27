@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
 import type { AlphabetEntry } from "@/lib/alphabet-data";
 import { useGameAudio } from "@/hooks/use-game-audio";
@@ -54,6 +54,12 @@ export function LessonScreen({
   const [guessOutcome, setGuessOutcome] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
+  // Pick the clip once per open — a word can have several variant clips
+  // and the choice must not change while the overlay re-renders.
+  const videoSrc = useMemo(
+    () => (videoOpen ? getAnimalVideo(item.word) : undefined),
+    [videoOpen, item.word]
+  );
   const [flipped, setFlipped] = useState(false);
   const flipBackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const guessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -566,7 +572,7 @@ export function LessonScreen({
             </button>
             <video
               className="video-player"
-              src={getAnimalVideo(item.word)}
+              src={videoSrc}
               autoPlay
               controls
               playsInline
