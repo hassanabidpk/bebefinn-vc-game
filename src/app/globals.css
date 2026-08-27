@@ -1709,11 +1709,11 @@ html, body {
 
 .dance-floor {
   position: relative; display: flex; align-items: flex-end; justify-content: center; gap: 18px;
-  width: 100%; min-height: 290px;
+  width: 100%; min-height: 340px;
 }
 .dance-mascot-stage {
   position: relative; z-index: 2; display: block;
-  width: 350px; height: 290px; padding: 0; border: none; background: none;
+  width: 420px; height: 340px; padding: 0; border: none; background: none;
   cursor: pointer; touch-action: manipulation;
 }
 .dance-mascot-stage:focus-visible { outline: 6px solid #fff; outline-offset: 2px; border-radius: 42px; }
@@ -1878,9 +1878,9 @@ html, body {
   .dance-lyric { font-size: 22px; }
   .dance-cue-move { font-size: 24px; padding: 6px 18px; }
   .dance-cue-emoji { font-size: 32px; }
-  .dance-mascot-stage { width: 260px; height: 225px; }
+  .dance-mascot-stage { width: 300px; height: 250px; }
   .dance-motion-guide { top: 2px; left: 8px; min-width: 52px; font-size: 27px; }
-  .dance-floor { min-height: 225px; }
+  .dance-floor { min-height: 250px; }
   .dance-partner { right: 8px; bottom: 10px; width: 112px; height: 112px; border-radius: 25px; }
   .dance-partner span { font-size: 13px; bottom: 5px; }
   .dance-move-btn { min-height: 82px; }
