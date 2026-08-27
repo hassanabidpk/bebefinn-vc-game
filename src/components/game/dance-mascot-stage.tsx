@@ -106,7 +106,7 @@ function buildOceanBuddy(): MascotRig {
   const black = material(0x181822, 0.4);
 
   const root = new THREE.Group();
-  root.position.y = -0.18;
+  root.position.y = 0.14;
 
   // Pelvis / lower body group
   const body = new THREE.Group();
@@ -241,7 +241,7 @@ function buildOceanBuddy(): MascotRig {
   tail.add(tailMesh);
   root.add(tail);
 
-  root.scale.setScalar(1.08);
+  root.scale.setScalar(1.24);
 
   return {
     root,
@@ -331,9 +331,9 @@ function buildDanceEffects(
 }
 
 function resetPose(rig: MascotRig) {
-  rig.root.position.set(0, -0.18, 0);
+  rig.root.position.set(0, 0.14, 0);
   rig.root.rotation.set(0, 0, 0);
-  rig.root.scale.setScalar(1.08);
+  rig.root.scale.setScalar(1.24);
 
   rig.body.position.set(0, 0, 0);
   rig.body.rotation.set(0, 0, 0);
@@ -508,7 +508,8 @@ function poseMascot(
   rig.chest.scale.set(1 + breath * 0.02, 1 + breath * 0.025, 1 + breath * 0.02);
   rig.tail.rotation.z = Math.sin(time * 3.5) * 0.18;
   rig.ears.forEach((ear, i) => {
-    ear.rotation.z = (i === 0 ? -1 : 1) * Math.sin(time * 4.2) * 0.08;
+    ear.rotation.z = (i === 0 ? -1 : 1) * Math.sin(time * 4.2 + i * 0.9) * 0.09;
+    ear.rotation.x = Math.sin(time * 3.1 + i * 1.3) * 0.05;
   });
 
   // Natural lively eye blinks
@@ -530,11 +531,12 @@ function poseMascot(
     rig.head.rotation.z = musicBar * 0.05;
     rig.body.rotation.z = -musicBar * 0.04;
 
-    // Relaxed arms with subtle rhythmic swing
+    // Relaxed arms with subtle rhythmic swing — right side trails slightly
+    const musicBarLag = Math.sin(time * (bpmFreq / 2) - 0.55);
     rig.leftArm.rotation.z = -0.25 - musicBar * 0.12;
-    rig.rightArm.rotation.z = 0.25 - musicBar * 0.12;
+    rig.rightArm.rotation.z = 0.25 - musicBarLag * 0.12;
     rig.leftForearm.rotation.z = 0.35 + bounce * 0.1;
-    rig.rightForearm.rotation.z = -0.35 - bounce * 0.1;
+    rig.rightForearm.rotation.z = -0.35 - Math.abs(musicBarLag) * 0.1;
 
     // Gentle knee flexion
     rig.leftLeg.rotation.x = bounce * 0.08;
@@ -573,6 +575,12 @@ function poseMascot(
     }
 
     const clapContact = 1 - armOpen;
+
+    // Every other clap leans the opposite way — breaks metronome symmetry
+    const alt = Math.floor(time / clapCycle) % 2 === 0 ? 1 : -1;
+    rig.root.rotation.z = alt * clapContact * 0.05;
+    rig.root.rotation.y = alt * clapContact * 0.09;
+    rig.head.rotation.z = alt * clapContact * 0.12;
 
     // Body squash and stretch on clap beat impact
     rig.body.scale.y = 1 - impactSquash * 0.08 + chestPuff * 0.04;
@@ -653,7 +661,7 @@ function poseMascot(
       // Explosive push-off
       const p = (phase - 0.2) / 0.14;
       const launch = easeOutQuad(p);
-      yOffset = -0.42 + launch * 1.2;
+      yOffset = -0.42 + launch * 1.08;
       squashY = THREE.MathUtils.lerp(0.76, 1.22, launch); // Vertical stretch!
       armsUp = launch;
       anklePoint = 0.7 * launch;
@@ -664,7 +672,7 @@ function poseMascot(
       // Parabolic flight & mid-air tuck
       const p = (phase - 0.34) / 0.34;
       flight = Math.sin(p * Math.PI);
-      yOffset = 0.78 + flight * 0.55;
+      yOffset = 0.66 + flight * 0.44;
       squashY = 1.0 + flight * 0.04;
       armsUp = 1.0;
       kneeBend = 0.4 + flight * 0.45; // Joyful mid-air knee tuck!
@@ -696,7 +704,9 @@ function poseMascot(
       squashY = 1.0;
     }
 
-    // Apply root & volume preservation
+    // Apply root & volume preservation; each jump twists a different way
+    const jumpTwist = Math.sin(Math.floor(time / jumpCycle) * 1.7 + 0.6) * 0.2;
+    rig.root.rotation.y = jumpTwist * flight;
     rig.root.position.y += yOffset;
     rig.body.scale.y = squashY;
     const invScale = Math.sqrt(1 / Math.max(0.2, squashY));
@@ -876,6 +886,16 @@ function poseMascot(
     rig.tail.rotation.y = swayZ * 0.45;
   }
 
+  // Slow incommensurate drift so the pose never freezes into an exact loop
+  if (!reducedMotion) {
+    const drift = Math.sin(time * 0.7) * 0.6 + Math.sin(time * 1.13 + 1.7) * 0.4;
+    const drift2 = Math.sin(time * 0.53 + 0.9);
+    rig.head.rotation.y += drift * 0.07;
+    rig.head.rotation.z += drift2 * 0.04;
+    rig.chest.rotation.y += drift2 * 0.035;
+    rig.root.rotation.y += drift * 0.03;
+  }
+
   poseEffects(effects, move, time);
 }
 
@@ -917,7 +937,7 @@ export function DanceMascotStage({ move, actionKey, guide, onTap }: DanceMascotS
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-3, 3, 2.8, -2.8, 0.1, 30);
+    const camera = new THREE.OrthographicCamera(-3, 3, 3.3, -2.6, 0.1, 30);
     camera.position.set(0, 0.18, 9);
     camera.lookAt(0, 0, 0);
 
@@ -963,6 +983,56 @@ export function DanceMascotStage({ move, actionKey, guide, onTap }: DanceMascotS
     const effects = buildDanceEffects(scene, ring, { keyLight, rimLight, fillLight });
     setReady(true);
 
+    // Per-joint lag smoothing: poseMascot writes the target pose, then each joint
+    // eases toward it at its own response rate. Snappy joints (hands, feet) keep
+    // beat impacts crisp; floppy parts (tail, ears, head) trail behind for natural
+    // follow-through, and move changes crossfade instead of snapping.
+    const jointLags: [THREE.Object3D, number][] = [
+      [rig.root, 16],
+      [rig.body, 12],
+      [rig.chest, 9],
+      [rig.head, 7],
+      [rig.leftArm, 16],
+      [rig.rightArm, 16],
+      [rig.leftForearm, 14],
+      [rig.rightForearm, 14],
+      [rig.leftHand, 18],
+      [rig.rightHand, 18],
+      [rig.leftLeg, 15],
+      [rig.rightLeg, 15],
+      [rig.leftShin, 13],
+      [rig.rightShin, 13],
+      [rig.leftFoot, 18],
+      [rig.rightFoot, 18],
+      [rig.tail, 5],
+      [rig.ears[0], 6],
+      [rig.ears[1], 6],
+    ];
+    const jointStates = new Map<
+      THREE.Object3D,
+      { pos: THREE.Vector3; quat: THREE.Quaternion; scl: THREE.Vector3 }
+    >();
+    const smoothJoints = (dt: number) => {
+      for (const [joint, response] of jointLags) {
+        const state = jointStates.get(joint);
+        if (!state) {
+          jointStates.set(joint, {
+            pos: joint.position.clone(),
+            quat: joint.quaternion.clone(),
+            scl: joint.scale.clone(),
+          });
+          continue;
+        }
+        const blend = 1 - Math.exp(-response * dt);
+        state.pos.lerp(joint.position, blend);
+        state.quat.slerp(joint.quaternion, blend);
+        state.scl.lerp(joint.scale, blend);
+        joint.position.copy(state.pos);
+        joint.quaternion.copy(state.quat);
+        joint.scale.copy(state.scl);
+      }
+    };
+
     let requestRender = () => undefined;
     const resize = () => {
       const width = Math.max(container.clientWidth, 1);
@@ -971,12 +1041,14 @@ export function DanceMascotStage({ move, actionKey, guide, onTap }: DanceMascotS
       const visualScale = Math.sqrt((bounds.width * bounds.height) / (width * height)) || 1;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio * visualScale, 2));
       renderer.setSize(width, height, false);
-      const halfHeight = 2.85;
-      const halfWidth = halfHeight * (width / height);
+      // Asymmetric frame: platform sits low, head near top, minimal dead space
+      const frameTop = 3.3;
+      const frameBottom = -2.6;
+      const halfWidth = ((frameTop - frameBottom) / 2) * (width / height);
       camera.left = -halfWidth;
       camera.right = halfWidth;
-      camera.top = halfHeight;
-      camera.bottom = -halfHeight;
+      camera.top = frameTop;
+      camera.bottom = frameBottom;
       camera.updateProjectionMatrix();
       if (reducedMotion) requestRender();
     };
@@ -986,10 +1058,14 @@ export function DanceMascotStage({ move, actionKey, guide, onTap }: DanceMascotS
     window.addEventListener("resize", resize);
 
     let frame = 0;
+    let lastFrameAt = 0;
     const render = () => {
       frame = 0;
       const now = performance.now() / 1000;
+      const dt = lastFrameAt ? Math.min(now - lastFrameAt, 0.05) : 1 / 60;
+      lastFrameAt = now;
       poseMascot(rig, effects, moveRef.current, now - startedAtRef.current, reducedMotion);
+      if (!reducedMotion) smoothJoints(dt);
       renderer.render(scene, camera);
       if (!reducedMotion) frame = requestAnimationFrame(render);
     };
