@@ -9,7 +9,7 @@ interface HomeScreenProps {
   onStart: () => void;
   onStickers: () => void;
   onMode: (
-    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue" | "dance"
+    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue" | "dance" | "draw"
   ) => void;
 }
 
@@ -55,6 +55,7 @@ export function HomeScreen({ onStart, onMode, onStickers }: HomeScreenProps) {
           <button className="home-chip" onClick={() => onMode("notepad")}>📝 Notepad</button>
           <button className="home-chip home-chip-rescue" onClick={() => onMode("rescue")}>🫧 Rescue</button>
           <button className="home-chip home-chip-dance" onClick={() => onMode("dance")}>🕺 Dance</button>
+          <button className="home-chip home-chip-draw" onClick={() => onMode("draw")}>🎨 Draw</button>
         </div>
       </div>
     </div>
