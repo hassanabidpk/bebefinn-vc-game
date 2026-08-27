@@ -96,3 +96,16 @@ npx vitest run       # unit tests (also `npm test`)
 `npm run lint` is broken in this repo (`next lint` is gone from the installed Next.js) — do not
 run it. For a visual check use the `dev` config in `.claude/launch.json`; if a canvas animation
 looks frozen in the preview pane, see the `preview-verify-animation` skill.
+
+## 7. Register spoken phrases (game TTS voice)
+
+If the screen speaks (`useFriendlySpeech().speak(...)`), every EXACT phrase string must be
+registered in `src/lib/tts-phrases.ts` in **two** places, or players get 403s from
+`/api/tts` and hear the robotic device voice instead of the game voice:
+
+1. `add(...)` — the request allowlist checked by `src/app/api/tts/route.ts`.
+2. `coreGamePhrases.add(...)` — the pre-generation set used by `scripts/generate-tts.ts`.
+
+Then run `npm run tts:generate` (needs `GEMINI_API_KEY` in `.env.local`; resumable, only
+makes missing wavs) and commit the new `public/tts/*.wav` files. Verify in the browser:
+`/tts/<hash>.wav` requests must be 200, with no `/api/tts` 403 fallbacks.
