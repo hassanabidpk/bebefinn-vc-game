@@ -97,11 +97,15 @@ function cycle(time: number, duration: number) {
 }
 
 function buildOceanBuddy(): MascotRig {
-  const brown = material(0x9e5f38, 0.7);
-  const darkBrown = material(0x5e321b, 0.72);
-  const cream = material(0xffe6be, 0.75);
-  const teal = material(0x0ebbc5, 0.55);
+  // Warm plush-toy palette — soft cocoa tones, high roughness for a velvety fur look
+  const brown = material(0xb0713d, 0.88);
+  const darkBrown = material(0x84512a, 0.88);
+  const cream = material(0xffe6be, 0.85);
+  // Match the 2D character art: green overalls + red kerchief + star badge
+  const teal = material(0x3fa06a, 0.62);
   const coral = material(0xff6782, 0.55);
+  const scarf = material(0xe8563c, 0.6);
+  const sunny = material(0xffd93d, 0.5);
   const white = material(0xffffff, 0.35);
   const black = material(0x181822, 0.4);
 
@@ -122,14 +126,32 @@ function buildOceanBuddy(): MascotRig {
   chest.position.set(0, 0.25, 0);
   body.add(chest);
 
-  const bib = mesh(new THREE.BoxGeometry(0.92, 0.74, 0.12), teal, [0, 0.05, 0.84], [1, 1, 1]);
+  const bib = mesh(new THREE.BoxGeometry(0.92, 0.74, 0.12), teal, [0, -0.06, 0.8], [1, 1, 1]);
   bib.geometry.translate(0, -0.1, 0);
   chest.add(bib);
 
-  for (const x of [-0.31, 0.31]) {
-    chest.add(mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.05, 10), teal, [x, 0.38, 0.7], [1, 1, 1]));
-    chest.add(mesh(new THREE.SphereGeometry(0.075, 12, 8), coral, [x, 0.12, 0.92]));
+  // Short straps angled back over the shoulders (kept clear of the face)
+  for (const x of [-0.34, 0.34]) {
+    const strap = mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.62, 10), teal, [x, 0.32, 0.55], [1, 1, 1]);
+    strap.rotation.x = -0.55;
+    strap.rotation.z = x < 0 ? -0.18 : 0.18;
+    chest.add(strap);
+    chest.add(mesh(new THREE.SphereGeometry(0.075, 12, 8), coral, [x * 0.91, 0.08, 0.88]));
   }
+
+  // Star badge on the bib
+  const star = mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.06, 5), sunny, [0, -0.14, 0.92]);
+  star.rotation.x = Math.PI / 2;
+  chest.add(star);
+
+  // Red kerchief around the neck with a knot tail, like the 2D art
+  const kerchief = mesh(new THREE.TorusGeometry(0.52, 0.15, 12, 26), scarf, [0, 0.6, 0.08], [1, 1, 0.85]);
+  kerchief.rotation.x = Math.PI / 2;
+  chest.add(kerchief);
+  const knot = mesh(new THREE.ConeGeometry(0.17, 0.36, 10), scarf, [0.1, 0.36, 0.62], [1, 1, 0.6]);
+  knot.rotation.x = Math.PI;
+  knot.rotation.z = -0.25;
+  chest.add(knot);
 
   // Head group anchored to chest/neck
   const head = new THREE.Group();
@@ -176,16 +198,17 @@ function buildOceanBuddy(): MascotRig {
     const shoulder = new THREE.Group();
     shoulder.position.set(side * 0.88, 0.45, 0);
 
-    // Shoulder cap + upper arm
-    shoulder.add(mesh(new THREE.SphereGeometry(0.22, 16, 12), brown, [0, -0.04, 0]));
-    const upperArm = mesh(new THREE.CapsuleGeometry(0.17, 0.36, 6, 10), brown, [0, -0.28, 0]);
+    // Shoulder cap + upper arm — joint spheres share the fur color and overlap
+    // the capsules so the limb reads as one soft piece, not stacked beads
+    shoulder.add(mesh(new THREE.SphereGeometry(0.24, 16, 12), brown, [0, -0.04, 0]));
+    const upperArm = mesh(new THREE.CapsuleGeometry(0.19, 0.36, 6, 10), brown, [0, -0.28, 0]);
     shoulder.add(upperArm);
 
     // Forearm hinge
     const forearm = new THREE.Group();
     forearm.position.set(0, -0.54, 0);
-    forearm.add(mesh(new THREE.SphereGeometry(0.18, 14, 10), darkBrown, [0, 0, 0]));
-    const lowerArm = mesh(new THREE.CapsuleGeometry(0.16, 0.32, 6, 10), brown, [0, -0.26, 0]);
+    forearm.add(mesh(new THREE.SphereGeometry(0.2, 14, 10), brown, [0, 0, 0]));
+    const lowerArm = mesh(new THREE.CapsuleGeometry(0.18, 0.32, 6, 10), brown, [0, -0.26, 0]);
     forearm.add(lowerArm);
     shoulder.add(forearm);
 
@@ -235,10 +258,12 @@ function buildOceanBuddy(): MascotRig {
 
   // Tail anchored to rear pelvis
   const tail = new THREE.Group();
-  tail.position.set(0.74, -0.46, -0.42);
-  const tailMesh = mesh(new THREE.CapsuleGeometry(0.2, 1.1, 7, 12), darkBrown, [0, -0.52, 0]);
-  tailMesh.rotation.z = -0.92;
+  tail.position.set(0.68, -0.5, -0.4);
+  const tailMesh = mesh(new THREE.CapsuleGeometry(0.26, 0.62, 7, 12), darkBrown, [0, -0.34, 0]);
+  tailMesh.rotation.z = -0.75;
   tail.add(tailMesh);
+  // Rounded tip so the tail reads as a soft paddle, not a plank
+  tail.add(mesh(new THREE.SphereGeometry(0.28, 16, 12), darkBrown, [0.3, -0.56, 0], [1.25, 0.85, 1]));
   root.add(tail);
 
   root.scale.setScalar(1.24);
