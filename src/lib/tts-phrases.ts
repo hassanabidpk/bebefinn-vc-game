@@ -5,6 +5,11 @@ import { STICKER_ANIMALS } from "./sticker-animals";
 import { DANCE_MOVES } from "./dance-cues";
 import { DRAW_ANIMALS } from "./draw-animals";
 import {
+  DRAW_YOUR_TURN_PHRASE,
+  getDrawPraisePhrase,
+  getDrawWatchPhrase,
+} from "./draw-score";
+import {
   getRescuePromptPhrase,
   getRescueRetryPhrase,
   getRescueSuccessPhrase,
@@ -92,10 +97,16 @@ add(DANCE_COMPLETE_PHRASE);
 for (const animal of STICKER_ANIMALS) add(getDancePartnerPhrase(animal.word));
 for (const move of DANCE_MOVES) add(getDanceMovePhrase(move.label));
 
-// Draw game: animal name on pick, every step instruction, and the
-// end-of-tutorial praise line.
+// Draw game: watch-phrase on pick, every step instruction, the your-turn
+// hand-off, and the per-star praise lines.
+add(DRAW_YOUR_TURN_PHRASE);
 for (const animal of DRAW_ANIMALS) {
-  add(`${animal.word}!`, `Wow! You drew a ${animal.word}! Great job!`);
+  add(`${animal.word}!`, getDrawWatchPhrase(animal.word));
+  add(
+    getDrawPraisePhrase(1, animal.word),
+    getDrawPraisePhrase(2, animal.word),
+    getDrawPraisePhrase(3, animal.word)
+  );
   for (const step of animal.steps) add(step.say);
 }
 
@@ -138,9 +149,13 @@ coreGamePhrases.add(NOTEPAD_TAP_REMINDER);
 coreGamePhrases.add(DANCE_COMPLETE_PHRASE);
 for (const animal of STICKER_ANIMALS) coreGamePhrases.add(getDancePartnerPhrase(animal.word));
 for (const move of DANCE_MOVES) coreGamePhrases.add(getDanceMovePhrase(move.label));
+coreGamePhrases.add(DRAW_YOUR_TURN_PHRASE);
 for (const animal of DRAW_ANIMALS) {
   coreGamePhrases.add(`${animal.word}!`);
-  coreGamePhrases.add(`Wow! You drew a ${animal.word}! Great job!`);
+  coreGamePhrases.add(getDrawWatchPhrase(animal.word));
+  coreGamePhrases.add(getDrawPraisePhrase(1, animal.word));
+  coreGamePhrases.add(getDrawPraisePhrase(2, animal.word));
+  coreGamePhrases.add(getDrawPraisePhrase(3, animal.word));
   for (const step of animal.steps) coreGamePhrases.add(step.say);
 }
 
