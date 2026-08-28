@@ -9,6 +9,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DRAW_ANIMALS, type DrawAnimal } from "@/lib/draw-animals";
+import {
+  combineScore,
+  starsForScore,
+  getDrawPraisePhrase,
+  getDrawWatchPhrase,
+  DRAW_YOUR_TURN_PHRASE,
+  type DrawStars,
+} from "@/lib/draw-score";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { Confetti } from "./confetti";
 import { BubbleBackground } from "./ocean-stage";
@@ -35,13 +43,22 @@ interface DrawDemoProps {
   stepIndex: number;
   /** Bumped by the replay button to re-run the stroke animation. */
   nonce: number;
+  /** "step": earlier steps solid, current step animates in. "all": the whole
+   *  animal draws itself start to finish (the pre-tutorial preview). */
+  mode?: "step" | "all";
+  /** Called once the animation has finished playing (mode "all" preview). */
+  onDone?: () => void;
 }
 
 /** The "watch me" panel: earlier steps solid, the current step drawing in. */
-function DrawDemo({ animal, stepIndex, nonce }: DrawDemoProps) {
+function DrawDemo({ animal, stepIndex, nonce, mode = "step", onDone }: DrawDemoProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const done = animal.steps.slice(0, stepIndex).flatMap((step) => step.paths);
-  const current = animal.steps[stepIndex]?.paths ?? [];
+  const done =
+    mode === "all" ? [] : animal.steps.slice(0, stepIndex).flatMap((step) => step.paths);
+  const current =
+    mode === "all"
+      ? animal.steps.flatMap((step) => step.paths)
+      : animal.steps[stepIndex]?.paths ?? [];
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -64,7 +81,11 @@ function DrawDemo({ animal, stepIndex, nonce }: DrawDemoProps) {
       path.style.strokeDashoffset = "0";
       delay += duration;
     }
-  }, [animal, stepIndex, nonce]);
+    if (onDone) {
+      const timer = setTimeout(onDone, reduced ? 600 : (delay + 0.5) * 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [animal, stepIndex, nonce, mode, onDone]);
 
   return (
     <svg
@@ -109,8 +130,12 @@ interface DrawScreenProps {
 
 export function DrawScreen({ onHome }: DrawScreenProps) {
   const [animal, setAnimal] = useState<DrawAnimal | null>(null);
+  // "watch": the whole animal draws itself as a preview; "steps": the child
+  // follows along step by step.
+  const [phase, setPhase] = useState<"watch" | "steps">("watch");
   const [stepIndex, setStepIndex] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [stars, setStars] = useState<DrawStars | null>(null);
   const [replayNonce, setReplayNonce] = useState(0);
   const [crayon, setCrayon] = useState(CRAYONS[0].hex);
 
@@ -156,23 +181,20 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
 
     observer.observe(wrap);
     return () => observer.disconnect();
-  }, [animal]);
+  }, [animal, phase]);
 
-  // One line per step, spoken on arrival. Step 0 says the animal's name first.
+  // One line per step, spoken on arrival. The preview already announced the
+  // animal, so each step just speaks its own instruction.
   useEffect(() => {
-    if (!animal) return;
+    if (!animal || phase !== "steps") return;
     const line = animal.steps[stepIndex]?.say ?? "";
-    if (stepIndex === 0) {
-      speak(`${animal.word}!`, { onEnd: () => speak(line) });
-      return;
-    }
-    speak(line);
-  }, [animal, stepIndex, speak]);
+    if (line) speak(line);
+  }, [animal, phase, stepIndex, speak]);
 
   useEffect(() => {
-    if (!finished || !animal) return;
-    speak(`Wow! You drew a ${animal.word}! Great job!`);
-  }, [finished, animal, speak]);
+    if (!finished || !animal || !stars) return;
+    speak(getDrawPraisePhrase(stars, animal.word));
+  }, [finished, animal, stars, speak]);
 
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -186,16 +208,120 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
 
   const pickAnimal = (chosen: DrawAnimal) => {
     setAnimal(chosen);
+    setPhase("watch");
     setStepIndex(0);
     setFinished(false);
+    setStars(null);
     setReplayNonce(0);
+    speak(getDrawWatchPhrase(chosen.word));
   };
 
   const backToPicker = () => {
     stop();
     setAnimal(null);
+    setPhase("watch");
     setFinished(false);
+    setStars(null);
     setStepIndex(0);
+  };
+
+  // Fires when the preview animation ends, or when the child taps the big
+  // crayon button to skip ahead. The ref guards the timer/tap double-fire.
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+  const startSteps = useCallback(() => {
+    if (phaseRef.current !== "watch") return;
+    setPhase("steps");
+    setStepIndex(0);
+    setReplayNonce((n) => n + 1);
+    speak(DRAW_YOUR_TURN_PHRASE);
+  }, [speak]);
+
+  /**
+   * Score the child's canvas against the demo outline. Two offscreen masks:
+   * a thin one (the outline itself) checked against dilated ink for
+   * coverage, and a fat tolerance band checked against raw ink for
+   * precision. Both are drawn with the same scale/offset the ghost guide
+   * SVG uses (preserveAspectRatio "meet"), so crayon and guide line up.
+   */
+  const measureStars = (target: DrawAnimal): DrawStars => {
+    const canvas = canvasRef.current;
+    if (!canvas) return 1;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    if (w < 10 || h < 10) return 1;
+
+    const scale = Math.min(w, h) / 512;
+    const ox = (w - 512 * scale) / 2;
+    const oy = (h - 512 * scale) / 2;
+    const allPaths = target.steps.flatMap((step) => step.paths);
+    const tolerance = Math.max(10, Math.min(w, h) * 0.05);
+
+    const make = () => {
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      return c.getContext("2d");
+    };
+
+    const guideThin = make();
+    const guideFat = make();
+    if (!guideThin || !guideFat) return 1;
+    for (const [ctx, lineWidth] of [
+      [guideThin, DEMO_STROKE_WIDTH],
+      [guideFat, (2 * tolerance) / scale],
+    ] as const) {
+      ctx.setTransform(scale, 0, 0, scale, ox, oy);
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#000";
+      for (const d of allPaths) ctx.stroke(new Path2D(d));
+    }
+
+    const ink = make();
+    const inkFat = make();
+    if (!ink || !inkFat) return 1;
+    ink.drawImage(canvas, 0, 0, w, h);
+    // Stamp the ink in a ring of offsets — a cheap dilation, so "covered"
+    // means crayon within the tolerance of the outline point.
+    for (let a = 0; a < 8; a += 1) {
+      const angle = (a / 8) * Math.PI * 2;
+      inkFat.drawImage(
+        ink.canvas,
+        Math.cos(angle) * tolerance * 0.7,
+        Math.sin(angle) * tolerance * 0.7,
+        w,
+        h
+      );
+    }
+    inkFat.drawImage(ink.canvas, 0, 0, w, h);
+
+    const thinA = guideThin.getImageData(0, 0, w, h).data;
+    const fatA = guideFat.getImageData(0, 0, w, h).data;
+    const inkA = ink.getImageData(0, 0, w, h).data;
+    const inkFatA = inkFat.getImageData(0, 0, w, h).data;
+
+    let outline = 0;
+    let covered = 0;
+    let inkCount = 0;
+    let near = 0;
+    for (let y = 0; y < h; y += 3) {
+      for (let x = 0; x < w; x += 3) {
+        const i = (y * w + x) * 4 + 3;
+        if (thinA[i] > 40) {
+          outline += 1;
+          if (inkFatA[i] > 20) covered += 1;
+        }
+        if (inkA[i] > 40) {
+          inkCount += 1;
+          if (fatA[i] > 40) near += 1;
+        }
+      }
+    }
+    const coverage = outline ? covered / outline : 0;
+    const precision = inkCount ? near / inkCount : 0;
+    return starsForScore(combineScore(coverage, precision));
   };
 
   const next = () => {
@@ -204,6 +330,7 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
       setStepIndex((i) => i + 1);
       return;
     }
+    setStars(measureStars(animal));
     setFinished(true);
   };
 
@@ -281,6 +408,22 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
             </button>
           ))}
         </div>
+      ) : phase === "watch" ? (
+        <div className="draw-preview">
+          <section className="draw-panel draw-preview-panel">
+            <span className="draw-panel-tag">👀</span>
+            <DrawDemo
+              animal={animal}
+              stepIndex={0}
+              nonce={replayNonce}
+              mode="all"
+              onDone={startSteps}
+            />
+          </section>
+          <button className="draw-your-turn-btn" onClick={startSteps} aria-label="Your turn — start drawing">
+            ✏️
+          </button>
+        </div>
       ) : (
         <div className="draw-tutorial">
           <div className="draw-panels">
@@ -292,6 +435,22 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
             <section className="draw-panel">
               <span className="draw-panel-tag">✏️</span>
               <div className="draw-canvas-wrap" ref={wrapRef}>
+                <svg className="draw-ghost" viewBox="0 0 512 512" aria-hidden="true">
+                  {animal.steps
+                    .slice(0, stepIndex + 1)
+                    .flatMap((step) => step.paths)
+                    .map((d, i) => (
+                      <path
+                        key={i}
+                        d={d}
+                        fill="none"
+                        stroke={animal.color}
+                        strokeWidth={DEMO_STROKE_WIDTH}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ))}
+                </svg>
                 <canvas
                   ref={canvasRef}
                   className="draw-canvas"
@@ -339,6 +498,17 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
               <div className="draw-done-card">
                 <span className="draw-done-emoji">{animal.emoji}</span>
                 <strong style={{ color: animal.color }}>You drew a {animal.word}!</strong>
+                <div className="draw-stars" role="img" aria-label={`${stars ?? 1} out of 3 stars`}>
+                  {[1, 2, 3].map((n) => (
+                    <span
+                      key={n}
+                      className={`draw-star ${stars && n <= stars ? "lit" : ""}`}
+                      style={{ animationDelay: `${0.3 + n * 0.35}s` }}
+                    >
+                      ⭐
+                    </span>
+                  ))}
+                </div>
                 <button className="draw-again-btn" onClick={backToPicker} aria-label="Draw another animal">
                   🎨 Draw another!
                 </button>
