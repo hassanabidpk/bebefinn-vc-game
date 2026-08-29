@@ -225,6 +225,26 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
     setStepIndex(0);
   };
 
+  // Keyboard shortcut: press an animal's first letter to pick it. Letters
+  // shared by two animals (Tiger/Turtle) cycle on repeat presses.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const letter = event.key.toLowerCase();
+      if (!/^[a-z]$/.test(letter)) return;
+      const matches = DRAW_ANIMALS.filter(
+        (entry) => entry.word[0].toLowerCase() === letter
+      );
+      if (!matches.length) return;
+      const currentIndex = animal
+        ? matches.findIndex((entry) => entry.word === animal.word)
+        : -1;
+      pickAnimal(matches[(currentIndex + 1) % matches.length]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   // Fires when the preview animation ends, or when the child taps the big
   // crayon button to skip ahead. The ref guards the timer/tap double-fire.
   const phaseRef = useRef(phase);
