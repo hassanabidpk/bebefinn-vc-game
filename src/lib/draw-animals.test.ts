@@ -12,11 +12,19 @@ const EXPECTED_WORDS = [
   "Fish",
   "Ant",
   "Turtle",
+  "Bear",
+  "Cat",
+  "Dog",
+  "Elephant",
+  "Giraffe",
+  "Horse",
+  "Octopus",
+  "Penguin",
 ];
 
 describe("DRAW_ANIMALS", () => {
-  it("has the ten tutorial animals in order", () => {
-    expect(DRAW_ANIMALS).toHaveLength(10);
+  it("has the eighteen tutorial animals in order", () => {
+    expect(DRAW_ANIMALS).toHaveLength(18);
     expect(DRAW_ANIMALS.map((a) => a.word)).toEqual(EXPECTED_WORDS);
   });
 
@@ -34,10 +42,10 @@ describe("DRAW_ANIMALS", () => {
     }
   });
 
-  it("builds each animal from four to six cumulative steps", () => {
+  it("builds each animal from five to seven cumulative steps", () => {
     for (const animal of DRAW_ANIMALS) {
-      expect(animal.steps.length).toBeGreaterThanOrEqual(4);
-      expect(animal.steps.length).toBeLessThanOrEqual(6);
+      expect(animal.steps.length).toBeGreaterThanOrEqual(5);
+      expect(animal.steps.length).toBeLessThanOrEqual(7);
     }
   });
 
