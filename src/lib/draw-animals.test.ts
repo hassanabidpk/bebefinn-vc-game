@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DRAW_ANIMALS } from "./draw-animals";
+import { DRAW_ANIMALS, getDrawSteps } from "./draw-animals";
 
 const EXPECTED_WORDS = [
   "Shark",
@@ -90,6 +90,56 @@ describe("DRAW_ANIMALS", () => {
     for (const animal of DRAW_ANIMALS) {
       const last = animal.steps[animal.steps.length - 1];
       expect(last.paths.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("never marks the final face step as a detail pass", () => {
+    for (const animal of DRAW_ANIMALS) {
+      expect(animal.steps[animal.steps.length - 1].detail).toBeUndefined();
+    }
+  });
+});
+
+describe("getDrawSteps", () => {
+  it("returns every step unchanged on medium", () => {
+    for (const animal of DRAW_ANIMALS) {
+      expect(getDrawSteps(animal, "medium")).toEqual(animal.steps);
+    }
+  });
+
+  it("draws each animal in three or four steps on simple", () => {
+    for (const animal of DRAW_ANIMALS) {
+      const simple = getDrawSteps(animal, "simple");
+      expect(simple.length).toBeGreaterThanOrEqual(3);
+      expect(simple.length).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it("keeps the face as the last simple step", () => {
+    for (const animal of DRAW_ANIMALS) {
+      const simple = getDrawSteps(animal, "simple");
+      const medium = getDrawSteps(animal, "medium");
+      expect(simple[simple.length - 1]).toBe(medium[medium.length - 1]);
+    }
+  });
+
+  it("keeps simple steps as a subsequence of the medium steps", () => {
+    for (const animal of DRAW_ANIMALS) {
+      const medium = getDrawSteps(animal, "medium");
+      let cursor = 0;
+      for (const step of getDrawSteps(animal, "simple")) {
+        const found = medium.indexOf(step, cursor);
+        expect(found).toBeGreaterThanOrEqual(0);
+        cursor = found + 1;
+      }
+    }
+  });
+
+  it("drops exactly the steps flagged as detail", () => {
+    for (const animal of DRAW_ANIMALS) {
+      const simple = getDrawSteps(animal, "simple");
+      expect(simple).toEqual(animal.steps.filter((step) => !step.detail));
+      expect(simple.some((step) => step.detail)).toBe(false);
     }
   });
 });
