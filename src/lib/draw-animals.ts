@@ -18,6 +18,8 @@ export interface DrawStep {
   paths: string[];
   /** Toddler-simple spoken instruction, e.g. "Draw a big circle for the body!" */
   say: string;
+  /** Decoration pass — skipped in Simple mode. */
+  detail?: boolean;
 }
 
 export interface DrawAnimal {
@@ -26,6 +28,14 @@ export interface DrawAnimal {
   /** Main stroke color hex, bright and kid-friendly */
   color: string;
   steps: DrawStep[];
+}
+
+export type DrawLevel = "simple" | "medium";
+
+/** Steps for the chosen level. Simple drops steps flagged `detail`. */
+export function getDrawSteps(animal: DrawAnimal, level: DrawLevel): DrawStep[] {
+  if (level === "medium") return animal.steps;
+  return animal.steps.filter((step) => !step.detail);
 }
 
 export const DRAW_ANIMALS: DrawAnimal[] = [
@@ -63,6 +73,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 109 307 C 124 346 152 384 190 412 C 184 382 176 350 167 327",
         ],
         say: "Draw a side fin below!",
+        detail: true,
       },
       {
         paths: [
@@ -73,6 +84,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 218 188 Q 210 226 220 262",
         ],
         say: "Five little gill lines!",
+        detail: true,
       },
       {
         paths: [
@@ -116,6 +128,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 100 308 C 156 334 244 336 314 308",
         ],
         say: "Tummy line and a back fin!",
+        detail: true,
       },
       {
         paths: [
@@ -130,6 +143,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 232 96 A 8 8 0 1 1 248 96 A 8 8 0 1 1 232 96",
         ],
         say: "Squirt water out the top!",
+        detail: true,
       },
       {
         paths: [
@@ -171,6 +185,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
       {
         paths: ["M 412 320 C 452 344 470 312 462 274 C 456 248 434 244 424 258"],
         say: "Curl a long skinny tail!",
+        detail: true,
       },
       {
         paths: [
@@ -180,6 +195,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 344 372 A 28 20 0 1 1 400 372 A 28 20 0 1 1 344 372",
         ],
         say: "Add three tiny paws!",
+        detail: true,
       },
       {
         paths: [
@@ -221,6 +237,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
       {
         paths: ["M 94 336 A 34 34 0 1 1 162 336 A 34 34 0 1 1 94 336"],
         say: "Add a fluffy round tail!",
+        detail: true,
       },
       {
         paths: [
@@ -230,6 +247,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 260 412 A 24 22 0 1 1 308 412 A 24 22 0 1 1 260 412",
         ],
         say: "Two hoppy feet and two paws!",
+        detail: true,
       },
       {
         paths: [
@@ -274,6 +292,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 404 306 A 24 24 0 1 1 452 306 A 24 24 0 1 1 404 306",
         ],
         say: "Swish a tail with a puff!",
+        detail: true,
       },
       {
         paths: [
@@ -281,6 +300,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 314 440 A 34 22 0 1 1 382 440 A 34 22 0 1 1 314 440",
         ],
         say: "Two big soft paws!",
+        detail: true,
       },
       {
         paths: [
@@ -290,6 +310,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 202 262 A 30 24 0 1 1 262 262 A 30 24 0 1 1 202 262",
         ],
         say: "Little ears and puffy cheeks!",
+        detail: true,
       },
       {
         paths: [
@@ -333,6 +354,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
       {
         paths: ["M 402 254 C 440 240 466 264 462 302 C 458 330 442 344 426 340"],
         say: "Swish a long curly tail!",
+        detail: true,
       },
       {
         paths: [
@@ -347,6 +369,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 442 324 L 456 340",
         ],
         say: "Add stripes on the back!",
+        detail: true,
       },
       {
         paths: [
@@ -361,6 +384,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 130 164 Q 132 180 128 192",
         ],
         say: "Two ears and puffy cheeks!",
+        detail: true,
       },
       {
         paths: [
@@ -411,10 +435,12 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 324 292 C 326 310 324 326 320 336",
         ],
         say: "Add rows of soft feathers!",
+        detail: true,
       },
       {
         paths: ["M 222 380 L 206 452 L 232 440 L 256 456 L 280 440 L 306 452 L 290 380"],
         say: "Add pointy tail feathers!",
+        detail: true,
       },
       {
         paths: [
@@ -422,6 +448,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 214 330 Q 235 350 256 330 Q 277 350 298 330",
         ],
         say: "Fluffy feathers on the chest!",
+        detail: true,
       },
       {
         paths: [
@@ -464,6 +491,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 194 286 C 226 300 254 302 276 296 C 256 328 214 332 192 312 Z",
         ],
         say: "Draw a gill and side fin!",
+        detail: true,
       },
       {
         paths: [
@@ -475,6 +503,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 314 258 Q 330 274 314 290",
         ],
         say: "Draw shiny curvy scales!",
+        detail: true,
       },
       {
         paths: [
@@ -483,6 +512,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 153 70 A 9 9 0 1 1 171 70 A 9 9 0 1 1 153 70",
         ],
         say: "Blow three little bubbles!",
+        detail: true,
       },
       {
         paths: [
@@ -522,6 +552,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 291 285 L 332 316 L 352 366",
         ],
         say: "Count six busy legs!",
+        detail: true,
       },
       {
         paths: [
@@ -531,6 +562,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 40 164 A 8 8 0 1 1 56 164 A 8 8 0 1 1 40 164",
         ],
         say: "Two bendy antennae up high!",
+        detail: true,
       },
       {
         paths: [
@@ -562,6 +594,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 275 286 L 240 302 L 205 286 L 205 254 L 240 238 L 275 254 Z",
         ],
         say: "Draw pretty shell plates!",
+        detail: true,
       },
       {
         paths: ["M 364 264 A 48 44 0 1 1 460 264 A 48 44 0 1 1 364 264"],
@@ -586,6 +619,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
       {
         paths: ["M 100 302 L 58 318 L 102 326 Z"],
         say: "A pointy tail at the back!",
+        detail: true,
       },
       {
         paths: [
@@ -626,6 +660,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 324 330 A 38 56 0 1 1 400 330 A 38 56 0 1 1 324 330",
         ],
         say: "Add two soft round arms!",
+        detail: true,
       },
       {
         paths: [
@@ -635,6 +670,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 300 436 A 16 16 0 1 1 332 436 A 16 16 0 1 1 300 436",
         ],
         say: "Two big feet with paw pads!",
+        detail: true,
       },
       {
         paths: [
@@ -642,6 +678,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 204 232 A 52 38 0 1 1 308 232 A 52 38 0 1 1 204 232",
         ],
         say: "Draw the tummy and snout!",
+        detail: true,
       },
       {
         paths: [
@@ -688,10 +725,12 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 318 432 L 318 448",
         ],
         say: "Two front paws with toes!",
+        detail: true,
       },
       {
         paths: ["M 336 396 C 400 402 436 366 438 314 C 440 274 414 254 394 266"],
         say: "Curl a long fluffy tail!",
+        detail: true,
       },
       {
         paths: [
@@ -703,6 +742,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 425 279 L 445 297",
         ],
         say: "Stripes on the head and tail!",
+        detail: true,
       },
       {
         paths: [
@@ -747,10 +787,12 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 274 408 L 272 448 Q 294 462 316 448 L 312 398",
         ],
         say: "Two front legs and paws!",
+        detail: true,
       },
       {
         paths: ["M 348 320 C 396 306 426 274 434 236 C 438 218 428 208 416 214"],
         say: "Wag a happy curly tail!",
+        detail: true,
       },
       {
         paths: [
@@ -758,6 +800,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 244 306 A 12 12 0 1 1 268 306 A 12 12 0 1 1 244 306",
         ],
         say: "Add a collar with a tag!",
+        detail: true,
       },
       {
         paths: [
@@ -793,6 +836,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 202 158 C 248 158 272 190 266 224 C 262 246 242 260 220 256",
         ],
         say: "Draw one huge floppy ear!",
+        detail: true,
       },
       {
         paths: [
@@ -811,6 +855,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 374 376 L 370 434 Q 394 448 418 434 L 408 340",
         ],
         say: "Four thick tree-trunk legs!",
+        detail: true,
       },
       {
         paths: [
@@ -826,6 +871,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 196 292 C 190 316 180 336 166 352",
         ],
         say: "Tusks, wrinkles, and a tail!",
+        detail: true,
       },
       {
         paths: [
@@ -871,6 +917,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 186 88 C 206 76 224 76 230 86 C 224 96 208 102 190 100",
         ],
         say: "Two horns and two ears!",
+        detail: true,
       },
       {
         paths: [
@@ -884,6 +931,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 408 408 L 418 428",
         ],
         say: "Four long legs and a tail!",
+        detail: true,
       },
       {
         paths: [
@@ -897,6 +945,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 168 142 Q 186 136 192 150 Q 186 166 170 162 Q 160 154 168 142 Z",
         ],
         say: "Add lots of brown patches!",
+        detail: true,
       },
       {
         paths: [
@@ -943,6 +992,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 141 112 L 152 68 L 166 126",
         ],
         say: "Two pointy little ears!",
+        detail: true,
       },
       {
         paths: [
@@ -950,6 +1000,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 128 108 C 122 92 124 78 132 68",
         ],
         say: "Comb a flowing mane down!",
+        detail: true,
       },
       {
         paths: [
@@ -961,6 +1012,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 386 286 C 412 300 424 336 422 366 C 420 390 412 406 400 418",
         ],
         say: "Four legs and a long tail!",
+        detail: true,
       },
       {
         paths: [
@@ -1011,6 +1063,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 297 396 A 7 7 0 1 1 311 396 A 7 7 0 1 1 297 396",
         ],
         say: "Dot little suckers on the arms!",
+        detail: true,
       },
       {
         paths: [
@@ -1019,6 +1072,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 292 162 A 12 12 0 1 1 316 162 A 12 12 0 1 1 292 162",
         ],
         say: "Add bumps on top!",
+        detail: true,
       },
       {
         paths: [
@@ -1027,6 +1081,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 430 86 A 8 8 0 1 1 446 86 A 8 8 0 1 1 430 86",
         ],
         say: "Blow three little bubbles!",
+        detail: true,
       },
       {
         paths: [
@@ -1056,6 +1111,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 256 200 C 322 200 348 258 348 318 C 348 380 310 414 256 414 C 202 414 164 380 164 318 C 164 258 190 200 256 200 Z",
         ],
         say: "Draw the round white tummy!",
+        detail: true,
       },
       {
         paths: [
@@ -1084,6 +1140,7 @@ export const DRAW_ANIMALS: DrawAnimal[] = [
           "M 270 190 A 34 30 0 1 1 338 190 A 34 30 0 1 1 270 190",
         ],
         say: "Draw two soft cheek patches!",
+        detail: true,
       },
       {
         paths: [

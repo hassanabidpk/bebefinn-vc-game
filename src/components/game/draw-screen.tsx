@@ -8,7 +8,13 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DRAW_ANIMALS, type DrawAnimal } from "@/lib/draw-animals";
+import {
+  DRAW_ANIMALS,
+  getDrawSteps,
+  type DrawAnimal,
+  type DrawLevel,
+  type DrawStep,
+} from "@/lib/draw-animals";
 import {
   combineScore,
   starsForScore,
@@ -40,6 +46,8 @@ function prefersReducedMotion() {
 
 interface DrawDemoProps {
   animal: DrawAnimal;
+  /** Steps for the chosen difficulty — Simple drops the detail passes. */
+  steps: DrawStep[];
   stepIndex: number;
   /** Bumped by the replay button to re-run the stroke animation. */
   nonce: number;
@@ -51,14 +59,11 @@ interface DrawDemoProps {
 }
 
 /** The "watch me" panel: earlier steps solid, the current step drawing in. */
-function DrawDemo({ animal, stepIndex, nonce, mode = "step", onDone }: DrawDemoProps) {
+function DrawDemo({ animal, steps, stepIndex, nonce, mode = "step", onDone }: DrawDemoProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const done =
-    mode === "all" ? [] : animal.steps.slice(0, stepIndex).flatMap((step) => step.paths);
+  const done = mode === "all" ? [] : steps.slice(0, stepIndex).flatMap((step) => step.paths);
   const current =
-    mode === "all"
-      ? animal.steps.flatMap((step) => step.paths)
-      : animal.steps[stepIndex]?.paths ?? [];
+    mode === "all" ? steps.flatMap((step) => step.paths) : steps[stepIndex]?.paths ?? [];
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -138,6 +143,10 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
   const [stars, setStars] = useState<DrawStars | null>(null);
   const [replayNonce, setReplayNonce] = useState(0);
   const [crayon, setCrayon] = useState(CRAYONS[0].hex);
+  // Simple keeps the core shapes and the face; Medium adds every detail pass.
+  const [level, setLevel] = useState<DrawLevel>("simple");
+
+  const steps = animal ? getDrawSteps(animal, level) : [];
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -187,9 +196,9 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
   // animal, so each step just speaks its own instruction.
   useEffect(() => {
     if (!animal || phase !== "steps") return;
-    const line = animal.steps[stepIndex]?.say ?? "";
+    const line = getDrawSteps(animal, level)[stepIndex]?.say ?? "";
     if (line) speak(line);
-  }, [animal, phase, stepIndex, speak]);
+  }, [animal, level, phase, stepIndex, speak]);
 
   useEffect(() => {
     if (!finished || !animal || !stars) return;
@@ -225,11 +234,21 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
     setStepIndex(0);
   };
 
-  // Keyboard shortcut: press an animal's first letter to pick it. Letters
-  // shared by two animals (Tiger/Turtle) cycle on repeat presses.
+  // Keyboard: an animal's first letter picks it (shared letters like
+  // Tiger/Turtle cycle on repeat presses); space advances the tutorial.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      if (event.key === " " || event.code === "Space") {
+        // Stop the browser from also re-triggering a focused button.
+        event.preventDefault();
+        if (!animal || finished) return;
+        if (phase === "watch") startSteps();
+        else next();
+        return;
+      }
+
       const letter = event.key.toLowerCase();
       if (!/^[a-z]$/.test(letter)) return;
       const matches = DRAW_ANIMALS.filter(
@@ -244,6 +263,15 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
+
+  // After the celebration has had its moment, return to the animal picker
+  // so the child can choose the next one without hunting for a button.
+  useEffect(() => {
+    if (!finished) return;
+    const timer = setTimeout(backToPicker, 5000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
 
   // Fires when the preview animation ends, or when the child taps the big
   // crayon button to skip ahead. The ref guards the timer/tap double-fire.
@@ -274,7 +302,8 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
     const scale = Math.min(w, h) / 512;
     const ox = (w - 512 * scale) / 2;
     const oy = (h - 512 * scale) / 2;
-    const allPaths = target.steps.flatMap((step) => step.paths);
+    // Score against the guide the child actually saw, not the fuller Medium one.
+    const allPaths = getDrawSteps(target, level).flatMap((step) => step.paths);
     const tolerance = Math.max(10, Math.min(w, h) * 0.05);
 
     const make = () => {
@@ -346,7 +375,7 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
 
   const next = () => {
     if (!animal) return;
-    if (stepIndex < animal.steps.length - 1) {
+    if (stepIndex < steps.length - 1) {
       setStepIndex((i) => i + 1);
       return;
     }
@@ -395,8 +424,8 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
           <span className="progress-letter">🎨 Draw</span>
         </div>
         {animal ? (
-          <div className="draw-step-dots" aria-label={`Step ${stepIndex + 1} of ${animal.steps.length}`}>
-            {animal.steps.map((step, i) => (
+          <div className="draw-step-dots" aria-label={`Step ${stepIndex + 1} of ${steps.length}`}>
+            {steps.map((step, i) => (
               <span
                 key={step.say + i}
                 className={`draw-step-dot ${i < stepIndex || finished ? "done" : ""} ${
@@ -412,28 +441,49 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
       </header>
 
       {!animal ? (
-        <div className="draw-picker">
-          {DRAW_ANIMALS.map((entry) => (
+        <>
+          <div className="draw-levels" role="group" aria-label="How hard should the drawing be?">
             <button
-              key={entry.word}
-              className="draw-animal-card"
-              style={{ borderColor: entry.color }}
-              onClick={() => pickAnimal(entry)}
-              aria-label={`Draw a ${entry.word}`}
+              className={`draw-level-btn ${level === "simple" ? "picked" : ""}`}
+              onClick={() => setLevel("simple")}
+              aria-pressed={level === "simple"}
+              aria-label="Simple drawings"
             >
-              <span className="draw-animal-emoji">{entry.emoji}</span>
-              <span className="draw-animal-word" style={{ color: entry.color }}>
-                {entry.word}
-              </span>
+              <span aria-hidden="true">🙂</span> Simple
             </button>
-          ))}
-        </div>
+            <button
+              className={`draw-level-btn ${level === "medium" ? "picked" : ""}`}
+              onClick={() => setLevel("medium")}
+              aria-pressed={level === "medium"}
+              aria-label="Medium drawings"
+            >
+              <span aria-hidden="true">🎨</span> Medium
+            </button>
+          </div>
+          <div className="draw-picker">
+            {DRAW_ANIMALS.map((entry) => (
+              <button
+                key={entry.word}
+                className="draw-animal-card"
+                style={{ borderColor: entry.color }}
+                onClick={() => pickAnimal(entry)}
+                aria-label={`Draw a ${entry.word}`}
+              >
+                <span className="draw-animal-emoji">{entry.emoji}</span>
+                <span className="draw-animal-word" style={{ color: entry.color }}>
+                  {entry.word}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
       ) : phase === "watch" ? (
         <div className="draw-preview">
           <section className="draw-panel draw-preview-panel">
             <span className="draw-panel-tag">👀</span>
             <DrawDemo
               animal={animal}
+              steps={steps}
               stepIndex={0}
               nonce={replayNonce}
               mode="all"
@@ -449,14 +499,14 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
           <div className="draw-panels">
             <section className="draw-panel">
               <span className="draw-panel-tag">👀</span>
-              <DrawDemo animal={animal} stepIndex={stepIndex} nonce={replayNonce} />
+              <DrawDemo animal={animal} steps={steps} stepIndex={stepIndex} nonce={replayNonce} />
             </section>
 
             <section className="draw-panel">
               <span className="draw-panel-tag">✏️</span>
               <div className="draw-canvas-wrap" ref={wrapRef}>
                 <svg className="draw-ghost" viewBox="0 0 512 512" aria-hidden="true">
-                  {animal.steps
+                  {steps
                     .slice(0, stepIndex + 1)
                     .flatMap((step) => step.paths)
                     .map((d, i) => (

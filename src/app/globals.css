@@ -2074,6 +2074,28 @@ html, body {
 .draw-your-turn-btn:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 3px; }
 @keyframes draw-turn-pulse { from { transform: scale(1); } to { transform: scale(1.12); } }
 
+/* Simple / Medium difficulty toggle above the animal picker. */
+.draw-levels {
+  position: relative; z-index: 20;
+  display: flex; justify-content: center; gap: 14px;
+  padding: 4px 0 10px;
+}
+.draw-level-btn {
+  min-height: 64px; padding: 0 26px; border-radius: 26px;
+  border: 4px solid #fff; cursor: pointer; touch-action: manipulation;
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 22px;
+  color: #4a2a00; background: rgba(255,255,255,0.9);
+  box-shadow: 0 6px 0 rgba(0,60,90,0.22);
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+.draw-level-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,60,90,0.22); }
+.draw-level-btn:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 3px; }
+.draw-level-btn.picked {
+  background: var(--sunny, #FFD93D);
+  border-color: var(--ocean-700);
+  box-shadow: 0 6px 0 #c9a400;
+}
+
 /* Star score on the celebration card. */
 .draw-stars { display: flex; gap: 10px; }
 .draw-star {
@@ -2103,11 +2125,12 @@ html, body {
   .draw-preview-panel { width: min(92vw, 92%); }
   .draw-your-turn-btn { width: 80px; height: 80px; font-size: 38px; }
   .draw-star { font-size: 40px; }
+  .draw-level-btn { min-height: 56px; padding: 0 18px; font-size: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .draw-demo-live { transition: none !important; stroke-dashoffset: 0 !important; }
   .draw-done-card { animation: none; }
-  .draw-animal-card, .draw-crayon, .draw-ctrl-btn, .draw-step-dot { transition: none; }
+  .draw-animal-card, .draw-crayon, .draw-ctrl-btn, .draw-step-dot, .draw-level-btn { transition: none; }
   .draw-your-turn-btn { animation: none; }
   .draw-star.lit { animation: none; opacity: 1; }
 }
