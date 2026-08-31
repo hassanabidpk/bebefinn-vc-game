@@ -70,26 +70,17 @@ function smoothStep(value: number) {
   return clamped * clamped * (3 - 2 * clamped);
 }
 
-/** Elastic spring easing for snappy rebound */
-function elasticOut(t: number) {
-  const p = 0.35;
-  return Math.pow(2, -10 * t) * Math.sin(((t - p / 4) * (2 * Math.PI)) / p) + 1;
-}
-
 /** Power ease-out for impacts */
 function easeOutQuad(t: number) {
   const clamped = THREE.MathUtils.clamp(t, 0, 1);
   return 1 - (1 - clamped) * (1 - clamped);
 }
 
-/** Power ease-in for accelerations */
-function easeInQuad(t: number) {
-  const clamped = THREE.MathUtils.clamp(t, 0, 1);
-  return clamped * clamped;
-}
-
-function rangeProgress(value: number, start: number, end: number) {
-  return smoothStep((value - start) / (end - start));
+/** A zero-velocity pulse for contact, flight, and weight-transfer arcs. */
+function sinePulse(value: number, start: number, end: number) {
+  if (value <= start || value >= end) return 0;
+  const progress = (value - start) / (end - start);
+  return Math.sin(progress * Math.PI) ** 2;
 }
 
 function cycle(time: number, duration: number) {
@@ -472,6 +463,9 @@ function resetEffects(effects: DanceEffects) {
   });
   effects.platformRing.scale.set(1, 1, 1);
   effects.platformRing.material.emissiveIntensity = 0.25;
+  effects.keyLight.intensity = 3.0;
+  effects.rimLight.intensity = 2.2;
+  effects.fillLight.intensity = 1.2;
 }
 
 function poseEffects(effects: DanceEffects, move: DemonstratedMove, time: number) {
@@ -480,20 +474,21 @@ function poseEffects(effects: DanceEffects, move: DemonstratedMove, time: number
   effects.platformRing.scale.setScalar(platformPulse);
 
   if (move === "clap") {
-    // 120 BPM sync (1.0s cycle, 2 claps per second on beats 0.25 and 0.75)
-    const phase = cycle(time, 0.5);
-    const impact = phase < 0.35 ? easeOutQuad(phase / 0.35) : Math.max(0, 1 - (phase - 0.35) / 0.3);
-    const sparkle = impact;
+    // The burst starts at palm contact, then travels away from the hands.
+    const phase = cycle(time, 0.8);
+    const burstAge = phase >= 0.56 && phase <= 0.9 ? (phase - 0.56) / 0.34 : -1;
+    const sparkle = burstAge >= 0 ? 1 - smoothStep(burstAge) : 0;
 
     effects.clapStars.forEach((item, index) => {
       const angle = item.userData.angle as number;
       const speed = item.userData.speed as number;
       item.visible = sparkle > 0.05;
-      const radius = 0.25 + sparkle * 0.65 * speed;
+      const travel = burstAge >= 0 ? easeOutQuad(burstAge) : 0;
+      const radius = 0.18 + travel * 0.72 * speed;
       item.position.set(
         Math.cos(angle) * radius,
-        0.48 + Math.sin(angle) * radius * 0.8,
-        1.15 + sparkle * 0.2
+        0.54 + Math.sin(angle) * radius * 0.8,
+        1.15 + travel * 0.2
       );
       item.rotation.set(time * 4 + index, time * 3, time * 5);
       item.scale.setScalar(0.5 + sparkle * 0.9);
@@ -503,13 +498,11 @@ function poseEffects(effects: DanceEffects, move: DemonstratedMove, time: number
     effects.platformRing.material.emissiveIntensity = 0.35 + sparkle * 1.5;
     effects.fillLight.intensity = 1.0 + sparkle * 2.5;
   } else if (move === "jump") {
-    // 1.25s jump cycle
+    // Flight and landing use zero-velocity curves, so no frame can snap at
+    // take-off or contact when this loops or changes moves.
     const phase = cycle(time, 1.25);
-    const flight =
-      phase >= 0.2 && phase <= 0.68
-        ? Math.sin(((phase - 0.2) / 0.48) * Math.PI)
-        : 0;
-    const landing = phase >= 0.68 && phase < 0.85 ? Math.sin(((phase - 0.68) / 0.17) * Math.PI) : 0;
+    const flight = sinePulse(phase, 0.31, 0.7);
+    const landing = sinePulse(phase, 0.7, 0.9);
 
     effects.jumpStars.forEach((item, index) => {
       const side = item.userData.side as number;
@@ -530,18 +523,21 @@ function poseEffects(effects: DanceEffects, move: DemonstratedMove, time: number
     effects.keyLight.intensity = 3.6 + flight * 1.2;
     effects.fillLight.intensity = 1.0 + landing * 3.0;
   } else if (move === "stomp") {
-    // 1.0s stomp cycle (left at 0.0, right at 0.5)
+    // One planted, readable stomp on each half-beat. Rings appear only after
+    // the raised foot reaches the floor.
     const phase = cycle(time, 1.0);
     effects.stompRings.forEach((item, index) => {
-      const start = index === 0 ? 0.2 : 0.7;
-      const progress = (phase - start + 1) % 1;
-      const active = progress < 0.25;
+      const halfStart = index * 0.5;
+      const local = (phase - halfStart) / 0.5;
+      const progress = (local - 0.7) / 0.26;
+      const active = local >= 0.7 && local <= 0.96;
       item.visible = active;
-      item.scale.setScalar(0.4 + progress * 6.5);
-      item.material.opacity = active ? (1 - progress / 0.25) * 0.9 : 0;
+      item.scale.setScalar(0.45 + Math.max(progress, 0) * 4.8);
+      item.material.opacity = active ? (1 - smoothStep(progress)) * 0.9 : 0;
     });
 
-    const impact = Math.pow(Math.abs(Math.cos(phase * Math.PI * 2)), 12);
+    const halfPhase = (phase % 0.5) / 0.5;
+    const impact = sinePulse(halfPhase, 0.7, 0.96);
     effects.platformRing.material.emissiveIntensity = 0.35 + impact * 2.0;
     effects.fillLight.intensity = 1.0 + impact * 2.0;
   } else if (move === "wiggle") {
@@ -628,232 +624,165 @@ function poseMascot(
     rig.rightShin.rotation.x = -bounce * 0.08;
   } else if (move === "clap") {
     // ----------------------------------------------------
-    // REALISTIC CLAPPING KINEMATICS (120 BPM: 0.5s per clap)
+    // CLAP: prepare -> open -> strike -> rebound -> settle
     // ----------------------------------------------------
-    const clapCycle = 0.5;
+    const clapCycle = 0.8;
     const phase = cycle(time, clapCycle);
+    const ready = phase < 0.18
+      ? smoothStep(phase / 0.18)
+      : phase > 0.9
+        ? 1 - smoothStep((phase - 0.9) / 0.1)
+        : 1;
+    const clapContact = sinePulse(phase, 0.43, 0.71);
+    const rebound = sinePulse(phase, 0.68, 0.9);
 
-    // Phase: 0.0 -> 0.65: Windup / Opening arc; 0.65 -> 0.78: Snapping impact; 0.78 -> 1.0: Elastic rebound
-    let armOpen: number;
-    let impactSquash = 0;
-    let chestPuff = 0;
-
-    if (phase < 0.65) {
-      // Windup: arms swing wide, chest expands
-      const p = phase / 0.65;
-      armOpen = easeOutQuad(p);
-      chestPuff = armOpen * 0.08;
-    } else if (phase < 0.8) {
-      // Fast strike: arms snap inward with power!
-      const p = (phase - 0.65) / 0.15;
-      armOpen = 1 - easeInQuad(p);
-      if (p > 0.85) {
-        impactSquash = 1.0;
-      }
-    } else {
-      // Elastic rebound bounce
-      const p = (phase - 0.8) / 0.2;
-      armOpen = elasticOut(p) * 0.22;
-      impactSquash = 1 - easeOutQuad(p);
-    }
-
-    const clapContact = 1 - armOpen;
-
-    // Every other clap leans the opposite way — breaks metronome symmetry
+    // Alternating torso accents make the repeated clap feel danced rather than
+    // mechanically mirrored. The accent is zero at the loop boundary.
     const alt = Math.floor(time / clapCycle) % 2 === 0 ? 1 : -1;
-    rig.root.rotation.z = alt * clapContact * 0.05;
-    rig.root.rotation.y = alt * clapContact * 0.09;
-    rig.head.rotation.z = alt * clapContact * 0.12;
+    rig.root.rotation.z = alt * ready * 0.035;
+    rig.root.rotation.y = alt * ready * 0.055;
+    rig.head.rotation.z = alt * ready * 0.09;
 
-    // Body squash and stretch on clap beat impact
-    rig.body.scale.y = 1 - impactSquash * 0.08 + chestPuff * 0.04;
-    rig.body.scale.x = 1 + impactSquash * 0.06;
-    rig.body.scale.z = 1 + impactSquash * 0.06;
+    // The hands lead the contact; knees and torso answer a fraction later.
+    const bodyAccent = sinePulse(phase, 0.53, 0.78);
+    rig.body.scale.y = 1 - bodyAccent * 0.055 + ready * 0.018;
+    rig.body.scale.x = 1 + bodyAccent * 0.035;
+    rig.body.scale.z = 1 + bodyAccent * 0.035;
 
-    // Torso flexion & knee rhythm dip on clap impact
-    rig.root.position.y += clapContact * 0.06 - impactSquash * 0.08;
-    rig.chest.rotation.x = -0.06 + clapContact * 0.14;
-    rig.head.rotation.x = -0.08 + clapContact * 0.18;
-    rig.head.position.y += clapContact * 0.03;
+    rig.root.position.y += ready * 0.035 - bodyAccent * 0.07;
+    rig.chest.rotation.x = -ready * 0.055 + bodyAccent * 0.13;
+    rig.head.rotation.x = -ready * 0.04 + bodyAccent * 0.1;
 
-    // Arms kinetic chain: Shoulders adduct -> Forearms swing inward -> Wrists meet flat
-    rig.leftArm.rotation.x = -0.35 * clapContact;
-    rig.rightArm.rotation.x = -0.35 * clapContact;
-    rig.leftArm.rotation.y = 0.45 * clapContact;
-    rig.rightArm.rotation.y = -0.45 * clapContact;
-    rig.leftArm.rotation.z = THREE.MathUtils.lerp(-0.65, 0.98, clapContact);
-    rig.rightArm.rotation.z = THREE.MathUtils.lerp(0.65, -0.98, clapContact);
+    // Shoulder -> elbow -> wrist sequencing. The open pose keeps the hands in
+    // front of the chest; contact rotates both palms onto the same plane.
+    const leftOpen = THREE.MathUtils.lerp(-0.12, -0.64, ready);
+    const rightOpen = THREE.MathUtils.lerp(0.12, 0.64, ready);
+    rig.leftArm.rotation.x = -ready * 0.16 - clapContact * 0.2;
+    rig.rightArm.rotation.x = -ready * 0.16 - clapContact * 0.2;
+    rig.leftArm.rotation.y = clapContact * 0.38;
+    rig.rightArm.rotation.y = -clapContact * 0.38;
+    rig.leftArm.rotation.z = THREE.MathUtils.lerp(leftOpen, 0.98, clapContact);
+    rig.rightArm.rotation.z = THREE.MathUtils.lerp(rightOpen, -0.98, clapContact);
 
-    // Elbows flexion
-    rig.leftForearm.rotation.z = THREE.MathUtils.lerp(0.35, 0.88, clapContact);
-    rig.rightForearm.rotation.z = THREE.MathUtils.lerp(-0.35, -0.88, clapContact);
-    rig.leftForearm.position.z = clapContact * 0.38;
-    rig.rightForearm.position.z = clapContact * 0.38;
+    rig.leftForearm.rotation.z = ready * 0.38 + clapContact * 0.5 - rebound * 0.08;
+    rig.rightForearm.rotation.z = -ready * 0.38 - clapContact * 0.5 + rebound * 0.08;
+    rig.leftForearm.position.z = ready * 0.18 + clapContact * 0.2;
+    rig.rightForearm.position.z = ready * 0.18 + clapContact * 0.2;
 
-    // Wrists & hands clapping together at chest center
-    rig.leftHand.position.z = clapContact * 0.22;
-    rig.rightHand.position.z = clapContact * 0.22;
-    rig.leftHand.rotation.y = -0.52 * clapContact;
-    rig.rightHand.rotation.y = 0.52 * clapContact;
+    rig.leftHand.position.z = clapContact * 0.18;
+    rig.rightHand.position.z = clapContact * 0.18;
+    rig.leftHand.rotation.y = -0.6 * clapContact;
+    rig.rightHand.rotation.y = 0.6 * clapContact;
+    rig.leftHand.rotation.z = -rebound * 0.08;
+    rig.rightHand.rotation.z = rebound * 0.08;
 
-    // Legs rhythm bounce
-    rig.leftLeg.rotation.x = impactSquash * 0.15;
-    rig.rightLeg.rotation.x = impactSquash * 0.15;
-    rig.leftShin.rotation.x = -impactSquash * 0.2;
-    rig.rightShin.rotation.x = -impactSquash * 0.2;
+    rig.leftLeg.rotation.x = bodyAccent * 0.13;
+    rig.rightLeg.rotation.x = bodyAccent * 0.13;
+    rig.leftShin.rotation.x = -bodyAccent * 0.18;
+    rig.rightShin.rotation.x = -bodyAccent * 0.18;
 
-    // Tail dynamic follow-through whip
-    rig.tail.rotation.z = Math.sin(time * 12.56) * 0.28;
+    rig.tail.rotation.z = alt * ready * 0.22 - rebound * alt * 0.18;
   } else if (move === "jump") {
     // ----------------------------------------------------
-    // REALISTIC 6-PHASE JUMP DANCE KINEMATICS (1.25s cycle)
+    // JUMP: anticipation -> push -> flight -> absorb -> recover
     // ----------------------------------------------------
     const jumpCycle = 1.25;
     const phase = cycle(time, jumpCycle);
 
-    // Phase 1: Deep Anticipation Crouch (0.0 -> 0.20)
-    // Phase 2: Explosive Launch (0.20 -> 0.34)
-    // Phase 3: Airborne Flight & Tuck (0.34 -> 0.68)
-    // Phase 4: Downward Glide (0.68 -> 0.74)
-    // Phase 5: Landing Shock Absorption Cushion (0.74 -> 0.88)
-    // Phase 6: Recovery to Stance (0.88 -> 1.0)
-
-    let yOffset = 0;
-    let squashY = 1.0;
     let crouch = 0;
     let flight = 0;
     let armsUp = 0;
-    let kneeBend = 0;
-    let anklePoint = 0;
+    let landing = 0;
+    let launch = 0;
+    let yOffset = 0;
 
     if (phase < 0.2) {
-      // Deep anticipation crouch
       const p = phase / 0.2;
-      crouch = easeInQuad(p);
-      yOffset = -crouch * 0.42;
-      squashY = 1 - crouch * 0.24;
-      kneeBend = crouch * 1.1;
-      // Arms swing back to gather momentum
-      rig.leftArm.rotation.x = crouch * 0.85;
-      rig.rightArm.rotation.x = crouch * 0.85;
-      rig.leftArm.rotation.z = -0.3;
-      rig.rightArm.rotation.z = 0.3;
-      rig.chest.rotation.x = crouch * 0.38;
-      rig.head.rotation.x = -crouch * 0.22;
-    } else if (phase < 0.34) {
-      // Explosive push-off
-      const p = (phase - 0.2) / 0.14;
-      const launch = easeOutQuad(p);
-      yOffset = -0.42 + launch * 1.08;
-      squashY = THREE.MathUtils.lerp(0.76, 1.22, launch); // Vertical stretch!
-      armsUp = launch;
-      anklePoint = 0.7 * launch;
-      kneeBend = 1.1 * (1 - launch);
-      rig.chest.rotation.x = THREE.MathUtils.lerp(0.38, -0.15, launch);
-      rig.head.rotation.x = THREE.MathUtils.lerp(-0.22, 0.25, launch);
-    } else if (phase < 0.68) {
-      // Parabolic flight & mid-air tuck
-      const p = (phase - 0.34) / 0.34;
-      flight = Math.sin(p * Math.PI);
-      yOffset = 0.66 + flight * 0.44;
-      squashY = 1.0 + flight * 0.04;
-      armsUp = 1.0;
-      kneeBend = 0.4 + flight * 0.45; // Joyful mid-air knee tuck!
-      rig.leftLeg.rotation.z = flight * 0.22;
-      rig.rightLeg.rotation.z = -flight * 0.22;
-      rig.chest.rotation.x = -0.1 + Math.sin(p * Math.PI * 2) * 0.08;
-      rig.head.rotation.x = 0.2;
-      // Excited arm wave in the air
-      rig.leftArm.rotation.x = -0.2 + Math.sin(time * 16) * 0.12;
-      rig.rightArm.rotation.x = -0.2 + Math.sin(time * 16) * 0.12;
-    } else if (phase < 0.88) {
-      // Landing impact & deep shock absorption
-      const p = (phase - 0.68) / 0.2;
-      const impact = Math.sin(p * Math.PI);
-      crouch = impact;
-      yOffset = -impact * 0.38;
-      squashY = 1 - impact * 0.26; // Massive landing squash
-      kneeBend = impact * 1.2;
-      armsUp = 1 - easeOutQuad(p);
-      rig.chest.rotation.x = impact * 0.32;
-      rig.head.rotation.x = -impact * 0.18;
-      rig.leftArm.rotation.z = THREE.MathUtils.lerp(2.8, -0.75, p);
-      rig.rightArm.rotation.z = THREE.MathUtils.lerp(-2.8, 0.75, p);
-    } else {
-      // Elastic spring recovery to dance stance
-      const p = (phase - 0.88) / 0.12;
-      const recovery = elasticOut(p);
-      yOffset = -0.15 * (1 - recovery);
-      squashY = 1.0;
+      crouch = smoothStep(p);
+      yOffset = -0.34 * crouch;
+    } else if (phase < 0.31) {
+      const p = smoothStep((phase - 0.2) / 0.11);
+      launch = p;
+      crouch = 1 - p;
+      armsUp = p;
+      yOffset = THREE.MathUtils.lerp(-0.34, 0, p);
+    } else if (phase < 0.7) {
+      const p = (phase - 0.31) / 0.39;
+      // Carry the take-off stretch into early flight instead of dropping the
+      // launch pose on the boundary. The smooth decay also preserves velocity.
+      launch = 1 - smoothStep(Math.min(p / 0.35, 1));
+      flight = Math.sin(p * Math.PI) ** 2;
+      armsUp = 1;
+      yOffset = flight * 0.96;
+    } else if (phase < 0.9) {
+      const p = (phase - 0.7) / 0.2;
+      landing = Math.sin(p * Math.PI) ** 2;
+      armsUp = 1 - smoothStep(p);
+      yOffset = -landing * 0.31;
     }
 
-    // Apply root & volume preservation; each jump twists a different way
+    // Every positional curve reaches zero with zero velocity at a boundary.
+    // This keeps the take-off, landing, and loop transition visually seamless.
+    const squashY = 1 - crouch * 0.18 - landing * 0.2 + launch * 0.08 + flight * 0.035;
     const jumpTwist = Math.sin(Math.floor(time / jumpCycle) * 1.7 + 0.6) * 0.2;
     rig.root.rotation.y = jumpTwist * flight;
+    rig.root.rotation.z = jumpTwist * flight * 0.22;
     rig.root.position.y += yOffset;
     rig.body.scale.y = squashY;
     const invScale = Math.sqrt(1 / Math.max(0.2, squashY));
     rig.body.scale.x = invScale;
     rig.body.scale.z = invScale;
 
-    // Apply arms reaching high during flight
-    if (armsUp > 0.01 && phase >= 0.2 && phase < 0.7) {
-      rig.leftArm.rotation.z = THREE.MathUtils.lerp(-0.12, 2.78, armsUp);
-      rig.rightArm.rotation.z = THREE.MathUtils.lerp(0.12, -2.78, armsUp);
-      rig.leftArm.position.z = armsUp * 0.22;
-      rig.rightArm.position.z = armsUp * 0.22;
-      rig.leftForearm.rotation.z = -0.25 * armsUp;
-      rig.rightForearm.rotation.z = 0.25 * armsUp;
-    }
+    // The torso initiates the jump and the head counter-rotates to keep the
+    // face readable. Arms swing back before rising overhead.
+    rig.chest.rotation.x = crouch * 0.3 - launch * 0.12 - flight * 0.08 + landing * 0.26;
+    rig.head.rotation.x = -crouch * 0.16 + launch * 0.14 + flight * 0.16 - landing * 0.12;
+    rig.leftArm.rotation.x = crouch * 0.72 - armsUp * 0.14;
+    rig.rightArm.rotation.x = crouch * 0.72 - armsUp * 0.14;
+    rig.leftArm.rotation.z = THREE.MathUtils.lerp(-0.22, 2.72, armsUp);
+    rig.rightArm.rotation.z = THREE.MathUtils.lerp(0.22, -2.72, armsUp);
+    rig.leftArm.position.z = armsUp * 0.18;
+    rig.rightArm.position.z = armsUp * 0.18;
+    rig.leftForearm.rotation.z = -armsUp * 0.22 + landing * 0.42;
+    rig.rightForearm.rotation.z = armsUp * 0.22 - landing * 0.42;
 
-    // Legs articulation
+    // Straight legs at take-off, a compact tuck around the apex, then a deep
+    // two-foot landing. Feet point in flight and flatten before contact.
+    const kneeBend = crouch * 1.05 + flight * 0.72 + landing * 1.12;
+    const anklePoint = launch * 0.62 + flight * 0.42 - landing * 0.28;
     rig.leftLeg.rotation.x = -kneeBend * 0.85;
     rig.rightLeg.rotation.x = -kneeBend * 0.85;
     rig.leftShin.rotation.x = kneeBend * 1.45;
     rig.rightShin.rotation.x = kneeBend * 1.45;
     rig.leftFoot.rotation.x = -kneeBend * 0.4 + anklePoint;
     rig.rightFoot.rotation.x = -kneeBend * 0.4 + anklePoint;
+    rig.leftLeg.rotation.z = flight * 0.16;
+    rig.rightLeg.rotation.z = -flight * 0.16;
 
-    // Tail dynamic inertial whip
-    rig.tail.rotation.z = Math.sin(time * 10) * 0.45;
+    rig.tail.rotation.z = crouch * 0.28 - launch * 0.42 - flight * 0.34 + landing * 0.24;
   } else if (move === "stomp") {
     // ----------------------------------------------------
-    // REALISTIC TAP / STOMP DANCE WITH LATERAL WEIGHT SHIFT
-    // (120 BPM: 1.0s full measure = Left stomp at 0.25s, Right stomp at 0.75s)
+    // STOMP: transfer weight -> lift -> strike -> absorb, alternating feet
     // ----------------------------------------------------
     const stompCycle = 1.0;
     const phase = cycle(time, stompCycle);
 
-    // Left stomp active during 0.0 -> 0.5; Right stomp active during 0.5 -> 1.0
     const isLeft = phase < 0.5;
-    const stepPhase = (phase % 0.5) / 0.5; // 0.0 -> 1.0 inside this half-step
-
-    // Phase: 0.0 -> 0.45: Weight shift & knee lift; 0.45 -> 0.65: Downward strike; 0.65 -> 1.0: Impact cushion & rebound
-    let lift = 0;
-    let impact = 0;
-
-    if (stepPhase < 0.45) {
-      lift = easeOutQuad(stepPhase / 0.45);
-    } else if (stepPhase < 0.65) {
-      const p = (stepPhase - 0.45) / 0.2;
-      lift = 1 - easeInQuad(p);
-      if (p > 0.8) impact = 1.0;
-    } else {
-      const p = (stepPhase - 0.65) / 0.35;
-      impact = 1 - easeOutQuad(p);
-      lift = 0;
-    }
+    const stepPhase = (phase % 0.5) / 0.5;
+    const lift = sinePulse(stepPhase, 0.04, 0.7);
+    const impact = sinePulse(stepPhase, 0.7, 0.96);
 
     const sideSign = isLeft ? -1 : 1;
-    // Weight shift: Root shifts sideways toward supporting foot
-    const weightShift = -sideSign * (0.16 + lift * 0.08);
+    // Shift over the planted foot before the other foot leaves the floor.
+    // Multiplying by lift returns the pelvis to center before sides switch.
+    const weightShift = -sideSign * lift * 0.22;
     rig.root.position.x = weightShift;
-    rig.root.position.y += lift * 0.06 - impact * 0.08;
+    rig.root.position.y += lift * 0.045 - impact * 0.075;
 
     // Pelvic tilt & torso counter-lean
-    rig.root.rotation.z = sideSign * (0.08 + lift * 0.08);
-    rig.body.rotation.z = -sideSign * (0.06 + lift * 0.06);
-    rig.body.rotation.y = sideSign * (lift * 0.24);
+    rig.root.rotation.z = sideSign * lift * 0.12;
+    rig.body.rotation.z = -sideSign * lift * 0.1;
+    rig.body.rotation.y = sideSign * lift * 0.2;
 
     // Torso impact squash
     rig.body.scale.y = 1 - impact * 0.06;
@@ -862,78 +791,81 @@ function poseMascot(
 
     // Active stomping leg vs Supporting leg
     if (isLeft) {
-      // Left leg lifts high with dorsiflexed ankle
-      rig.leftLeg.position.y += lift * 0.42;
-      rig.leftLeg.position.z += lift * 0.28;
-      rig.leftLeg.rotation.x = -lift * 0.95;
-      rig.leftShin.rotation.x = lift * 1.45;
-      rig.leftFoot.rotation.x = -lift * 0.42 + impact * 0.1;
+      // A lifted thigh, relaxed shin, and flexed ankle create a clear march
+      // silhouette before the sole flattens into the stomp.
+      rig.leftLeg.position.y += lift * 0.38;
+      rig.leftLeg.position.z += lift * 0.24;
+      rig.leftLeg.rotation.x = -lift * 0.88;
+      rig.leftShin.rotation.x = lift * 1.32;
+      rig.leftFoot.rotation.x = -lift * 0.48 + impact * 0.08;
 
       // Supporting right leg absorbs weight
-      rig.rightLeg.rotation.x = 0.12 + impact * 0.15;
-      rig.rightShin.rotation.x = -0.12 - impact * 0.15;
+      rig.rightLeg.rotation.x = lift * 0.1 + impact * 0.14;
+      rig.rightShin.rotation.x = -lift * 0.1 - impact * 0.14;
 
       // Marching arm opposition: Right arm swings forward, Left arm swings back
-      rig.rightArm.rotation.x = -0.85 * lift;
-      rig.rightArm.rotation.z = 0.35;
-      rig.rightForearm.rotation.z = -0.45;
-      rig.leftArm.rotation.x = 0.65 * lift;
-      rig.leftArm.rotation.z = -0.35;
+      rig.rightArm.rotation.x = -0.74 * lift;
+      rig.rightArm.rotation.z = 0.12 + lift * 0.24;
+      rig.rightForearm.rotation.z = -lift * 0.42;
+      rig.leftArm.rotation.x = 0.58 * lift;
+      rig.leftArm.rotation.z = -0.12 - lift * 0.24;
     } else {
       // Right leg lifts high with dorsiflexed ankle
-      rig.rightLeg.position.y += lift * 0.42;
-      rig.rightLeg.position.z += lift * 0.28;
-      rig.rightLeg.rotation.x = -lift * 0.95;
-      rig.rightShin.rotation.x = lift * 1.45;
-      rig.rightFoot.rotation.x = -lift * 0.42 + impact * 0.1;
+      rig.rightLeg.position.y += lift * 0.38;
+      rig.rightLeg.position.z += lift * 0.24;
+      rig.rightLeg.rotation.x = -lift * 0.88;
+      rig.rightShin.rotation.x = lift * 1.32;
+      rig.rightFoot.rotation.x = -lift * 0.48 + impact * 0.08;
 
       // Supporting left leg absorbs weight
-      rig.leftLeg.rotation.x = 0.12 + impact * 0.15;
-      rig.leftShin.rotation.x = -0.12 - impact * 0.15;
+      rig.leftLeg.rotation.x = lift * 0.1 + impact * 0.14;
+      rig.leftShin.rotation.x = -lift * 0.1 - impact * 0.14;
 
       // Marching arm opposition: Left arm swings forward, Right arm swings back
-      rig.leftArm.rotation.x = -0.85 * lift;
-      rig.leftArm.rotation.z = -0.35;
-      rig.leftForearm.rotation.z = 0.45;
-      rig.rightArm.rotation.x = 0.65 * lift;
-      rig.rightArm.rotation.z = 0.35;
+      rig.leftArm.rotation.x = -0.74 * lift;
+      rig.leftArm.rotation.z = -0.12 - lift * 0.24;
+      rig.leftForearm.rotation.z = lift * 0.42;
+      rig.rightArm.rotation.x = 0.58 * lift;
+      rig.rightArm.rotation.z = 0.12 + lift * 0.24;
     }
 
     // Head tilts with the groove & nods on impact
-    rig.head.rotation.z = -sideSign * 0.08;
-    rig.head.rotation.x = -0.05 + impact * 0.12;
+    rig.head.rotation.z = -sideSign * lift * 0.08;
+    rig.head.rotation.x = -lift * 0.04 + impact * 0.1;
 
     // Tail swings in counter-balance
-    rig.tail.rotation.z = -sideSign * 0.45;
+    rig.tail.rotation.z = -sideSign * lift * 0.52 + sideSign * impact * 0.16;
   } else if (move === "wiggle") {
     // ----------------------------------------------------
-    // REALISTIC HULA / GROOVE WIGGLE WITH SPINAL S-CURVE
-    // & DANCE WAVE ARMS (1.0s fluid orbital cycle)
+    // WIGGLE: planted hips, counter-rotating spine, delayed arm wave
     // ----------------------------------------------------
     const wiggleCycle = 1.0;
     const phase = cycle(time, wiggleCycle) * Math.PI * 2;
 
     const swayX = Math.sin(phase);
-    const swayZ = Math.sin(phase * 2) * 0.5; // Figure-8 orbit
+    const swayZ = Math.sin(phase * 2) * 0.5;
     const counterSway = Math.sin(phase + Math.PI * 0.6);
+    const leftWeight = (1 + swayX) * 0.5;
+    const rightWeight = 1 - leftWeight;
 
-    // Dynamic hip orbital sway
-    rig.root.position.x = swayX * 0.24;
-    rig.root.position.z = swayZ * 0.12;
-    rig.root.position.y += Math.abs(Math.sin(phase)) * 0.04;
-    rig.root.rotation.z = swayX * 0.18; // Pelvic roll
-    rig.root.rotation.y = swayX * 0.32; // Pelvic yaw
+    // The pelvis travels less than the shoulders, keeping both feet visually
+    // planted while weight rolls from one leg to the other.
+    rig.root.position.x = swayX * 0.18;
+    rig.root.position.z = swayZ * 0.09;
+    rig.root.position.y -= (0.5 + swayZ * 0.5) * 0.045;
+    rig.root.rotation.z = swayX * 0.14;
+    rig.root.rotation.y = swayX * 0.24;
 
-    // Spine S-Curve Counter-Undulation
-    rig.body.rotation.y = -swayX * 0.36;
-    rig.body.rotation.z = -swayX * 0.12;
-    rig.chest.rotation.y = -swayX * 0.18;
-    rig.chest.rotation.z = counterSway * 0.14;
+    // Pelvis, rib cage, and head counter-rotate in a natural S-curve.
+    rig.body.rotation.y = -swayX * 0.28;
+    rig.body.rotation.z = -swayX * 0.1;
+    rig.chest.rotation.y = -swayX * 0.16;
+    rig.chest.rotation.z = counterSway * 0.12;
 
     // Head groove & delayed tilt
-    rig.head.rotation.z = -counterSway * 0.16;
-    rig.head.rotation.y = counterSway * 0.14;
-    rig.head.rotation.x = Math.sin(phase * 2) * 0.06;
+    rig.head.rotation.z = -counterSway * 0.13;
+    rig.head.rotation.y = counterSway * 0.1;
+    rig.head.rotation.x = Math.sin(phase * 2) * 0.045;
 
     // Undulating Hula / Dance Wave Arms (Shoulder -> Elbow -> Wrist phase delay)
     const armWaveL = Math.sin(phase);
@@ -943,30 +875,36 @@ function poseMascot(
     const wristWaveL = Math.sin(phase - (Math.PI * 2) / 3);
     const wristWaveR = Math.sin(phase + Math.PI - (Math.PI * 2) / 3);
 
-    rig.leftArm.rotation.z = -0.55 + armWaveL * 0.42;
-    rig.rightArm.rotation.z = 0.55 + armWaveR * 0.42;
-    rig.leftArm.rotation.x = 0.25 + forearmWaveL * 0.35;
-    rig.rightArm.rotation.x = 0.25 + forearmWaveR * 0.35;
+    rig.leftArm.rotation.z = -0.48 + armWaveL * 0.34;
+    rig.rightArm.rotation.z = 0.48 + armWaveR * 0.34;
+    rig.leftArm.rotation.x = 0.16 + forearmWaveL * 0.28;
+    rig.rightArm.rotation.x = 0.16 + forearmWaveR * 0.28;
 
-    rig.leftForearm.rotation.z = 0.62 + forearmWaveL * 0.38;
-    rig.rightForearm.rotation.z = -0.62 - forearmWaveR * 0.38;
-    rig.leftForearm.position.z = 0.15 + armWaveL * 0.18;
-    rig.rightForearm.position.z = 0.15 + armWaveR * 0.18;
+    rig.leftForearm.rotation.z = 0.55 + forearmWaveL * 0.32;
+    rig.rightForearm.rotation.z = -0.55 - forearmWaveR * 0.32;
+    rig.leftForearm.position.z = 0.12 + armWaveL * 0.14;
+    rig.rightForearm.position.z = 0.12 + armWaveR * 0.14;
 
-    rig.leftHand.rotation.y = wristWaveL * 0.45;
-    rig.rightHand.rotation.y = wristWaveR * 0.45;
-    rig.leftHand.rotation.z = wristWaveL * 0.35;
-    rig.rightHand.rotation.z = wristWaveR * 0.35;
+    rig.leftHand.rotation.y = wristWaveL * 0.38;
+    rig.rightHand.rotation.y = wristWaveR * 0.38;
+    rig.leftHand.rotation.z = wristWaveL * 0.28;
+    rig.rightHand.rotation.z = wristWaveR * 0.28;
 
-    // Alternating knee flexion (soft dance knees)
-    rig.leftLeg.rotation.z = Math.max(0, swayX) * 0.16;
-    rig.rightLeg.rotation.z = -Math.max(0, -swayX) * 0.16;
-    rig.leftFoot.rotation.z = -Math.max(0, swayX) * 0.25;
-    rig.rightFoot.rotation.z = Math.max(0, -swayX) * 0.25;
+    // The unloaded heel lifts while the supporting knee softens. This small
+    // foot action is what makes the upper-body wiggle feel grounded.
+    rig.leftLeg.rotation.x = rightWeight * 0.1;
+    rig.rightLeg.rotation.x = leftWeight * 0.1;
+    rig.leftShin.rotation.x = -rightWeight * 0.12;
+    rig.rightShin.rotation.x = -leftWeight * 0.12;
+    rig.leftLeg.rotation.z = Math.max(0, swayX) * 0.11;
+    rig.rightLeg.rotation.z = -Math.max(0, -swayX) * 0.11;
+    rig.leftFoot.rotation.x = rightWeight * 0.13;
+    rig.rightFoot.rotation.x = leftWeight * 0.13;
+    rig.leftFoot.rotation.z = -Math.max(0, swayX) * 0.18;
+    rig.rightFoot.rotation.z = Math.max(0, -swayX) * 0.18;
 
-    // Fluid secondary tail pendulum whip
-    rig.tail.rotation.z = -swayX * 0.72;
-    rig.tail.rotation.y = swayZ * 0.45;
+    rig.tail.rotation.z = -swayX * 0.62;
+    rig.tail.rotation.y = swayZ * 0.38;
   }
 
   // Slow incommensurate drift so the pose never freezes into an exact loop
