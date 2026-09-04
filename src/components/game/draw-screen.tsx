@@ -20,6 +20,7 @@ import {
   starsForScore,
   getDrawPraisePhrase,
   getDrawWatchPhrase,
+  getAnimalArticle,
   DRAW_YOUR_TURN_PHRASE,
   type DrawStars,
 } from "@/lib/draw-score";
@@ -38,6 +39,9 @@ const CRAYONS = [
 
 const CRAYON_WIDTH = 14;
 const DEMO_STROKE_WIDTH = 10;
+const DRAW_PICKER_ANIMALS = [...DRAW_ANIMALS].sort((left, right) =>
+  left.word.localeCompare(right.word)
+);
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -98,7 +102,7 @@ function DrawDemo({ animal, steps, stepIndex, nonce, mode = "step", onDone }: Dr
       className="draw-demo"
       viewBox="0 0 512 512"
       role="img"
-      aria-label={`How to draw a ${animal.word}`}
+      aria-label={`How to draw ${getAnimalArticle(animal.word)} ${animal.word}`}
     >
       {done.map((d, i) => (
         <path
@@ -461,14 +465,17 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
             </button>
           </div>
           <div className="draw-picker">
-            {DRAW_ANIMALS.map((entry) => (
+            {DRAW_PICKER_ANIMALS.map((entry) => (
               <button
                 key={entry.word}
                 className="draw-animal-card"
                 style={{ borderColor: entry.color }}
                 onClick={() => pickAnimal(entry)}
-                aria-label={`Draw a ${entry.word}`}
+                aria-label={`Draw ${getAnimalArticle(entry.word)} ${entry.word}`}
               >
+                <span className="draw-animal-letter" aria-hidden="true">
+                  {entry.word[0].toUpperCase()}
+                </span>
                 <span className="draw-animal-emoji">{entry.emoji}</span>
                 <span className="draw-animal-word" style={{ color: entry.color }}>
                   {entry.word}
@@ -567,7 +574,9 @@ export function DrawScreen({ onHome }: DrawScreenProps) {
               <Confetti />
               <div className="draw-done-card">
                 <span className="draw-done-emoji">{animal.emoji}</span>
-                <strong style={{ color: animal.color }}>You drew a {animal.word}!</strong>
+                <strong style={{ color: animal.color }}>
+                  You drew {getAnimalArticle(animal.word)} {animal.word}!
+                </strong>
                 <div className="draw-stars" role="img" aria-label={`${stars ?? 1} out of 3 stars`}>
                   {[1, 2, 3].map((n) => (
                     <span
