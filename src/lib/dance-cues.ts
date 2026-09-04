@@ -68,17 +68,33 @@ export function parseLyriaLyrics(lyrics: string, durationSec: number): LyricSect
   }
 
   const kept = raw.filter((section) => section.lines.length > 0);
-  const sections: LyricSection[] = [];
-  kept.forEach((section, index) => {
-    const explicit = section.lines.find((line) => line.start !== null)?.start;
-    const start = explicit ?? (index === 0 ? 0 : sections[index - 1].end);
-    const next = kept[index + 1]?.lines.find((line) => line.start !== null)?.start;
-    const end = next ?? durationSec;
-    sections.push({ id: section.id, start, end, lines: spreadLines(section.lines, start, end) });
+  if (!kept.length) return [];
+
+  // Lyria sometimes returns section markers and line placeholders without
+  // any numeric timestamps. Interpolate missing section starts so every
+  // verse remains playable instead of collapsing at the end of the song.
+  const starts: Array<number | undefined> = kept.map(
+    (section) => section.lines.find((line) => line.start !== null)?.start ?? undefined
+  );
+  if (starts[0] === undefined) starts[0] = 0;
+  let anchor = 0;
+  while (anchor < starts.length) {
+    let next = anchor + 1;
+    while (next < starts.length && starts[next] === undefined) next += 1;
+    const from = starts[anchor] ?? 0;
+    const to = next < starts.length ? (starts[next] ?? durationSec) : durationSec;
+    const spans = next < starts.length ? next - anchor : starts.length - anchor;
+    for (let index = anchor + 1; index < next; index += 1) {
+      starts[index] = from + ((to - from) * (index - anchor)) / spans;
+    }
+    anchor = next;
+  }
+
+  return kept.map((section, index) => {
+    const start = starts[index] ?? 0;
+    const end = Math.max(start, starts[index + 1] ?? durationSec);
+    return { id: section.id, start, end, lines: spreadLines(section.lines, start, end) };
   });
-  // Sections without an explicit start were given the previous end above;
-  // fix any section whose end came out before its start (degenerate input).
-  return sections.map((section) => ({ ...section, end: Math.max(section.start, section.end) }));
 }
 
 /** Lines with explicit times keep them; the gaps in between are split evenly. */

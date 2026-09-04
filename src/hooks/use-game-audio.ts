@@ -626,6 +626,50 @@ export function useGameAudio() {
           });
         });
         break;
+      case "crow":
+        // Two friendly caws: a bright attack with a rounded falling body.
+        [0, 0.34].forEach((offset) => {
+          playNoise(audioContext, {
+            start: now + offset,
+            duration: 0.08,
+            gain: 0.055,
+            filterFrequency: 1900,
+            filterType: "bandpass",
+          });
+          playVibratoTone(audioContext, {
+            frequency: 560,
+            endFrequency: 310,
+            start: now + offset,
+            duration: 0.25,
+            gain: 0.08,
+            type: "sawtooth",
+            filterFrequency: 1700,
+            vibratoRate: 18,
+            vibratoDepth: 20,
+          });
+        });
+        break;
+      case "deer":
+        // A soft breathy chirp/snort, gentle enough for preschoolers.
+        playNoise(audioContext, {
+          start: now,
+          duration: 0.18,
+          gain: 0.04,
+          filterFrequency: 1100,
+          filterType: "bandpass",
+        });
+        playVibratoTone(audioContext, {
+          frequency: 420,
+          endFrequency: 620,
+          start: now + 0.12,
+          duration: 0.32,
+          gain: 0.055,
+          type: "sine",
+          filterFrequency: 2200,
+          vibratoRate: 7,
+          vibratoDepth: 10,
+        });
+        break;
       case "elephant":
         // trumpet: rising horn with strong harmonic stack
         playTone(audioContext, {

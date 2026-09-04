@@ -21,6 +21,8 @@ export const ANIMAL_VIDEOS: Record<string, string | string[]> = {
   "Butterfly": "https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/butterfly.mp4?v=11",
   "Cat": "https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/cat.mp4?v=11",
   "Cow": "https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/cow.mp4?v=11",
+  "Crow": "https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/crow.mp4?v=12",
+  "Deer": "https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/deer.mp4?v=12",
   "Dog": "https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/dog.mp4?v=11",
   "Dolphin": ["https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/dolphin-2.mp4?v=11","https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/dolphin.mp4?v=11"],
   "Eagle": "https://zaygrhzrr99y8lju.public.blob.vercel-storage.com/videos/eagle.mp4?v=11",

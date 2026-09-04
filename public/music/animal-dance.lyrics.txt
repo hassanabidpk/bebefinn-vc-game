@@ -1,0 +1,26 @@
+[[A0]]
+[3.5:] (Baa baa! Moo!)
+[5.8:] Let's dance, little friends!
+[8.3:] (Cluck cluck!)
+[[B1]]
+[10.2:] Hop like a bunny, one two three
+[13.9:] Stomp like an elephant, dance with me
+[17.9:] Wiggle like an octopus under the sea
+[21.9:] Clap like a seal, so happily
+[[C2]]
+[26.0:] Animal friends, come dance around
+[30.0:] Jump up high, then touch the ground
+[34.0:] Clap clap clap and stomp your feet
+[38.0:] Wiggle together to the beat
+[[B3]]
+[42.0:] Leap like a deer through the forest green
+[46.0:] Flap like a crow, what a dancing team
+[50.0:] Swim like a dolphin, splash splash splash
+[54.0:] Roar like a lion, then freeze like that
+[[C4]]
+[58.1:] Animal friends, come dance around
+[62.1:] Jump up high, then touch the ground
+[66.1:] Clap clap clap and stomp your feet
+[70.1:] Wiggle together to the beat
+[[D5]]
+[73.9:] Hooray for our animal dance!

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
-import { DANCE_SONG } from "@/lib/dance-song";
+import { DANCE_SONGS } from "@/lib/dance-song";
 import {
   buildDanceCues,
   cueAt,
@@ -21,7 +21,6 @@ import { BubbleBackground } from "./ocean-stage";
 
 type Status = "idle" | "playing" | "done" | "error";
 
-const CUES = buildDanceCues(parseLyriaLyrics(DANCE_SONG.lyrics, DANCE_SONG.durationSec));
 const MOVE_BY_ID = Object.fromEntries(DANCE_MOVES.map((move) => [move.id, move]));
 const KEY_TO_MOVE: Record<string, DanceMove> = { "1": "clap", "2": "jump", "3": "stomp", "4": "wiggle" };
 
@@ -38,6 +37,7 @@ interface DanceScreenProps {
 }
 
 export function DanceScreen({ onHome }: DanceScreenProps) {
+  const [songIndex, setSongIndex] = useState(0);
   const [status, setStatus] = useState<Status>("idle");
   const [cueIndex, setCueIndex] = useState(-1);
   const [letterIndex, setLetterIndex] = useState(-1);
@@ -52,6 +52,11 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
   const hitMovesRef = useRef(new Set<DanceMove>());
   const { speak, prefetch, stop } = useFriendlySpeech();
   const { playCelebrate, playRescueSuccess, playTap } = useGameAudio();
+  const song = DANCE_SONGS[songIndex] ?? DANCE_SONGS[0];
+  const cues = useMemo(
+    () => buildDanceCues(parseLyriaLyrics(song.lyrics, song.durationSec)),
+    [song]
+  );
 
   // Partner depends on localStorage, so pick it after mount to keep SSR stable.
   useEffect(() => {
@@ -62,7 +67,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
   }, [prefetch]);
 
   useEffect(() => {
-    const audio = new Audio(DANCE_SONG.src);
+    const audio = new Audio(song.src);
     audio.preload = "auto";
     audioRef.current = audio;
     const onEnded = () => setStatus("done");
@@ -78,7 +83,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
       audio.load();
       audioRef.current = null;
     };
-  }, [loadAttempt]);
+  }, [loadAttempt, song.src]);
 
   useEffect(() => stop, [stop]);
 
@@ -91,12 +96,12 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
     let frame = 0;
     const sync = () => {
       const t = audio.currentTime;
-      const index = cueAt(CUES, t);
+      const index = cueAt(cues, t);
       if (index !== cueIndexRef.current) {
         cueIndexRef.current = index;
         setCueIndex(index);
       }
-      const lit = index >= 0 ? letterIndexAt(CUES[index], t) : -1;
+      const lit = index >= 0 ? letterIndexAt(cues[index], t) : -1;
       setLetterIndex((previous) => (previous === lit ? previous : lit));
     };
     const tick = () => {
@@ -109,7 +114,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
       cancelAnimationFrame(frame);
       audio.removeEventListener("timeupdate", sync);
     };
-  }, [status]);
+  }, [cues, status]);
 
   const play = useCallback(() => {
     const audio = audioRef.current;
@@ -139,7 +144,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
       if (status === "done") return;
       setMascotMove({ move, nonce: Date.now() });
       const index = cueIndexRef.current;
-      const onCue = status === "playing" && index >= 0 && CUES[index].move === move;
+      const onCue = status === "playing" && index >= 0 && cues[index].move === move;
       if (onCue && hitCueRef.current !== index) {
         hitCueRef.current = index;
         hitMovesRef.current.add(move);
@@ -150,7 +155,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
       }
       playTap();
     },
-    [playRescueSuccess, playTap, status]
+    [cues, playRescueSuccess, playTap, status]
   );
 
   useEffect(() => {
@@ -177,7 +182,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [tapMove]);
 
-  const cue = cueIndex >= 0 ? CUES[cueIndex] : null;
+  const cue = cueIndex >= 0 ? cues[cueIndex] : null;
   const cueMove = cue ? MOVE_BY_ID[cue.move] : null;
   const chorus = Boolean(cue && cue.letters.length === 0);
   const demonstratedMove = status === "playing" && cue
@@ -200,13 +205,41 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
       <header className="dance-header">
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
         <div className="progress-pill">
-          <span className="progress-letter">🕺 ABC Dance Party</span>
+          <span className="progress-letter">{song.emoji} {song.title}</span>
         </div>
         <div className="score-pill" aria-label={`${stars} stars`}>
           <span className="star">⭐</span>
           {stars}
         </div>
       </header>
+
+      <div className="dance-song-picker" aria-label="Choose a dance song">
+        {DANCE_SONGS.map((option, optionIndex) => (
+          <button
+            key={option.id}
+            className={optionIndex === songIndex ? "selected" : ""}
+            onClick={() => {
+              audioRef.current?.pause();
+              if (audioRef.current) audioRef.current.currentTime = 0;
+              cueIndexRef.current = -1;
+              hitCueRef.current = -1;
+              hitMovesRef.current = new Set();
+              setCueIndex(-1);
+              setLetterIndex(-1);
+              setHitCue(-1);
+              setStars(0);
+              setStatus("idle");
+              setSongIndex(optionIndex);
+            }}
+            disabled={status === "playing"}
+            aria-label={option.title}
+            aria-pressed={optionIndex === songIndex}
+          >
+            <span>{option.emoji}</span>
+            <small>{option.title.replace(" Dance", "")}</small>
+          </button>
+        ))}
+      </div>
 
       <div className="dance-stage">
         <div className="dance-cue" aria-live="polite">
@@ -255,7 +288,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
         </div>
 
         {status === "idle" ? (
-          <button className="dance-play-btn" onClick={play} aria-label="Play the ABC dance song">
+          <button className="dance-play-btn" onClick={play} aria-label={`Play ${song.title}`}>
             ▶
           </button>
         ) : null}

@@ -1,0 +1,19 @@
+[[A0]]
+[[B1]]
+[10.2:] A B C D E F G
+[13.9:] H I J K L M N O P
+[22.0:] Q R S T U V
+[25.8:] W X Y and Z
+[[C2]]
+[30.1:] Now I know my A B C's, dance with me, my ocean buddies!
+[41.4:] Clap your hands and stomp your feet, wiggle wiggle to the beat!
+[[B3]]
+[50.0:] A B C D E F G
+[53.8:] H I J K L M N O P
+[61.9:] Q R S T U V
+[65.7:] W X Y and Z
+[[C4]]
+[70.0:] Now I know my A B C's, dance with me, my ocean buddies!
+[79.5:] Clap your hands and stomp your feet, wiggle wiggle to the beat!
+[[D5]]
+[86.2:] Yay!

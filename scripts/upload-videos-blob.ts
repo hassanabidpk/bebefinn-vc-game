@@ -60,6 +60,21 @@ async function main() {
     process.exit(1);
   }
 
+  // Selective uploads must retain the cache key of every linked, unchanged
+  // file. Otherwise adding one clip invalidates the browser/CDN cache for the
+  // whole catalog. New or explicitly uploaded files receive VIDEO_REV.
+  let existingManifest = "";
+  try {
+    existingManifest = await readFile(MANIFEST, "utf8");
+  } catch {
+    // A first upload has no manifest yet, so all entries use VIDEO_REV.
+  }
+  const existingRevisionByFile = new Map(
+    [...existingManifest.matchAll(/\/videos\/([^"?]+\.mp4)\?v=([^"\\]+)/g)].map(
+      (match) => [match[1], match[2]]
+    )
+  );
+
   // slug -> canonical lesson word
   const bySlug = new Map<string, string>();
   for (const entry of getAlphabetEntriesWithVariants()) {
@@ -94,7 +109,8 @@ async function main() {
       });
       url = blob.url;
     }
-    const versioned = `${url}?v=${VIDEO_REV}`;
+    const revision = linkOnly ? (existingRevisionByFile.get(f) ?? VIDEO_REV) : VIDEO_REV;
+    const versioned = `${url}?v=${revision}`;
     const list = urlsByWord.get(word) ?? [];
     list.push(versioned);
     urlsByWord.set(word, list);
