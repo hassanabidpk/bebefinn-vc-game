@@ -1,7 +1,8 @@
 /**
- * Build-time TTS pre-generation. Reads every lesson phrase from the
- * existing alphabet/info data and produces /public/tts/{hash}.wav so
- * the deployed app never needs to hit the Gemini API at runtime.
+ * TTS pre-generation. Reads every lesson phrase from the existing
+ * alphabet/info data and produces /public/tts/{hash}.wav. Generated audio is
+ * committed so Vercel builds stay deterministic and do not consume paid API
+ * quota; any uncached line keeps the existing runtime/device fallback.
  *
  * Filename = first 16 hex chars of sha256(version|voice|text), matching the
  * client-side helper in src/hooks/use-gemini-tts.ts. Skips files that
@@ -137,6 +138,11 @@ async function generateOne(
 }
 
 async function main() {
+  if (process.env.VERCEL === "1") {
+    console.log("[tts] Vercel build detected; using committed audio cache.");
+    return;
+  }
+
   await loadDotEnvLocal();
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
