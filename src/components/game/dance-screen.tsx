@@ -231,7 +231,6 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
               setStatus("idle");
               setSongIndex(optionIndex);
             }}
-            disabled={status === "playing"}
             aria-label={option.title}
             aria-pressed={optionIndex === songIndex}
           >
