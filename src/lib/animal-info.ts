@@ -17,6 +17,8 @@ export const ANIMAL_INFO: Record<string, AnimalInfo> = {
   Butterfly: { en: "Butterflies flap their wings!", zh: "蝴蝶拍拍翅膀！", pinyin: "Hú dié pāi pāi chì bǎng" },
   Cat: { en: "Cats say meow!", zh: "猫咪喵喵叫！", pinyin: "Māo mī miāo miāo jiào" },
   Cow: { en: "Cows say moo!", zh: "小牛哞哞叫！", pinyin: "Xiǎo niú mōu mōu jiào" },
+  Crow: { en: "Crows say caw!", zh: "乌鸦嘎嘎叫！", pinyin: "Wū yā gā gā jiào" },
+  Deer: { en: "Deer leap through forests!", zh: "小鹿在森林里跳！", pinyin: "Xiǎo lù zài sēn lín lǐ tiào" },
   Dog: { en: "Dogs say woof!", zh: "小狗汪汪叫！", pinyin: "Xiǎo gǒu wāng wāng jiào" },
   Dolphin: { en: "Dolphins jump and splash!", zh: "海豚跳起来！", pinyin: "Hǎi tún tiào qǐ lái" },
   Eagle: { en: "Eagles soar in the sky!", zh: "老鹰高高飞！", pinyin: "Lǎo yīng gāo gāo fēi" },

@@ -27,14 +27,20 @@ export const alphabetData: AlphabetEntry[] = [
     word: "Cat",
     emoji: "🐱",
     color: "#FF9F43",
-    variants: [{ letter: "C", word: "Cow", emoji: "🐄", color: "#7F8C8D" }],
+    variants: [
+      { letter: "C", word: "Cow", emoji: "🐄", color: "#7F8C8D" },
+      { letter: "C", word: "Crow", emoji: "🐦‍⬛", color: "#34495E" },
+    ],
   },
   {
     letter: "D",
     word: "Dog",
     emoji: "🐶",
     color: "#A0522D",
-    variants: [{ letter: "D", word: "Dolphin", emoji: "🐬", color: "#1ABCDB" }],
+    variants: [
+      { letter: "D", word: "Dolphin", emoji: "🐬", color: "#1ABCDB" },
+      { letter: "D", word: "Deer", emoji: "🦌", color: "#A66A3F" },
+    ],
   },
   {
     letter: "E",
