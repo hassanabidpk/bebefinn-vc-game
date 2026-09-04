@@ -29,14 +29,18 @@ export function starsForScore(score: number): DrawStars {
   return 1;
 }
 
+export function getAnimalArticle(word: string) {
+  return /^[AEIOU]/i.test(word) || /^X-ray\b/i.test(word) ? "an" : "a";
+}
+
 export function getDrawWatchPhrase(word: string) {
-  return `Watch how to draw a ${word}!`;
+  return `Watch how to draw ${getAnimalArticle(word)} ${word}!`;
 }
 
 export const DRAW_YOUR_TURN_PHRASE = "Now your turn!";
 
 export function getDrawPraisePhrase(stars: DrawStars, word: string) {
-  if (stars === 3) return `Wow! You drew a ${word}! Great job!`;
-  if (stars === 2) return `Great drawing! You drew a ${word}!`;
+  if (stars === 3) return `Wow! You drew ${getAnimalArticle(word)} ${word}! Great job!`;
+  if (stars === 2) return `Great drawing! You drew ${getAnimalArticle(word)} ${word}!`;
   return "Good try! Let's draw again!";
 }

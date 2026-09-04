@@ -4,6 +4,7 @@ import {
   starsForScore,
   getDrawPraisePhrase,
   getDrawWatchPhrase,
+  getAnimalArticle,
   DRAW_YOUR_TURN_PHRASE,
 } from "./draw-score";
 
@@ -44,6 +45,14 @@ describe("phrases", () => {
 
   it("keeps the three-star phrase identical to the original celebration line", () => {
     expect(getDrawPraisePhrase(3, "Shark")).toBe("Wow! You drew a Shark! Great job!");
+  });
+
+  it("uses an before vowel sounds", () => {
+    expect(getAnimalArticle("Shark")).toBe("a");
+    expect(getAnimalArticle("Iguana")).toBe("an");
+    expect(getDrawWatchPhrase("Iguana")).toBe("Watch how to draw an Iguana!");
+    expect(getDrawPraisePhrase(2, "Urchin")).toBe("Great drawing! You drew an Urchin!");
+    expect(getDrawPraisePhrase(3, "X-ray Fish")).toBe("Wow! You drew an X-ray Fish! Great job!");
   });
 
   it("stays positive at one star", () => {

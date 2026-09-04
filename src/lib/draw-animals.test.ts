@@ -20,12 +20,27 @@ const EXPECTED_WORDS = [
   "Horse",
   "Octopus",
   "Penguin",
+  "Iguana",
+  "Jellyfish",
+  "Kangaroo",
+  "Narwhal",
+  "Quokka",
+  "Urchin",
+  "Vulture",
+  "X-ray Fish",
+  "Yak",
+  "Zebra",
 ];
 
 describe("DRAW_ANIMALS", () => {
-  it("has the eighteen tutorial animals in order", () => {
-    expect(DRAW_ANIMALS).toHaveLength(18);
+  it("has the complete tutorial animal catalog in order", () => {
+    expect(DRAW_ANIMALS).toHaveLength(28);
     expect(DRAW_ANIMALS.map((a) => a.word)).toEqual(EXPECTED_WORDS);
+  });
+
+  it("has at least one drawing animal for every letter A to Z", () => {
+    const initials = new Set(DRAW_ANIMALS.map((animal) => animal.word[0].toUpperCase()));
+    expect([..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].every((letter) => initials.has(letter))).toBe(true);
   });
 
   it("uses a unique word and a non-empty emoji per animal", () => {
