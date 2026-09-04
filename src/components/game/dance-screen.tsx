@@ -205,7 +205,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
       <header className="dance-header">
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
         <div className="progress-pill">
-          <span className="progress-letter">{song.emoji} {song.title}</span>
+          <span className="progress-letter">🕺 ABC Dance Party</span>
         </div>
         <div className="score-pill" aria-label={`${stars} stars`}>
           <span className="star">⭐</span>
@@ -235,7 +235,7 @@ export function DanceScreen({ onHome }: DanceScreenProps) {
             aria-pressed={optionIndex === songIndex}
           >
             <span>{option.emoji}</span>
-            <small>{option.title.replace(" Dance", "")}</small>
+            <small>{option.title}</small>
           </button>
         ))}
       </div>

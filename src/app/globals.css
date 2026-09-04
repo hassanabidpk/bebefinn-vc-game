@@ -1688,7 +1688,7 @@ html, body {
   box-shadow: 0 5px 0 rgba(90,29,63,0.3); touch-action: manipulation;
 }
 .dance-song-picker button span { font-size: 28px; line-height: 1; }
-.dance-song-picker button small { font-size: 13px; line-height: 1.1; }
+.dance-song-picker button small { font-size: 13px; line-height: 1.1; white-space: nowrap; }
 .dance-song-picker button.selected {
   background: var(--sunny, #ffd93d); border-color: #fff; transform: translateY(3px);
   box-shadow: 0 2px 0 rgba(90,29,63,0.3);
@@ -1824,7 +1824,7 @@ html, body {
 }
 
 .dance-play-btn {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  position: absolute; z-index: 6; left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: 150px; height: 150px; border-radius: 50%; border: 8px solid #fff;
   background: var(--sunny, #ffd93d); color: #6b4d00; cursor: pointer;
   font-size: 68px; line-height: 1; padding-left: 14px;
