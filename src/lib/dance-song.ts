@@ -40,93 +40,91 @@ export const DANCE_SONGS: DanceSong[] = [
     title: "Animal Dance",
     emoji: "🦁",
     src: "/music/animal-dance.mp3",
-    durationSec: 81.03,
+    durationSec: 76.8,
     lyrics: `[[A0]]
-[3.5:] (Baa baa! Moo!)
-[5.8:] Let's dance, little friends!
-[8.3:] (Cluck cluck!)
 [[B1]]
-[10.2:] Hop like a bunny, one two three
-[13.9:] Stomp like an elephant, dance with me
-[17.9:] Wiggle like an octopus under the sea
-[21.9:] Clap like a seal, so happily
+[10.1:] Hop like a bunny, hop hop hop!
+[14.0:] Stomp like an elephant, stomp stomp stomp!
+[18.0:] Wiggle like an octopus, wiggle wiggle wiggle!
+[22.1:] Clap like a seal, clap clap clap!
 [[C2]]
-[26.0:] Animal friends, come dance around
-[30.0:] Jump up high, then touch the ground
-[34.0:] Clap clap clap and stomp your feet
-[38.0:] Wiggle together to the beat
+[26.0:] Animal dance, animal dance
+[30.2:] Everybody do the animal dance!
+[34.0:] Hop and stomp and wiggle and clap
+[38.2:] Animal dance, animal dance!
 [[B3]]
-[42.0:] Leap like a deer through the forest green
-[46.0:] Flap like a crow, what a dancing team
-[50.0:] Swim like a dolphin, splash splash splash
-[54.0:] Roar like a lion, then freeze like that
+[42.1:] Jump like a deer, jump jump jump!
+[46.0:] Flap like a crow, flap flap flap!
+[50.0:] Splash like a dolphin, splash splash splash!
+[54.0:] Roar like a lion, roar roar roar!
 [[C4]]
-[58.1:] Animal friends, come dance around
-[62.1:] Jump up high, then touch the ground
-[66.1:] Clap clap clap and stomp your feet
-[70.1:] Wiggle together to the beat
+[58.0:] Animal dance, animal dance
+[62.2:] Everybody do the animal dance!
+[66.0:] Hop and stomp and wiggle and clap
+[70.1:] Animal dance, animal dance!
 [[D5]]
-[73.9:] Hooray for our animal dance!`,
+[72.5:] Animal dance, hooray!`,
   },
   {
     id: "counting-dance",
     title: "Counting Dance",
     emoji: "🔟",
     src: "/music/counting-dance.mp3",
-    durationSec: 73.87,
+    durationSec: 76.51,
     lyrics: `[[A0]]
+[5.6:] Count it in! One two three four!
 [[B1]]
-[10.2:] One two three, clap with me
-[13.9:] Four five six, do a wiggle twist
-[16.4:] Seven eight, jump up straight
-[18.2:] Nine and ten, let's count again
+[9.5:] One two three, clap with me!
+[13.1:] Four five six, stomp your feet!
+[17.0:] Seven eight nine, jump up high!
+[20.7:] Ten ten ten, wiggle again!
 [[C2]]
-[22.0:] Count and dance, count and play
-[25.8:] Stomp your feet along the way
-[30.1:] Clap your hands, jump up high
-[32.1:] Wiggle low and touch the sky
+[24.9:] Count and dance, count and dance
+[28.8:] One two three four five!
+[32.5:] Count and dance, count and dance
+[36.3:] Six seven eight nine ten!
 [[B3]]
-[34.2:] One two three four five
-[38.0:] Six seven eight nine ten
-[42.2:] Ten bright bubbles floating by
-[45.9:] Pop pop pop and count again
+[40.2:] One two three, clap with me!
+[43.8:] Four five six, stomp your feet!
+[47.7:] Seven eight nine, jump up high!
+[51.4:] Ten ten ten, wiggle again!
 [[C4]]
-[50.0:] Count and dance, count and play
-[53.8:] Stomp your feet along the way
-[58.0:] Clap your hands, jump up high
-[61.9:] Wiggle low and touch the sky
+[55.6:] Count and dance, count and dance
+[59.5:] One two three four five!
+[63.2:] Count and dance, count and dance
+[67.0:] Six seven eight nine ten!
 [[D5]]
-[66.0:] One to ten, hooray!`,
+[71.1:] One to ten, hooray!`,
   },
   {
     id: "color-dance",
     title: "Color Dance",
     emoji: "🌈",
     src: "/music/color-dance.mp3",
-    durationSec: 77.43,
+    durationSec: 86.13,
     lyrics: `[[A0]]
 [[B1]]
-[9.9:] Red red red, clap overhead
-[13.8:] Orange and yellow, jump up and say hello
-[17.9:] Green green green, wiggle like seaweed
-[21.9:] Blue blue blue, stomp your little shoes
+[8.1:] Red red red, clap clap clap!
+[12.7:] Yellow yellow yellow, jump jump jump!
+[16.3:] Green green green, wiggle wiggle wiggle!
+[20.6:] Blue blue blue, stomp stomp stomp!
 [[C2]]
-[25.9:] Rainbow colors dance around
-[29.9:] Clap your hands to every sound
-[33.9:] Jump up high and wiggle low
-[37.9:] Stomp your feet, go go go
-[[B3]]
-[41.9:] Purple like an octopus dancing in the sea
-[45.9:] Pink like coral, sway with me
-[50.0:] White like bubbles, floating up so light
-[54.1:] All our colors shining bright
+[25.0:] Color dance, color dance
+[28.8:] Red and yellow, green and blue!
+[33.2:] Color dance, color dance
+[37.0:] Rainbow colors, me and you!
+[[D3]]
+[42.0:] Orange orange orange, clap clap clap!
+[45.9:] Purple purple purple, jump jump jump!
+[49.9:] Pink pink pink, wiggle wiggle wiggle!
+[54.0:] White white white, stomp stomp stomp!
 [[C4]]
-[57.9:] Rainbow colors dance around
-[62.0:] Clap your hands to every sound
-[66.0:] Jump up high and wiggle low
-[70.0:] Stomp your feet, go go go
-[[D5]]
-[73.0:] Rainbow hooray!`,
+[58.3:] Color dance, color dance
+[62.0:] Red and yellow, green and blue!
+[66.4:] Color dance, color dance
+[70.2:] Rainbow colors, me and you!
+[[E5]]
+[79.4:] Rainbow hooray!`,
   },
 ];
 

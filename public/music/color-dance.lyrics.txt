@@ -1,23 +1,23 @@
 [[A0]]
 [[B1]]
-[9.9:] Red red red, clap overhead
-[13.8:] Orange and yellow, jump up and say hello
-[17.9:] Green green green, wiggle like seaweed
-[21.9:] Blue blue blue, stomp your little shoes
+[8.1:] Red red red, clap clap clap!
+[12.7:] Yellow yellow yellow, jump jump jump!
+[16.3:] Green green green, wiggle wiggle wiggle!
+[20.6:] Blue blue blue, stomp stomp stomp!
 [[C2]]
-[25.9:] Rainbow colors dance around
-[29.9:] Clap your hands to every sound
-[33.9:] Jump up high and wiggle low
-[37.9:] Stomp your feet, go go go
-[[B3]]
-[41.9:] Purple like an octopus dancing in the sea
-[45.9:] Pink like coral, sway with me
-[50.0:] White like bubbles, floating up so light
-[54.1:] All our colors shining bright
+[25.0:] Color dance, color dance
+[28.8:] Red and yellow, green and blue!
+[33.2:] Color dance, color dance
+[37.0:] Rainbow colors, me and you!
+[[D3]]
+[42.0:] Orange orange orange, clap clap clap!
+[45.9:] Purple purple purple, jump jump jump!
+[49.9:] Pink pink pink, wiggle wiggle wiggle!
+[54.0:] White white white, stomp stomp stomp!
 [[C4]]
-[57.9:] Rainbow colors dance around
-[62.0:] Clap your hands to every sound
-[66.0:] Jump up high and wiggle low
-[70.0:] Stomp your feet, go go go
-[[D5]]
-[73.0:] Rainbow hooray!
+[58.3:] Color dance, color dance
+[62.0:] Red and yellow, green and blue!
+[66.4:] Color dance, color dance
+[70.2:] Rainbow colors, me and you!
+[[E5]]
+[79.4:] Rainbow hooray!

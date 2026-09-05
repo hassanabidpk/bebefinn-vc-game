@@ -1,23 +1,24 @@
 [[A0]]
+[5.6:] Count it in! One two three four!
 [[B1]]
-[10.2:] One two three, clap with me
-[13.9:] Four five six, do a wiggle twist
-[16.4:] Seven eight, jump up straight
-[18.2:] Nine and ten, let's count again
+[9.5:] One two three, clap with me!
+[13.1:] Four five six, stomp your feet!
+[17.0:] Seven eight nine, jump up high!
+[20.7:] Ten ten ten, wiggle again!
 [[C2]]
-[22.0:] Count and dance, count and play
-[25.8:] Stomp your feet along the way
-[30.1:] Clap your hands, jump up high
-[32.1:] Wiggle low and touch the sky
+[24.9:] Count and dance, count and dance
+[28.8:] One two three four five!
+[32.5:] Count and dance, count and dance
+[36.3:] Six seven eight nine ten!
 [[B3]]
-[34.2:] One two three four five
-[38.0:] Six seven eight nine ten
-[42.2:] Ten bright bubbles floating by
-[45.9:] Pop pop pop and count again
+[40.2:] One two three, clap with me!
+[43.8:] Four five six, stomp your feet!
+[47.7:] Seven eight nine, jump up high!
+[51.4:] Ten ten ten, wiggle again!
 [[C4]]
-[50.0:] Count and dance, count and play
-[53.8:] Stomp your feet along the way
-[58.0:] Clap your hands, jump up high
-[61.9:] Wiggle low and touch the sky
+[55.6:] Count and dance, count and dance
+[59.5:] One two three four five!
+[63.2:] Count and dance, count and dance
+[67.0:] Six seven eight nine ten!
 [[D5]]
-[66.0:] One to ten, hooray!
+[71.1:] One to ten, hooray!
