@@ -61,60 +61,60 @@ Yay!`,
     title: "Animal Dance",
     emoji: "🦁",
     prompt: `Create a 75-second original cheerful toddler dance song at exactly 116 BPM, in C major, 4/4 time.
-Style: bright bouncy kids' pop with ukulele, handclaps, playful brass, glockenspiel and a warm friendly female singer. Keep every line clear and easy for ages 2-6. No copyrighted melodies or characters.
+Style: bright bouncy kids' pop with ukulele, handclaps, playful brass, glockenspiel and a warm friendly female singer. Every line is short and repeats its action word three times so toddlers aged 2-6 can echo it. Keep the chorus melody identical every time it repeats. No copyrighted melodies or characters.
 Sing these lyrics exactly:
 [Intro - 4 bars, playful animal sounds]
 [Verse 1]
-Hop like a bunny, one two three
-Stomp like an elephant, dance with me
-Wiggle like an octopus under the sea
-Clap like a seal, so happily
+Hop like a bunny, hop hop hop!
+Stomp like an elephant, stomp stomp stomp!
+Wiggle like an octopus, wiggle wiggle wiggle!
+Clap like a seal, clap clap clap!
 [Chorus]
-Animal friends, come dance around
-Jump up high, then touch the ground
-Clap clap clap and stomp your feet
-Wiggle together to the beat
+Animal dance, animal dance
+Everybody do the animal dance!
+Hop and stomp and wiggle and clap
+Animal dance, animal dance!
 [Verse 2]
-Leap like a deer through the forest green
-Flap like a crow, what a dancing team
-Swim like a dolphin, splash splash splash
-Roar like a lion, then freeze like that
+Jump like a deer, jump jump jump!
+Flap like a crow, flap flap flap!
+Splash like a dolphin, splash splash splash!
+Roar like a lion, roar roar roar!
 [Chorus]
-Animal friends, come dance around
-Jump up high, then touch the ground
-Clap clap clap and stomp your feet
-Wiggle together to the beat
+Animal dance, animal dance
+Everybody do the animal dance!
+Hop and stomp and wiggle and clap
+Animal dance, animal dance!
 [Outro]
-Hooray for our animal dance!`,
+Animal dance, hooray!`,
   },
   {
     id: "counting-dance",
     title: "Counting Dance",
     emoji: "🔟",
     prompt: `Create a 75-second original cheerful toddler counting dance song at exactly 120 BPM, in C major, 4/4 time.
-Style: energetic kids' pop with handclaps, ukulele, marimba, light drums and a warm friendly female singer. Make the numbers exceptionally clear for ages 2-6. No copyrighted melodies or characters.
+Style: energetic kids' pop with handclaps, ukulele, marimba, light drums and a warm friendly female singer. Sing every number slowly, clearly and evenly, one number per beat, so ages 2-6 can count along. Keep the chorus melody identical every time it repeats. No copyrighted melodies or characters.
 Sing these lyrics exactly:
 [Intro - 4 bars, count-in]
 [Verse 1]
-One two three, clap with me
-Four five six, do a wiggle twist
-Seven eight, jump up straight
-Nine and ten, let's count again
+One two three, clap with me!
+Four five six, stomp your feet!
+Seven eight nine, jump up high!
+Ten ten ten, wiggle again!
 [Chorus]
-Count and dance, count and play
-Stomp your feet along the way
-Clap your hands, jump up high
-Wiggle low and touch the sky
+Count and dance, count and dance
+One two three four five!
+Count and dance, count and dance
+Six seven eight nine ten!
 [Verse 2]
-One two three four five
-Six seven eight nine ten
-Ten bright bubbles floating by
-Pop pop pop and count again
+One two three, clap with me!
+Four five six, stomp your feet!
+Seven eight nine, jump up high!
+Ten ten ten, wiggle again!
 [Chorus]
-Count and dance, count and play
-Stomp your feet along the way
-Clap your hands, jump up high
-Wiggle low and touch the sky
+Count and dance, count and dance
+One two three four five!
+Count and dance, count and dance
+Six seven eight nine ten!
 [Outro]
 One to ten, hooray!`,
   },
@@ -123,29 +123,29 @@ One to ten, hooray!`,
     title: "Color Dance",
     emoji: "🌈",
     prompt: `Create a 75-second original cheerful toddler color dance song at exactly 118 BPM, in C major, 4/4 time.
-Style: sunny kids' pop with ukulele, handclaps, glockenspiel, bubbly synth and a warm friendly female singer. Keep the color words slow and clear for ages 2-6. No copyrighted melodies or characters.
+Style: sunny kids' pop with ukulele, handclaps, glockenspiel, bubbly synth and a warm friendly female singer. Each verse line sings one color word three times slowly and clearly, then one action word three times, so ages 2-6 can echo it. Keep the chorus melody identical every time it repeats. No copyrighted melodies or characters.
 Sing these lyrics exactly:
 [Intro - 4 bars, sparkling rainbow sounds]
 [Verse 1]
-Red red red, clap overhead
-Orange and yellow, jump up and say hello
-Green green green, wiggle like seaweed
-Blue blue blue, stomp your little shoes
+Red red red, clap clap clap!
+Yellow yellow yellow, jump jump jump!
+Green green green, wiggle wiggle wiggle!
+Blue blue blue, stomp stomp stomp!
 [Chorus]
-Rainbow colors dance around
-Clap your hands to every sound
-Jump up high and wiggle low
-Stomp your feet, go go go
+Color dance, color dance
+Red and yellow, green and blue!
+Color dance, color dance
+Rainbow colors, me and you!
 [Verse 2]
-Purple like an octopus dancing in the sea
-Pink like coral, sway with me
-White like bubbles, floating up so light
-All our colors shining bright
+Orange orange orange, clap clap clap!
+Purple purple purple, jump jump jump!
+Pink pink pink, wiggle wiggle wiggle!
+White white white, stomp stomp stomp!
 [Chorus]
-Rainbow colors dance around
-Clap your hands to every sound
-Jump up high and wiggle low
-Stomp your feet, go go go
+Color dance, color dance
+Red and yellow, green and blue!
+Color dance, color dance
+Rainbow colors, me and you!
 [Outro]
 Rainbow hooray!`,
   },
