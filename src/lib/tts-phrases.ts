@@ -4,6 +4,11 @@ import { spellingWords } from "./spelling-data";
 import { STICKER_ANIMALS } from "./sticker-animals";
 import { DANCE_MOVES } from "./dance-cues";
 import { DRAW_ANIMALS } from "./draw-animals";
+import { NOTEPAD_ALPHABET_COMPLETE_PHRASE, getNotepadBoosterPhrases } from "./notepad-input";
+import { MEMORY_MATCH_PHRASES } from "./memory-match-data";
+import { COUNT_FEED_PHRASES } from "./count-feed-data";
+import { COLORING_PHRASES } from "./coloring-pages";
+import { SHAPE_SORT_PHRASES } from "./shape-sort-data";
 import {
   DRAW_YOUR_TURN_PHRASE,
   getDrawPraisePhrase,
@@ -71,6 +76,8 @@ for (const { word } of spellingWords) {
 }
 
 add("Almost! Try again.", "Wonderful spelling!", NOTEPAD_TAP_REMINDER);
+// Notepad: boosters for typing the alphabet in order, applause at Z.
+add(...getNotepadBoosterPhrases(), NOTEPAD_ALPHABET_COMPLETE_PHRASE);
 for (let streak = 5; streak <= 100; streak += 5) {
   add(`Amazing! ${streak} in a row!`);
 }
@@ -110,6 +117,15 @@ for (const animal of DRAW_ANIMALS) {
   for (const step of animal.steps) add(step.say);
 }
 
+// Memory Match, Count & Feed, Coloring Book, Shape Sort: every line each screen can speak.
+const NEW_GAME_PHRASES = [
+  ...MEMORY_MATCH_PHRASES,
+  ...COUNT_FEED_PHRASES,
+  ...COLORING_PHRASES,
+  ...SHAPE_SORT_PHRASES,
+];
+add(...NEW_GAME_PHRASES);
+
 export function isAllowedTtsPhrase(text: string) {
   return allowedPhrases.has(text);
 }
@@ -146,6 +162,8 @@ for (const { word } of spellingWords) {
 coreGamePhrases.add("Almost! Try again.");
 coreGamePhrases.add("Wonderful spelling!");
 coreGamePhrases.add(NOTEPAD_TAP_REMINDER);
+for (const phrase of getNotepadBoosterPhrases()) coreGamePhrases.add(phrase);
+coreGamePhrases.add(NOTEPAD_ALPHABET_COMPLETE_PHRASE);
 coreGamePhrases.add(DANCE_COMPLETE_PHRASE);
 for (const animal of STICKER_ANIMALS) coreGamePhrases.add(getDancePartnerPhrase(animal.word));
 for (const move of DANCE_MOVES) coreGamePhrases.add(getDanceMovePhrase(move.label));
@@ -158,6 +176,7 @@ for (const animal of DRAW_ANIMALS) {
   coreGamePhrases.add(getDrawPraisePhrase(3, animal.word));
   for (const step of animal.steps) coreGamePhrases.add(step.say);
 }
+for (const phrase of NEW_GAME_PHRASES) coreGamePhrases.add(phrase);
 
 export function getCoreGameTtsPhrases() {
   return [...coreGamePhrases];

@@ -45,3 +45,35 @@ export function registerNotepadTap(state: NotepadTapState, now: number): Notepad
   state.lastAcceptedAt = now;
   return "accept";
 }
+
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+// A–E, A–J, A–O, A–T. No booster at Y — the Z applause is one letter away.
+const BOOSTER_RUNS = [5, 10, 15, 20];
+
+export type AlphabetMilestone = "booster" | "complete" | null;
+
+export const NOTEPAD_ALPHABET_COMPLETE_PHRASE = "Hooray! You wrote the whole alphabet!";
+
+/** Length of the A, B, C… run that ends at the last character (0 if none). */
+export function getAlphabetRunLength(chars: readonly string[]): number {
+  let run = 0;
+  for (const ch of chars) {
+    if (ch === ALPHABET[run]) run += 1;
+    else run = ch === "A" ? 1 : 0;
+  }
+  return run;
+}
+
+export function getAlphabetMilestone(run: number): AlphabetMilestone {
+  if (run === ALPHABET.length) return "complete";
+  if (BOOSTER_RUNS.includes(run)) return "booster";
+  return null;
+}
+
+export function getNotepadBoosterPhrase(run: number) {
+  return `A to ${ALPHABET[run - 1]}! Keep going!`;
+}
+
+export function getNotepadBoosterPhrases() {
+  return BOOSTER_RUNS.map(getNotepadBoosterPhrase);
+}
