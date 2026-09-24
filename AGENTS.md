@@ -90,9 +90,12 @@ ocean-buddy-alphabet-game/
 2. **Ocean Adventure** — Tap-to-swim exploration collecting items
 3. **ABC Dance Party** — Tap-along dance game to an original Lyria 3 Pro alphabet song (`src/components/game/dance-screen.tsx`, cues in `src/lib/dance-cues.ts`, song manifest in `src/lib/dance-song.ts`); every move tapped on cue earns a sticker and an animal friend joins as dance partner
 4. **Puzzle Time** — Simple jigsaw and matching puzzles
-5. **Coloring Book** — Digital coloring with original characters
-6. **Memory Match** — Card-flipping memory game with sea creatures
+5. **Coloring Book** — Tap-to-fill coloring of original sea-friend outlines (`src/components/game/coloring-screen.tsx` + `src/lib/coloring-pages.ts`)
+6. **Memory Match** — Card-flipping memory game with animal stickers, rounds grow 2→6 pairs (`src/components/game/memory-match-screen.tsx` + `src/lib/memory-match-data.ts`)
 7. **Ocean Letter Rescue** — Bubble letter-match game with reef sticker progress (`src/components/game/letter-rescue-*.tsx` + `src/lib/letter-rescue-data.ts`)
+8. **Count & Feed** — Tap shells to feed a sea friend 1–10 times, counted aloud (`src/components/game/count-feed-screen.tsx` + `src/lib/count-feed-data.ts`)
+9. **Shape Sort** — Drag or tap-tap shapes into matching holes (`src/components/game/shape-sort-screen.tsx` + `src/lib/shape-sort-data.ts`)
+10. **Notepad** — Free typing; writing the alphabet in order earns boosters at A–E/J/O/T and applause at A–Z (`src/components/game/notepad-screen.tsx` + `src/lib/notepad-input.ts`)
 
 ## Coding Conventions
 

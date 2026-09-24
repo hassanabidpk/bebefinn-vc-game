@@ -14,6 +14,10 @@ import { LetterRescueScreen } from "@/components/game/letter-rescue-screen";
 import { StickerBookScreen } from "@/components/game/sticker-book-screen";
 import { DanceScreen } from "@/components/game/dance-screen";
 import { DrawScreen } from "@/components/game/draw-screen";
+import { MemoryMatchScreen } from "@/components/game/memory-match-screen";
+import { CountFeedScreen } from "@/components/game/count-feed-screen";
+import { ColoringScreen } from "@/components/game/coloring-screen";
+import { ShapeSortScreen } from "@/components/game/shape-sort-screen";
 
 type Screen =
   | "home"
@@ -25,6 +29,10 @@ type Screen =
   | "rescue"
   | "dance"
   | "draw"
+  | "match"
+  | "count"
+  | "color"
+  | "shapes"
   | "stickers";
 
 interface Route {
@@ -105,9 +113,45 @@ export default function Home() {
     // No background music — step-by-step drawing narration needs to be clear.
     setRoute({ screen: "draw", index: 0 });
   };
+  const goMatch = () => {
+    playStart();
+    warmUp();
+    startBackgroundMusic();
+    setRoute({ screen: "match", index: 0 });
+  };
+  const goCount = () => {
+    playStart();
+    warmUp();
+    // No background music — each counted number needs to be clearly heard.
+    setRoute({ screen: "count", index: 0 });
+  };
+  const goColor = () => {
+    playStart();
+    warmUp();
+    startBackgroundMusic();
+    setRoute({ screen: "color", index: 0 });
+  };
+  const goShapes = () => {
+    playStart();
+    warmUp();
+    startBackgroundMusic();
+    setRoute({ screen: "shapes", index: 0 });
+  };
 
   const onMode = (
-    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue" | "dance" | "draw"
+    mode:
+      | "lesson"
+      | "listen"
+      | "play"
+      | "notepad"
+      | "spelling"
+      | "rescue"
+      | "dance"
+      | "draw"
+      | "match"
+      | "count"
+      | "color"
+      | "shapes"
   ) => {
     if (mode === "lesson") goLesson(0);
     else if (mode === "listen") goListen();
@@ -116,6 +160,10 @@ export default function Home() {
     else if (mode === "rescue") goRescue();
     else if (mode === "dance") goDance();
     else if (mode === "draw") goDraw();
+    else if (mode === "match") goMatch();
+    else if (mode === "count") goCount();
+    else if (mode === "color") goColor();
+    else if (mode === "shapes") goShapes();
     else goNotepad();
   };
 
@@ -146,6 +194,10 @@ export default function Home() {
       {route.screen === "stickers" ? <StickerBookScreen onHome={goHome} /> : null}
       {route.screen === "dance" ? <DanceScreen onHome={goHome} /> : null}
       {route.screen === "draw" ? <DrawScreen onHome={goHome} /> : null}
+      {route.screen === "match" ? <MemoryMatchScreen onHome={goHome} /> : null}
+      {route.screen === "count" ? <CountFeedScreen onHome={goHome} /> : null}
+      {route.screen === "color" ? <ColoringScreen onHome={goHome} /> : null}
+      {route.screen === "shapes" ? <ShapeSortScreen onHome={goHome} /> : null}
     </IpadShell>
   );
 }

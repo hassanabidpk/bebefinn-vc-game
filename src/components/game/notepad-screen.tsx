@@ -5,15 +5,25 @@
  * Tap a letter or number; it lands on the page in its lesson colour and
  * the narrator says it out loud. Tap any previously-typed character to
  * hear it again. Physical keyboard mirrors the on-screen keys.
+ * Typing the alphabet in order earns boosters every five letters and a
+ * big round of applause at Z.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { alphabetData } from "@/lib/alphabet-data";
 import { useFriendlySpeech } from "@/hooks/use-friendly-speech";
 import { useGameAudio } from "@/hooks/use-game-audio";
-import { createNotepadTapState, registerNotepadTap } from "@/lib/notepad-input";
+import {
+  NOTEPAD_ALPHABET_COMPLETE_PHRASE,
+  createNotepadTapState,
+  getAlphabetMilestone,
+  getAlphabetRunLength,
+  getNotepadBoosterPhrase,
+  registerNotepadTap,
+} from "@/lib/notepad-input";
 import { getStandaloneLetterSpeech, NOTEPAD_TAP_REMINDER } from "@/lib/tts-phrases";
 import { BubbleBackground } from "./ocean-stage";
+import { Confetti } from "./confetti";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
@@ -52,13 +62,33 @@ interface Stroke {
   ch: string;
 }
 
+interface Cheer {
+  kind: "booster" | "complete";
+  letter: string;
+  key: number;
+}
+
+const BOOSTER_MS = 1800;
+const APPLAUSE_MS = 4500;
+
 export function NotepadScreen({ onHome }: NotepadScreenProps) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const nextId = useRef(1);
   const paperRef = useRef<HTMLDivElement | null>(null);
   const tapStateRef = useRef(createNotepadTapState());
+  // Mirrors strokes so the (mount-once) keyboard handler sees the latest page.
+  const charsRef = useRef<string[]>([]);
+  const [cheer, setCheer] = useState<Cheer | null>(null);
+  const cheerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak } = useFriendlySpeech();
-  const { playTap } = useGameAudio();
+  const { playTap, playCelebrate, playApplause } = useGameAudio();
+
+  useEffect(
+    () => () => {
+      if (cheerTimer.current) clearTimeout(cheerTimer.current);
+    },
+    []
+  );
 
   // Keep the latest character in view as the page fills up.
   useEffect(() => {
@@ -78,10 +108,34 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
     return decision === "accept";
   };
 
+  const celebrate = (kind: Cheer["kind"], run: number) => {
+    if (cheerTimer.current) clearTimeout(cheerTimer.current);
+    setCheer({ kind, letter: LETTERS[run - 1], key: Date.now() });
+    cheerTimer.current = setTimeout(
+      () => setCheer(null),
+      kind === "complete" ? APPLAUSE_MS : BOOSTER_MS
+    );
+    speak(kind === "complete" ? NOTEPAD_ALPHABET_COMPLETE_PHRASE : getNotepadBoosterPhrase(run));
+    try {
+      if (kind === "complete") playApplause();
+      else playCelebrate();
+    } catch {
+      /* sfx best-effort */
+    }
+  };
+
   const append = (ch: string) => {
     if (!acceptTap()) return;
     const id = nextId.current++;
     setStrokes((s) => [...s, { id, ch }]);
+    charsRef.current = [...charsRef.current, ch];
+    const run = getAlphabetRunLength(charsRef.current);
+    const milestone = getAlphabetMilestone(run);
+    if (milestone) {
+      // The cheer names the letter ("A to E!"), so it replaces the letter call.
+      celebrate(milestone, run);
+      return;
+    }
     speakChar(ch);
     try {
       playTap();
@@ -91,8 +145,12 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
   };
   const backspace = () => {
     setStrokes((s) => s.slice(0, -1));
+    charsRef.current = charsRef.current.slice(0, -1);
   };
-  const clear = () => setStrokes([]);
+  const clear = () => {
+    setStrokes([]);
+    charsRef.current = [];
+  };
 
   // Physical keyboard: A-Z, 0-9, Backspace, Delete, Escape.
   useEffect(() => {
@@ -183,6 +241,23 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
           </div>
         )}
       </div>
+
+      {cheer?.kind === "booster" ? (
+        <div key={cheer.key} className="notepad-booster" aria-hidden="true">
+          <span className="notepad-booster-rocket">🚀</span>
+          <span className="notepad-booster-run">A→{cheer.letter}</span>
+          <span className="notepad-booster-star">⭐</span>
+        </div>
+      ) : null}
+      {cheer?.kind === "complete" ? (
+        <div key={cheer.key} className="notepad-applause" aria-hidden="true">
+          <Confetti />
+          <div className="notepad-applause-badge">
+            <span className="notepad-applause-hands">👏🎉👏</span>
+            <span className="notepad-applause-run">A→Z</span>
+          </div>
+        </div>
+      ) : null}
 
       <div className="notepad-keyboard">
         <div className="notepad-row notepad-row-letters">

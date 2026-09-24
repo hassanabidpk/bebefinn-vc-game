@@ -287,9 +287,11 @@ html, body {
   animation: wiggle-spin 1.4s ease-in-out infinite;
 }
 
+/* Two rows of six, wider than the Start button — a third row would push
+ * the chips off the bottom of the fixed-height home screen. */
 .home-chips {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 10px; width: 100%;
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 10px; width: 780px;
 }
 .home-chip {
   background: rgba(255,255,255,0.22); color: #fff;
@@ -999,6 +1001,7 @@ html, body {
     font-size: 22px;
   }
   .home-cta-block { gap: 18px; max-width: 520px; }
+  .home-chips { width: 1040px; }
   .start-btn {
     min-height: 96px; font-size: 42px; padding: 22px 40px;
   }
@@ -1203,6 +1206,87 @@ html, body {
   .notepad-key-digit { font-size: 26px; }
   .notepad-row-letters { grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .notepad-row-digits  { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+}
+
+/* Alphabet-in-order boosters (A–E, A–J, A–O, A–T) and the A–Z applause. */
+@keyframes notepad-booster-fly {
+  0%   { transform: translate(-50%, 40px) scale(0.5); opacity: 0; }
+  20%  { transform: translate(-50%, 0) scale(1.12); opacity: 1; }
+  75%  { transform: translate(-50%, -10px) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -80px) scale(0.9); opacity: 0; }
+}
+@keyframes notepad-rocket-wiggle {
+  0%, 100% { transform: rotate(-12deg); }
+  50%      { transform: rotate(12deg) translateY(-6px); }
+}
+.notepad-booster {
+  position: absolute; left: 50%; top: 22%; z-index: 40;
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 30px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffd93d 0%, #ff9f43 100%);
+  border: 5px solid #fff;
+  box-shadow: 0 16px 34px rgba(255, 159, 67, 0.45);
+  font-family: 'Fredoka', sans-serif; font-weight: 800;
+  color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.18);
+  pointer-events: none;
+  animation: notepad-booster-fly 1.8s ease-out both;
+}
+.notepad-booster-rocket { font-size: 64px; animation: notepad-rocket-wiggle 0.5s ease-in-out infinite; }
+.notepad-booster-run { font-size: 56px; }
+.notepad-booster-star { font-size: 52px; }
+
+@keyframes notepad-applause-pop {
+  0%   { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+  55%  { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@keyframes notepad-applause-clap {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+.notepad-applause {
+  position: absolute; inset: 0; z-index: 45;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 217, 61, 0.35) 0%, transparent 60%);
+  pointer-events: none;
+}
+.notepad-applause-badge {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 26px 48px;
+  border-radius: 40px;
+  background: #fff;
+  border: 6px solid #ffd93d;
+  box-shadow: 0 24px 60px rgba(14, 82, 116, 0.3);
+  font-family: 'Fredoka', sans-serif; font-weight: 800;
+  animation: notepad-applause-pop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.notepad-applause-hands {
+  font-size: 96px; line-height: 1.1;
+  animation: notepad-applause-clap 0.35s ease-in-out infinite;
+}
+.notepad-applause-run {
+  font-size: 72px; line-height: 1;
+  background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77, #54a0ff, #8854d0);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+@media (max-width: 720px) {
+  .notepad-booster { padding: 10px 20px; gap: 8px; }
+  .notepad-booster-rocket { font-size: 44px; }
+  .notepad-booster-run { font-size: 38px; }
+  .notepad-booster-star { font-size: 36px; }
+  .notepad-applause-badge { padding: 18px 28px; }
+  .notepad-applause-hands { font-size: 64px; }
+  .notepad-applause-run { font-size: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notepad-booster { animation: none; transform: translate(-50%, 0); }
+  .notepad-booster-rocket,
+  .notepad-applause-badge,
+  .notepad-applause-hands { animation: none; }
+  .notepad-applause .confetti { display: none; }
 }
 
 /* ---- Spelling Challenge ---- */
@@ -2165,4 +2249,648 @@ html, body {
   .draw-animal-card, .draw-crayon, .draw-ctrl-btn, .draw-step-dot, .draw-level-btn { transition: none; }
   .draw-your-turn-btn { animation: none; }
   .draw-star.lit { animation: none; opacity: 1; }
+}
+
+/* ---- MEMORY MATCH ---- */
+.home-chip-match {
+  color: #2e1a5c;
+  background: linear-gradient(135deg, #e6dcff, #bba3ff);
+  box-shadow: 0 6px 18px rgba(60,20,140,0.22), inset 0 0 0 2px rgba(255,255,255,0.65);
+}
+.home-chip-match:hover { background: linear-gradient(135deg, #f0eaff, #cbb8ff); }
+
+.match-screen {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  padding: 16px 20px 20px;
+  background: linear-gradient(180deg, #0aa3e0 0%, #0495d9 45%, #005580 100%);
+  overflow: hidden; isolation: isolate;
+}
+.match-progress {
+  justify-self: center;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  min-height: 56px;
+}
+.match-progress-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  border: 3px solid rgba(255,255,255,0.9);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.match-progress-dot.match-progress-dot-found {
+  background: var(--sunny);
+  transform: scale(1.25);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+
+/* The iPad frame is a fixed 1180x820 design, so each deal gets a fixed
+ * column count and card size that fills the space under the header. */
+.match-board {
+  position: relative; z-index: 10;
+  flex: 1; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px 0;
+}
+.match-grid {
+  --match-cols: 4; --match-card: 196px; --match-gap: 22px;
+  display: grid;
+  grid-template-columns: repeat(var(--match-cols), var(--match-card));
+  gap: var(--match-gap);
+}
+.match-grid[data-cards="4"]  { --match-cols: 4; --match-card: 250px; --match-gap: 26px; }
+.match-grid[data-cards="6"]  { --match-cols: 3; --match-card: 280px; --match-gap: 26px; }
+.match-grid[data-cards="8"]  { --match-cols: 4; --match-card: 250px; }
+.match-grid[data-cards="12"] { --match-cols: 4; --match-card: 196px; --match-gap: 18px; }
+
+.match-card {
+  position: relative;
+  width: var(--match-card); height: var(--match-card);
+  padding: 0; border: none; background: transparent;
+  cursor: pointer; perspective: 1000px;
+  -webkit-touch-callout: none; touch-action: manipulation;
+  transition: transform 0.12s ease;
+}
+.match-card:not(.match-card-up):hover { transform: translateY(-4px) rotate(-1deg); }
+.match-card:not(.match-card-up):active { transform: scale(0.94); }
+.match-card.match-card-up { cursor: default; }
+.match-card:focus-visible { outline: 6px solid var(--sunny); outline-offset: 5px; border-radius: 34px; }
+.match-card-inner {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+.match-card.match-card-up .match-card-inner { transform: rotateY(180deg); }
+.match-card-back,
+.match-card-face {
+  position: absolute; inset: 0;
+  border-radius: 34px;
+  -webkit-backface-visibility: hidden; backface-visibility: hidden;
+}
+/* Friendly ocean card back: bubbles on a sea-blue tile with a shell. */
+.match-card-back {
+  display: flex; align-items: center; justify-content: center;
+  border: 6px solid #fff;
+  background:
+    radial-gradient(circle at 20% 22%, rgba(255,255,255,0.55) 0 8%, transparent 9%),
+    radial-gradient(circle at 78% 28%, rgba(255,255,255,0.4) 0 5%, transparent 6%),
+    radial-gradient(circle at 26% 80%, rgba(255,255,255,0.35) 0 6%, transparent 7%),
+    radial-gradient(circle at 82% 78%, rgba(255,255,255,0.5) 0 9%, transparent 10%),
+    radial-gradient(circle at 60% 12%, rgba(255,255,255,0.3) 0 3%, transparent 4%),
+    linear-gradient(160deg, #4dc3ff 0%, #0099e6 55%, #00699e 100%);
+  box-shadow:
+    0 8px 0 rgba(0,60,90,0.28),
+    0 14px 26px rgba(0,0,0,0.18),
+    inset 0 0 0 4px rgba(255,255,255,0.25);
+}
+.match-card-shell {
+  font-size: calc(var(--match-card) * 0.38); line-height: 1;
+  filter: drop-shadow(0 4px 6px rgba(0,40,70,0.3));
+}
+.match-card-face { transform: rotateY(180deg); padding: 10px; }
+/* AnimalPhoto sizes itself inline; stretch it to whatever the deal needs. */
+.match-card-face .animal-photo-wrap { width: 100% !important; height: 100% !important; }
+/* Idle sticker wiggle only once the animal is showing. */
+.match-card:not(.match-card-up) .animal-photo-wrap { animation: none; }
+
+.match-card.match-card-matched { animation: match-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both; }
+.match-card.match-card-matched .animal-photo-wrap {
+  box-shadow:
+    0 0 0 6px var(--ring, #fff),
+    0 0 0 12px var(--sunny),
+    0 14px 28px -8px rgba(0,0,0,0.35);
+}
+@keyframes match-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.12) rotate(-3deg); }
+  100% { transform: scale(1); }
+}
+
+/* Board cleared: a big icon-only "next" button over the confetti. */
+.match-cleared {
+  position: absolute; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(0,51,77,0.35) 0%, transparent 55%);
+}
+.match-next {
+  pointer-events: auto;
+  width: 148px; height: 148px; border-radius: 50%;
+  border: 6px solid #fff; cursor: pointer;
+  background: var(--sunny); color: var(--ocean-700);
+  font-family: 'Fredoka', sans-serif; font-weight: 800;
+  font-size: 76px; line-height: 1;
+  box-shadow: 0 10px 0 #c9a400, 0 18px 36px rgba(0,0,0,0.3);
+  -webkit-touch-callout: none; touch-action: manipulation;
+  animation:
+    match-next-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    match-next-pulse 0.9s ease-in-out 0.5s infinite alternate;
+}
+.match-next:active { transform: translateY(6px); box-shadow: 0 4px 0 #c9a400; }
+.match-next:focus-visible { outline: 7px solid #fff; outline-offset: 5px; }
+@keyframes match-next-in {
+  from { scale: 0.3; opacity: 0; }
+  to   { scale: 1; opacity: 1; }
+}
+@keyframes match-next-pulse {
+  from { scale: 1; }
+  to   { scale: 1.1; }
+}
+
+/* Phones: the iPad frame is scaled way down, so trade padding and gaps
+ * for even bigger cards. */
+@media (max-width: 720px) {
+  .match-screen { padding: 10px 12px 12px; }
+  .match-board { padding: 6px 0; }
+  .match-grid[data-cards="4"]  { --match-card: 260px; --match-gap: 14px; }
+  .match-grid[data-cards="6"]  { --match-card: 300px; --match-gap: 14px; }
+  .match-grid[data-cards="8"]  { --match-card: 260px; --match-gap: 14px; }
+  .match-grid[data-cards="12"] { --match-card: 208px; --match-gap: 14px; }
+  .match-next { width: 132px; height: 132px; font-size: 68px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-card,
+  .match-card-inner,
+  .match-progress-dot { transition: none; }
+  .match-card.match-card-matched,
+  .match-card .animal-photo-wrap,
+  .match-next { animation: none; }
+}
+
+/* ---- COUNT & FEED ---- */
+.home-chip-count {
+  color: #134a12;
+  background: linear-gradient(135deg, #d8f7d0, #95e08a);
+  box-shadow: 0 6px 18px rgba(20,100,20,0.22), inset 0 0 0 2px rgba(255,255,255,0.65);
+}
+.home-chip-count:hover { background: linear-gradient(135deg, #e8fbe2, #a9e89f); }
+
+.count-feed-screen {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  padding: 16px 20px 20px;
+  overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(circle at 27% 55%, color-mix(in srgb, var(--count-friend, #4dc3ff) 45%, transparent) 0%, transparent 42%),
+    linear-gradient(180deg, #4dc3ff 0%, #0495d9 48%, #005580 100%);
+}
+.count-body {
+  position: relative; z-index: 10;
+  flex: 1; min-height: 0; width: 100%; max-width: 1060px;
+  margin: 0 auto; padding: 12px 8px 8px;
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  align-items: center; gap: 32px;
+}
+
+/* Hungry friend card: photo, big target numeral, and one dot per shell. */
+.count-friend {
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  padding: 26px 24px 24px;
+  border: 5px solid #fff; border-radius: 36px;
+  background: rgba(255,255,255,0.94);
+  box-shadow: 0 10px 0 rgba(0,60,90,0.22), 0 16px 32px rgba(0,0,0,0.18);
+  transition: box-shadow 0.3s ease;
+}
+.count-friend-happy {
+  box-shadow: 0 10px 0 rgba(0,60,90,0.22), 0 0 0 8px var(--sunny), 0 16px 40px rgba(255,217,61,0.55);
+}
+.count-target { display: flex; align-items: center; gap: 18px; }
+.count-numeral {
+  display: grid; place-items: center; flex: none;
+  width: 110px; height: 110px; border-radius: 50%;
+  border: 8px solid var(--count-friend, var(--sunny)); background: #fff;
+  color: var(--ocean-800);
+  font-family: 'Fredoka', sans-serif; font-size: 76px; font-weight: 800; line-height: 1;
+  box-shadow: 0 6px 0 rgba(0,60,90,0.18);
+}
+.count-dots {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  max-width: calc(5 * 40px + 4 * 10px);
+}
+.count-dot {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 4px dashed rgba(0,85,128,0.4);
+  background: rgba(0,85,128,0.06);
+}
+.count-dot-filled {
+  border: 4px solid #fff;
+  background: var(--count-friend, var(--sunny));
+  box-shadow: 0 0 0 3px var(--count-friend, var(--sunny)), 0 4px 8px rgba(0,0,0,0.18);
+  animation: count-dot-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes count-dot-pop {
+  0% { transform: scale(0.3); }
+  70% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+/* Gulp on every shell — two identical keyframes so alternating class
+   names restart the animation without remounting the photo. */
+.count-friend-photo.count-gulp-odd { animation: count-gulp-a 0.4s ease-out 0.4s; }
+.count-friend-photo.count-gulp-even { animation: count-gulp-b 0.4s ease-out 0.4s; }
+@keyframes count-gulp-a {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.1) rotate(-3deg); }
+}
+@keyframes count-gulp-b {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.1) rotate(-3deg); }
+}
+.count-friend-happy .count-friend-photo {
+  animation: count-happy-wiggle 0.7s ease-in-out 0.45s 3;
+}
+@keyframes count-happy-wiggle {
+  0%, 100% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-7deg) scale(1.08); }
+  75% { transform: rotate(7deg) scale(1.08); }
+}
+
+/* Sandy shell tray */
+.count-tray-area { position: relative; }
+.count-tray {
+  display: flex; flex-wrap: wrap; justify-content: center; align-content: center;
+  gap: 16px; min-height: 320px; padding: 24px;
+  border: 5px solid rgba(255,255,255,0.75); border-radius: 40px;
+  background: linear-gradient(180deg, #FFE8A3 0%, #F7C978 100%);
+  box-shadow: inset 0 -10px 0 rgba(160,110,40,0.16), 0 14px 30px rgba(0,34,53,0.28);
+}
+.count-shell {
+  display: grid; place-items: center;
+  width: 104px; height: 104px; padding: 0;
+  border: 5px solid #fff; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff 0%, #ffe3ec 60%, #ffc2d4 100%);
+  font-size: 60px; line-height: 1;
+  cursor: pointer; touch-action: manipulation; -webkit-touch-callout: none;
+  box-shadow: 0 7px 0 rgba(150,90,40,0.3), 0 10px 18px rgba(0,0,0,0.14);
+  transition: transform 0.12s ease, opacity 0.3s ease, filter 0.3s ease;
+}
+/* Tilt the emoji, not the button — a rotated button would bend its flight path. */
+.count-shell-emoji { display: block; }
+.count-shell:nth-child(3n+1) .count-shell-emoji { transform: rotate(-12deg); }
+.count-shell:nth-child(3n+2) .count-shell-emoji { transform: rotate(9deg); }
+.count-shell:not(:disabled):hover { transform: translateY(-3px) scale(1.05); }
+.count-shell:not(:disabled):active {
+  transform: translateY(4px) scale(0.94);
+  box-shadow: 0 3px 0 rgba(150,90,40,0.3);
+}
+.count-shell:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 3px; }
+.count-shell-fed {
+  pointer-events: none; opacity: 0;
+  animation: count-shell-fly 0.6s cubic-bezier(0.45, 0, 0.3, 1) both;
+}
+@keyframes count-shell-fly {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  20% { transform: translate(0, -26px) scale(1.15); opacity: 1; }
+  85% { transform: translate(var(--count-fly-x, 0), var(--count-fly-y, -120px)) scale(0.45); opacity: 1; }
+  100% { transform: translate(var(--count-fly-x, 0), var(--count-fly-y, -120px)) scale(0.2); opacity: 0; }
+}
+/* Spare shells once the friend is full: quietly inert, never "wrong". */
+.count-shell-resting {
+  opacity: 0.35; transform: scale(0.88); filter: saturate(0.5);
+  cursor: default; box-shadow: none;
+}
+
+/* Big icon-only Next, centred over the resting tray. */
+.count-next {
+  position: absolute; inset: 0; z-index: 5; margin: auto;
+  width: 120px; height: 120px; border-radius: 50%;
+  border: 6px solid #fff; cursor: pointer; touch-action: manipulation;
+  display: grid; place-items: center;
+  font-size: 56px; line-height: 1;
+  background: var(--sunny);
+  box-shadow: 0 8px 0 #c9a400, 0 14px 28px rgba(0,0,0,0.25);
+  animation:
+    count-next-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both,
+    count-next-pulse 0.8s ease-in-out 1.05s infinite alternate;
+}
+/* `translate` (not transform) so the press still shows over the pulse animation. */
+.count-next:active { translate: 0 5px; box-shadow: 0 3px 0 #c9a400; }
+.count-next:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 4px; }
+@keyframes count-next-in {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+@keyframes count-next-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+/* Phones see the whole iPad design scaled down, so the tap targets grow
+   here instead of shrinking. */
+@media (max-width: 720px) {
+  .count-body { grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); gap: 24px; }
+  .count-friend { padding: 18px 16px; gap: 14px; }
+  .count-target { gap: 14px; }
+  .count-numeral { width: 100px; height: 100px; font-size: 68px; }
+  .count-dots { gap: 8px; max-width: calc(5 * 34px + 4 * 8px); }
+  .count-dot { width: 34px; height: 34px; }
+  .count-tray { gap: 12px; padding: 16px; }
+  .count-shell { width: 124px; height: 124px; font-size: 72px; }
+  .count-next { width: 136px; height: 136px; font-size: 64px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .count-friend,
+  .count-shell { transition: none; }
+  .count-dot-filled,
+  .count-shell-fed,
+  .count-friend-photo.count-gulp-odd,
+  .count-friend-photo.count-gulp-even,
+  .count-friend-happy .count-friend-photo,
+  .count-next { animation: none; }
+  .count-feed-screen .confetti { display: none; }
+}
+
+/* ---- COLORING BOOK ---- */
+.home-chip-color {
+  color: #5c1410;
+  background: linear-gradient(135deg, #ffd9d6, #ff9a8f);
+  box-shadow: 0 6px 18px rgba(140,30,20,0.22), inset 0 0 0 2px rgba(255,255,255,0.65);
+}
+.home-chip-color:hover { background: linear-gradient(135deg, #ffe8e6, #ffb0a6); }
+
+.coloring-screen {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 20px 18px;
+  background: linear-gradient(180deg, #4dc3ff 0%, #2fa8e8 45%, #0077b6 100%);
+  overflow: hidden; isolation: isolate;
+}
+
+/* Shared picture: fills soften in; details sit on top and ignore taps. */
+.coloring-art { display: block; width: 100%; height: 100%; min-height: 0; }
+.coloring-region { transition: fill 0.35s ease; }
+
+/* Picker: four big picture cards showing each outline. */
+.coloring-picker {
+  position: relative; z-index: 20; flex: 1; min-height: 0;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px; align-content: center;
+  padding: 6px 2px;
+}
+.coloring-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 14px 12px;
+  border-radius: 32px; border: 6px solid #fff;
+  background: rgba(255,255,255,0.96);
+  cursor: pointer; touch-action: manipulation;
+  box-shadow: 0 8px 0 rgba(0,60,90,0.22), 0 12px 26px rgba(0,0,0,0.16);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.coloring-card .coloring-art { width: 100%; height: auto; aspect-ratio: 1 / 1; }
+.coloring-card:hover { transform: translateY(-3px); }
+.coloring-card:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,60,90,0.22); }
+.coloring-card:focus-visible { outline: 6px solid #fff; outline-offset: 3px; }
+.coloring-card-word {
+  font-family: 'Fredoka', sans-serif; font-weight: 800; font-size: 26px;
+  color: var(--ocean-700);
+}
+
+/* Coloring view: big picture on the left, crayon column on the right. */
+.coloring-book {
+  position: relative; z-index: 20; flex: 1; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+}
+.coloring-stage {
+  position: relative; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 14px;
+  border-radius: 32px; border: 5px solid #fff;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+}
+.coloring-stage .coloring-region { cursor: pointer; touch-action: manipulation; }
+/* No box around a tapped region; keyboard focus recolors its outline instead. */
+.coloring-stage .coloring-region:focus { outline: none; }
+.coloring-stage .coloring-region:focus-visible { stroke: var(--ocean-500); }
+.coloring-stage.done .coloring-art { animation: coloring-cheer 0.7s ease-in-out 2; }
+@keyframes coloring-cheer {
+  0%, 100% { transform: scale(1) rotate(0); }
+  25% { transform: scale(1.05) rotate(-3deg); }
+  75% { transform: scale(1.05) rotate(3deg); }
+}
+
+.coloring-crayons {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 18px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(6px);
+}
+.coloring-crayon {
+  width: 76px; height: 76px; border-radius: 50%;
+  border: 6px solid #fff; cursor: pointer; padding: 0;
+  touch-action: manipulation;
+  box-shadow: 0 6px 0 rgba(0,60,90,0.25);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.coloring-crayon:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,60,90,0.25); }
+.coloring-crayon:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 3px; }
+/* The chosen crayon lifts up off the column. */
+.coloring-crayon.picked {
+  transform: translateY(-6px) scale(1.16);
+  border-color: var(--ocean-700);
+  box-shadow: 0 10px 0 rgba(0,60,90,0.3), 0 14px 24px rgba(0,0,0,0.22);
+}
+
+/* Finished: two big icon buttons in the stage's bottom corners, clear of
+   the picture so the child can admire it. */
+.coloring-done {
+  position: absolute; left: 18px; right: 18px; bottom: 18px; z-index: 30;
+  display: flex; justify-content: space-between;
+  pointer-events: none;
+}
+.coloring-done-btn {
+  width: 104px; height: 104px; border-radius: 50%;
+  border: 6px solid #fff; cursor: pointer; touch-action: manipulation;
+  font-size: 50px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--sunny, #FFD93D);
+  box-shadow: 0 8px 0 #c9a400, 0 14px 26px rgba(0,0,0,0.2);
+  pointer-events: auto;
+  animation: coloring-done-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.coloring-again-btn { animation-delay: 0.15s; }
+.coloring-done-btn:active { transform: translateY(5px); box-shadow: 0 3px 0 #c9a400; }
+.coloring-done-btn:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 3px; }
+@keyframes coloring-done-pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Phones see the whole iPad layout scaled down, so the tap targets grow
+   here to stay finger-sized after scaling. */
+@media (max-width: 720px) {
+  .coloring-picker { gap: 14px; }
+  .coloring-card { padding: 10px 10px 8px; border-radius: 26px; }
+  .coloring-book { gap: 14px; }
+  .coloring-stage { padding: 10px; border-radius: 26px; }
+  .coloring-crayons { gap: 14px; padding: 14px 10px; }
+  .coloring-crayon { width: 84px; height: 84px; }
+  .coloring-done-btn { width: 116px; height: 116px; font-size: 56px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coloring-region { transition: none; }
+  .coloring-card, .coloring-crayon { transition: none; }
+  .coloring-stage.done .coloring-art, .coloring-done-btn { animation: none; }
+}
+
+/* ---- SHAPE SORT ---- */
+.home-chip-shapes {
+  color: #0f2f5c;
+  background: linear-gradient(135deg, #d6e8ff, #8fbfff);
+  box-shadow: 0 6px 18px rgba(20,60,140,0.22), inset 0 0 0 2px rgba(255,255,255,0.65);
+}
+.home-chip-shapes:hover { background: linear-gradient(135deg, #e6f1ff, #a6ccff); }
+
+.shapes-screen {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  padding: 16px 20px 20px;
+  background: linear-gradient(180deg, #7fd6ff 0%, #0aa2e0 46%, #00679a 100%);
+  overflow: hidden; isolation: isolate;
+}
+.shapes-body {
+  position: relative; z-index: 10;
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: space-evenly;
+  gap: 24px; padding: 8px 0 4px;
+}
+
+/* Sandy sorter lid with a wooden rim; each hole is a dark silhouette. */
+.shapes-board {
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  padding: 24px 28px;
+  border: 8px solid #c98a3d; border-radius: 44px;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255,255,255,0.55) 0 6px, transparent 7px),
+    radial-gradient(circle at 88% 78%, rgba(255,255,255,0.45) 0 5px, transparent 6px),
+    linear-gradient(180deg, #fff3c4 0%, #ffe08a 55%, #f4c465 100%);
+  box-shadow:
+    0 12px 0 #9c6428,
+    0 22px 40px rgba(0,40,70,0.3),
+    inset 0 4px 0 rgba(255,255,255,0.55);
+}
+.shapes-hole {
+  position: relative;
+  width: 164px; height: 164px; padding: 8px;
+  border: none; border-radius: 34px;
+  background: transparent; cursor: pointer;
+  touch-action: manipulation; -webkit-touch-callout: none;
+}
+.shapes-hole:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 2px; }
+.shapes-hole-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.shapes-hole-svg path {
+  fill: #7a4a1a; fill-opacity: 0.7;
+  stroke: #5c3510; stroke-opacity: 0.4; stroke-width: 4;
+}
+/* The sorted shape sits snug inside its silhouette, leaving a dark rim. */
+.shapes-hole-piece {
+  position: absolute; left: 14px; top: 14px;
+  width: calc(100% - 28px); height: calc(100% - 28px);
+  overflow: visible;
+  filter: drop-shadow(0 5px 0 rgba(0,40,70,0.22));
+  animation: shapes-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.shapes-hole.try-again { animation: shapes-wiggle 0.5s ease; }
+/* A shape is picked up: the open holes breathe to say "tap me". */
+.shapes-board.picking .shapes-hole:not(.filled) {
+  animation: shapes-breathe 1.1s ease-in-out infinite;
+}
+.shapes-board.picking .shapes-hole.try-again { animation: shapes-wiggle 0.5s ease; }
+
+/* Tray of loose shapes, like a patch of calm sea floor. */
+.shapes-tray {
+  display: flex; align-items: center; justify-content: center; gap: 24px;
+  min-width: 540px; min-height: 196px; padding: 24px 34px;
+  border: 3px solid rgba(255,255,255,0.45); border-radius: 44px;
+  background: rgba(0,51,77,0.3);
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 30px rgba(255,255,255,0.12), 0 10px 24px rgba(0,25,44,0.2);
+}
+.shapes-tray-slot { flex: 0 0 auto; width: 144px; height: 144px; }
+.shapes-piece {
+  position: relative;
+  display: block; width: 144px; height: 144px; padding: 0;
+  border: none; border-radius: 30px; background: transparent;
+  cursor: grab; touch-action: none; -webkit-touch-callout: none;
+  /* The drag clears its inline transform on release; this glides it home. */
+  transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.shapes-piece:active { cursor: grabbing; }
+.shapes-piece:focus-visible { outline: 6px solid #fff; outline-offset: 4px; }
+.shapes-piece.selected { z-index: 2; }
+.shapes-piece-svg {
+  display: block; width: 100%; height: 100%; overflow: visible;
+  filter: drop-shadow(0 8px 0 rgba(0,40,70,0.25));
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+.shapes-piece:hover .shapes-piece-svg { transform: translateY(-4px); }
+.shapes-piece.selected .shapes-piece-svg {
+  transform: translateY(-10px) scale(1.1);
+  filter: drop-shadow(0 0 12px #fff) drop-shadow(0 16px 0 rgba(0,40,70,0.22));
+}
+
+/* Big icon-only "next board" button that replaces the empty tray. */
+.shapes-next-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 132px; height: 132px; padding: 0;
+  border: 6px solid #fff; border-radius: 50%;
+  color: #6b4d00; background: var(--sunny, #FFD93D);
+  cursor: pointer; touch-action: manipulation;
+  box-shadow: 0 10px 0 #c9a400, 0 16px 30px rgba(0,0,0,0.2);
+  animation: shapes-next-pulse 0.8s ease-in-out infinite alternate;
+}
+.shapes-next-btn:active { transform: translateY(6px); box-shadow: 0 4px 0 #c9a400; }
+.shapes-next-btn:focus-visible { outline: 6px solid var(--ocean-700); outline-offset: 4px; }
+.shapes-next-icon { width: 64px; height: 64px; }
+
+.shapes-screen.celebrating .shapes-hole-piece {
+  animation: shapes-cheer 0.6s ease-in-out infinite;
+}
+.shapes-screen.celebrating .shapes-hole:nth-child(even) .shapes-hole-piece {
+  animation-delay: 0.15s;
+}
+
+@keyframes shapes-pop {
+  0%   { transform: scale(0.4); opacity: 0.3; }
+  60%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes shapes-wiggle {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-10px) rotate(-4deg); }
+  60%     { transform: translateX(10px) rotate(4deg); }
+  80%     { transform: translateX(-4px); }
+}
+@keyframes shapes-breathe {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.06); }
+}
+@keyframes shapes-cheer {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-12px); }
+}
+@keyframes shapes-next-pulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.1); }
+}
+
+/* Phones shrink the whole iPad frame to under half size, so grow the
+   targets here to keep every shape comfortably finger-sized. */
+@media (max-width: 720px) {
+  .shapes-body { gap: 14px; padding: 0; }
+  .shapes-board { gap: 12px; padding: 16px 18px; border-width: 6px; border-radius: 36px; }
+  .shapes-hole { width: 180px; height: 180px; }
+  .shapes-tray { gap: 16px; min-height: 204px; padding: 20px 22px; }
+  .shapes-tray-slot, .shapes-piece { width: 160px; height: 160px; }
+  .shapes-next-btn { width: 152px; height: 152px; }
+  .shapes-next-icon { width: 76px; height: 76px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shapes-piece, .shapes-piece-svg { transition: none; }
+  .shapes-hole-piece,
+  .shapes-hole.try-again,
+  .shapes-board.picking .shapes-hole:not(.filled),
+  .shapes-board.picking .shapes-hole.try-again,
+  .shapes-next-btn,
+  .shapes-screen.celebrating .shapes-hole-piece { animation: none; }
+  .shapes-screen .confetti { display: none; }
 }

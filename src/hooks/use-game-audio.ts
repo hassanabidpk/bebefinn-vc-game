@@ -420,6 +420,24 @@ export function useGameAudio() {
     );
   }, [getAudioContext]);
 
+  const playApplause = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    // A crowd of short band-passed noise claps, thinning out at the end.
+    const now = audioContext.currentTime;
+    for (let i = 0; i < 48; i += 1) {
+      const at = Math.random() * 2.4;
+      playNoise(audioContext, {
+        start: now + at,
+        duration: 0.05 + Math.random() * 0.03,
+        gain: 0.1 * (1 - at / 3),
+        filterFrequency: 1200 + Math.random() * 1400,
+      });
+    }
+    playNotes(audioContext, [783.99, 1046.5, 1318.51, 1567.98], 0.12, 0.06, 0.06, "triangle");
+  }, [getAudioContext]);
+
   const playGuessSuspense = useCallback((letterIndex: number) => {
     const audioContext = getAudioContext();
     if (!audioContext) return;
@@ -1084,6 +1102,7 @@ export function useGameAudio() {
   return {
     isMusicPlaying,
     playAnimalSound,
+    playApplause,
     playCelebrate,
     playGuessSuspense,
     playLetterCall,

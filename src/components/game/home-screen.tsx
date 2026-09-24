@@ -9,7 +9,19 @@ interface HomeScreenProps {
   onStart: () => void;
   onStickers: () => void;
   onMode: (
-    mode: "lesson" | "listen" | "play" | "notepad" | "spelling" | "rescue" | "dance" | "draw"
+    mode:
+      | "lesson"
+      | "listen"
+      | "play"
+      | "notepad"
+      | "spelling"
+      | "rescue"
+      | "dance"
+      | "draw"
+      | "match"
+      | "count"
+      | "color"
+      | "shapes"
   ) => void;
 }
 
@@ -56,6 +68,10 @@ export function HomeScreen({ onStart, onMode, onStickers }: HomeScreenProps) {
           <button className="home-chip home-chip-rescue" onClick={() => onMode("rescue")}>🫧 Rescue</button>
           <button className="home-chip home-chip-dance" onClick={() => onMode("dance")}>🕺 Dance</button>
           <button className="home-chip home-chip-draw" onClick={() => onMode("draw")}>🎨 Draw</button>
+          <button className="home-chip home-chip-match" onClick={() => onMode("match")}>🃏 Match</button>
+          <button className="home-chip home-chip-count" onClick={() => onMode("count")}>🔢 Count</button>
+          <button className="home-chip home-chip-color" onClick={() => onMode("color")}>🖍️ Color</button>
+          <button className="home-chip home-chip-shapes" onClick={() => onMode("shapes")}>🔷 Shapes</button>
         </div>
       </div>
     </div>
