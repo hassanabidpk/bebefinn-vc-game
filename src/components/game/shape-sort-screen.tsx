@@ -121,6 +121,9 @@ export function ShapeSortScreen({ onHome }: ShapeSortScreenProps) {
   const advance = useCallback(() => {
     roundToken.current += 1;
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    if (wrongTimer.current) clearTimeout(wrongTimer.current);
+    dragRef.current = null;
+    suppressClickRef.current = null;
     setRound((current) => ({ number: current.number + 1, ...buildShapeRound(current.number + 1) }));
     setPlaced([]);
     setSelectedId(null);
@@ -153,6 +156,7 @@ export function ShapeSortScreen({ onHome }: ShapeSortScreenProps) {
   };
 
   const place = (shape: ShapeDef) => {
+    if (placed.includes(shape.id) || celebrating) return;
     const nextPlaced = [...placed, shape.id];
     setPlaced(nextPlaced);
     setSelectedId(null);
@@ -176,8 +180,8 @@ export function ShapeSortScreen({ onHome }: ShapeSortScreenProps) {
       suppressClickRef.current = null;
       return;
     }
-    if (celebrating) return;
-    setSelectedId(shape.id);
+    if (celebrating || placed.includes(shape.id)) return;
+    setSelectedId(selectedId === shape.id ? null : shape.id);
     speak(getShapeNamePhrase(shape));
   };
 
@@ -273,9 +277,10 @@ export function ShapeSortScreen({ onHome }: ShapeSortScreenProps) {
 
       <header className="lesson-header">
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
-        <div className="progress-pill">
+        <div className="progress-pill" aria-label={`${placed.length} of ${round.holes.length} shapes sorted`}>
           <div className="progress-pill-row">
             <span className="progress-letter">🔷 Shapes</span>
+            <span className="progress-count">{placed.length} / {round.holes.length}</span>
           </div>
         </div>
         <div />
@@ -305,7 +310,7 @@ export function ShapeSortScreen({ onHome }: ShapeSortScreenProps) {
                   else holeRefs.current.delete(hole.id);
                 }}
                 className={`shapes-hole ${filled ? "filled" : ""} ${
-                  wrongHoleId === hole.id ? "try-again" : ""
+                  wrongHoleId === hole.id ? "try-again" : selectedId === hole.id && !filled ? "shape-hint" : ""
                 }`}
                 onClick={() => onHoleClick(hole)}
                 aria-label={filled ? `${hole.word}, sorted` : `${hole.word} hole`}

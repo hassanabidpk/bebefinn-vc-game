@@ -17,7 +17,8 @@ import { BubbleBackground } from "./ocean-stage";
 import { AnimalPhoto } from "./animal-photo";
 import { Confetti } from "./confetti";
 
-const MISMATCH_HIDE_MS = 900;
+const MISMATCH_HIDE_MS = 1400;
+const PREVIEW_MS = 1800;
 const NEXT_ROUND_PAUSE_MS = 1200;
 const CELEBRATION_FALLBACK_MS = 9000;
 
@@ -28,13 +29,20 @@ interface MemoryMatchScreenProps {
 export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
   const [board, setBoard] = useState<MemoryMatchBoard>(() => createMemoryBoard(0));
   const [cleared, setCleared] = useState(false);
+  const [previewing, setPreviewing] = useState(true);
   const [stars, setStars] = useState(0);
   const mismatchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const narrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const celebrationId = useRef(0);
-  const { speak, prefetch } = useFriendlySpeech();
+  const { speak, prefetch, stop } = useFriendlySpeech();
   const { playCelebrate, playNext, playTap } = useGameAudio();
+
+  useEffect(() => {
+    if (!previewing) return;
+    const timer = setTimeout(() => setPreviewing(false), PREVIEW_MS);
+    return () => clearTimeout(timer);
+  }, [board.round, previewing]);
 
   // Warm the game voice for this board's animals so a match speaks instantly.
   useEffect(() => {
@@ -58,9 +66,11 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
     if (mismatchTimer.current) clearTimeout(mismatchTimer.current);
     if (narrationTimer.current) clearTimeout(narrationTimer.current);
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    stop();
+    setPreviewing(true);
     setCleared(false);
     setBoard((current) => createMemoryBoard(current.round + 1));
-  }, []);
+  }, [stop]);
 
   const finish = useCallback(
     (pairPhrase: string, round: number) => {
@@ -94,13 +104,14 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
 
   const onCard = useCallback(
     (card: MemoryCard) => {
-      if (cleared) return;
+      if (cleared || previewing) return;
       const { board: next, outcome } = flipMemoryCard(board, card.id);
       if (outcome === "ignored") return;
       setBoard(next);
 
       if (outcome === "flipped") {
         playTap();
+        speak(getMemoryMatchPairPhrase(card.spokenWord));
         return;
       }
       if (outcome === "mismatched") {
@@ -122,7 +133,7 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
         speak(pairPhrase);
       }
     },
-    [board, cleared, finish, playCelebrate, playTap, speak]
+    [board, cleared, previewing, finish, playCelebrate, playTap, speak]
   );
 
   const pairCount = board.cards.length / 2;
@@ -145,7 +156,7 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
             />
           ))}
         </div>
-        <div />
+        <button className="icon-btn" onClick={() => { stop(); setPreviewing(true); }} disabled={previewing || cleared || board.faceUp.length > 0} aria-label="Peek at the cards">👀</button>
         <div className={`score-pill ${cleared ? "pop" : ""}`}>
           <span className="star">⭐</span>
           {stars}
@@ -157,13 +168,14 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
         <div className="match-grid" data-cards={board.cards.length} key={`round-${board.round}`}>
           {board.cards.map((card) => {
             const matched = board.matched.includes(card.id);
-            const up = matched || board.faceUp.includes(card.id);
+            const up = previewing || matched || board.faceUp.includes(card.id);
             return (
               <button
                 key={card.id}
                 className={`match-card ${up ? "match-card-up" : ""} ${matched ? "match-card-matched" : ""}`}
                 onClick={() => onCard(card)}
-                aria-label={up ? card.word : "Hidden card"}
+                disabled={previewing || cleared || matched || board.faceUp.includes(card.id) || board.faceUp.length === 2}
+                aria-label={up ? `${card.word}${matched ? ", matched" : ""}` : `Hidden card ${card.id + 1}`}
               >
                 <div className="match-card-inner">
                   <div className="match-card-back" aria-hidden="true">

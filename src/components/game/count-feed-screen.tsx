@@ -15,6 +15,7 @@ import { AnimalPhoto } from "./animal-photo";
 import { Confetti } from "./confetti";
 
 const PAUSE_AFTER_PRAISE_MS = 900;
+const COUNT_SPEECH_FALLBACK_MS = 3500;
 const CELEBRATION_FALLBACK_MS = 9000;
 
 interface FedShell {
@@ -48,6 +49,10 @@ interface CountFeedScreenProps {
 export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
   const [round, setRound] = useState<CountFeedRound>(() => buildCountFeedRound(0));
   const [fed, setFed] = useState<FedShell[]>([]);
+  const [counting, setCounting] = useState(false);
+  const countingRef = useRef(false);
+  const countRequestId = useRef(0);
+  const countTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const friendRef = useRef<HTMLDivElement | null>(null);
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,16 +75,18 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
   useEffect(() => {
     prefetch(prompt);
     prefetch(praise);
+    for (let n = 1; n <= round.target; n += 1) prefetch(getCountFeedCountPhrase(n));
     promptTimer.current = setTimeout(() => {
       promptTimer.current = null;
       speak(prompt);
     }, 250);
     return clearPromptTimer;
-  }, [clearPromptTimer, praise, prefetch, prompt, round.index, speak]);
+  }, [clearPromptTimer, praise, prefetch, prompt, round.index, round.target, speak]);
 
   useEffect(() => {
     return () => {
       if (advanceTimer.current) clearTimeout(advanceTimer.current);
+      if (countTimer.current) clearTimeout(countTimer.current);
       celebrationId.current += 1;
     };
   }, []);
@@ -90,6 +97,9 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
       clearTimeout(advanceTimer.current);
       advanceTimer.current = null;
     }
+    if (countTimer.current) clearTimeout(countTimer.current);
+    countingRef.current = false;
+    setCounting(false);
     setFed([]);
     setRound((previous) => buildCountFeedRound(previous.index + 1, previous.target));
   }, []);
@@ -126,7 +136,7 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
   const onShell = useCallback(
     (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
       // Extra taps once the friend is full are simply ignored — no "wrong" feedback.
-      if (done || fed.some((shell) => shell.id === id)) return;
+      if (countingRef.current || done || fed.some((shell) => shell.id === id)) return;
       clearPromptTimer();
       const from = layoutCenter(event.currentTarget);
       const to = friendRef.current ? layoutCenter(friendRef.current) : from;
@@ -136,7 +146,22 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
 
       const countPhrase = getCountFeedCountPhrase(nextFed.length);
       if (nextFed.length >= round.target) celebrate(countPhrase);
-      else speak(countPhrase);
+      else {
+        // Let each number finish before accepting another shell. The ref also
+        // guards a second pointer arriving before React renders disabled buttons.
+        const roundId = celebrationId.current;
+        const requestId = ++countRequestId.current;
+        countingRef.current = true;
+        setCounting(true);
+        const release = () => {
+          if (roundId !== celebrationId.current || requestId !== countRequestId.current) return;
+          if (countTimer.current) clearTimeout(countTimer.current);
+          countingRef.current = false;
+          setCounting(false);
+        };
+        countTimer.current = setTimeout(release, COUNT_SPEECH_FALLBACK_MS);
+        speak(countPhrase, { onEnd: release });
+      }
     },
     [celebrate, clearPromptTimer, done, fed, playTap, round.target, speak]
   );
@@ -169,7 +194,7 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
           className="icon-btn"
           onClick={repeatPrompt}
           aria-label="Say it again"
-          disabled={done}
+          disabled={done || counting}
         >
           🔊
         </button>
@@ -181,7 +206,10 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
             <AnimalPhoto word={round.friend.word} color={round.friend.color} size={200} />
           </div>
           <div className="count-target">
-            <span className="count-numeral">{round.target}</span>
+            <span className="count-numeral" aria-label={`${count} of ${round.target}`}>
+              <span className="count-current">{count}</span>
+              <span className="count-goal">/ {round.target}</span>
+            </span>
             <div
               className="count-dots"
               role="img"
@@ -218,8 +246,8 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
                       : undefined
                   }
                   onClick={(event) => onShell(i, event)}
-                  disabled={done || Boolean(fedShell)}
-                  aria-label="Shell"
+                  disabled={done || counting || Boolean(fedShell)}
+                  aria-label={`Shell ${i + 1}`}
                 >
                   <span className="count-shell-emoji" aria-hidden>🐚</span>
                 </button>

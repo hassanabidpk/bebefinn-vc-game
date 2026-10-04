@@ -80,7 +80,7 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
   const charsRef = useRef<string[]>([]);
   const [cheer, setCheer] = useState<Cheer | null>(null);
   const cheerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { speak } = useFriendlySpeech();
+  const { speak, stop } = useFriendlySpeech();
   const { playTap, playCelebrate, playApplause } = useGameAudio();
 
   useEffect(
@@ -143,11 +143,18 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
       /* sfx best-effort */
     }
   };
+  const dismissCheer = () => {
+    if (cheerTimer.current) clearTimeout(cheerTimer.current);
+    setCheer(null);
+    stop();
+  };
   const backspace = () => {
+    dismissCheer();
     setStrokes((s) => s.slice(0, -1));
     charsRef.current = charsRef.current.slice(0, -1);
   };
   const clear = () => {
+    dismissCheer();
     setStrokes([]);
     charsRef.current = [];
   };
@@ -183,6 +190,8 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const alphabetRun = getAlphabetRunLength(strokes.map((stroke) => stroke.ch));
+
   return (
     <div className="notepad-screen">
       <BubbleBackground />
@@ -194,7 +203,7 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
         <div className="progress-pill">
           <div className="progress-pill-row">
             <span className="progress-letter">📝 Notepad</span>
-            <span className="progress-count">{strokes.length}</span>
+            <span className="progress-count" aria-label={`${alphabetRun} of 26 alphabet letters in order`}>{alphabetRun} / 26</span>
           </div>
         </div>
         <button
@@ -264,7 +273,7 @@ export function NotepadScreen({ onHome }: NotepadScreenProps) {
           {LETTERS.map((ch) => (
             <button
               key={ch}
-              className="notepad-key"
+              className={`notepad-key ${ch === LETTERS[alphabetRun] ? "notepad-key-next" : ""}`}
               style={
                 {
                   color: COLOR_BY_CHAR[ch] || "#0E5274",
