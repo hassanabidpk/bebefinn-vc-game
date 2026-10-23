@@ -10,6 +10,7 @@ import {
   getMemoryMatchPraise,
   hideMismatchedCards,
   isBoardCleared,
+  themeForRound,
   type MemoryCard,
   type MemoryMatchBoard,
 } from "@/lib/memory-match-data";
@@ -36,7 +37,7 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const celebrationId = useRef(0);
   const { speak, prefetch, stop } = useFriendlySpeech();
-  const { playCelebrate, playNext, playTap } = useGameAudio();
+  const { playAnimalSound, playCelebrate, playNext, playTap } = useGameAudio();
 
   useEffect(() => {
     if (!previewing) return;
@@ -73,33 +74,36 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
   }, [stop]);
 
   const finish = useCallback(
-    (pairPhrase: string, round: number) => {
+    (card: MemoryCard, round: number) => {
       const id = ++celebrationId.current;
       setCleared(true);
       setStars((count) => count + 1);
 
-      // Name the last pair, then cheer the whole board, then roll into a
-      // bigger one — advance from real audio completion, not an estimate.
-      speak(pairPhrase, {
+      // Name the last pair and let it call out, then cheer the whole board,
+      // then roll into a bigger one — advance from real audio completion.
+      speak(getMemoryMatchPairPhrase(card.spokenWord), {
         onEnd: () => {
           if (id !== celebrationId.current) return;
-          narrationTimer.current = setTimeout(() => {
+          playAnimalSound(card.word, () => {
+            if (id !== celebrationId.current) return;
+            narrationTimer.current = setTimeout(() => {
             playCelebrate();
             speak(getMemoryMatchPraise(round), {
               onEnd: () => {
                 if (id !== celebrationId.current) return;
                 if (advanceTimer.current) clearTimeout(advanceTimer.current);
-                advanceTimer.current = setTimeout(goNext, NEXT_ROUND_PAUSE_MS);
-              },
-            });
-          }, 250);
+                  advanceTimer.current = setTimeout(goNext, NEXT_ROUND_PAUSE_MS);
+                },
+              });
+            }, 250);
+          });
         },
       });
 
       // A stalled speech engine must never trap the child on a finished board.
       advanceTimer.current = setTimeout(goNext, CELEBRATION_FALLBACK_MS);
     },
-    [goNext, playCelebrate, speak]
+    [goNext, playAnimalSound, playCelebrate, speak]
   );
 
   const onCard = useCallback(
@@ -126,18 +130,21 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
       }
 
       playCelebrate();
-      const pairPhrase = getMemoryMatchPairPhrase(card.spokenWord);
       if (isBoardCleared(next)) {
-        finish(pairPhrase, next.round);
+        finish(card, next.round);
       } else {
-        speak(pairPhrase);
+        // Say the name, then the matched animal calls out its own sound.
+        speak(getMemoryMatchPairPhrase(card.spokenWord), {
+          onEnd: () => playAnimalSound(card.word),
+        });
       }
     },
-    [board, cleared, previewing, finish, playCelebrate, playTap, speak]
+    [board, cleared, previewing, finish, playAnimalSound, playCelebrate, playTap, speak]
   );
 
   const pairCount = board.cards.length / 2;
   const pairsFound = board.matched.length / 2;
+  const theme = themeForRound(board.round);
 
   return (
     <div className="match-screen">
@@ -147,8 +154,9 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
         <button className="icon-btn" onClick={onHome} aria-label="Back home">←</button>
         <div
           className="progress-pill match-progress"
-          aria-label={`${pairsFound} of ${pairCount} pairs found`}
+          aria-label={`Round ${board.round + 1}: ${pairsFound} of ${pairCount} pairs found`}
         >
+          <span className="match-round" aria-hidden="true">{board.round + 1}</span>
           {Array.from({ length: pairCount }, (_, index) => (
             <span
               key={index}
@@ -165,7 +173,12 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
 
       <div className="match-board">
         {/* Keyed by round so a new deal never animates old cards flipping back. */}
-        <div className="match-grid" data-cards={board.cards.length} key={`round-${board.round}`}>
+        <div
+          className="match-grid"
+          data-cards={board.cards.length}
+          data-theme={theme.id}
+          key={`round-${board.round}`}
+        >
           {board.cards.map((card) => {
             const matched = board.matched.includes(card.id);
             const up = previewing || matched || board.faceUp.includes(card.id);
@@ -179,7 +192,7 @@ export function MemoryMatchScreen({ onHome }: MemoryMatchScreenProps) {
               >
                 <div className="match-card-inner">
                   <div className="match-card-back" aria-hidden="true">
-                    <span className="match-card-shell">🐚</span>
+                    <span className="match-card-shell">{theme.back}</span>
                   </div>
                   <div className="match-card-face" aria-hidden="true">
                     <AnimalPhoto word={card.word} color={card.color} size={240} />

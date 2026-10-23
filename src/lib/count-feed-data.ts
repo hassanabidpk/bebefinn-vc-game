@@ -1,14 +1,24 @@
 /**
- * Count & Feed: a hungry sea friend asks for a number of shells and the
- * child taps them in one at a time while the game counts out loud. Round
+ * Count & Feed: a hungry sea friend asks for a number of its favorite food
+ * and the child taps them in one at a time while the game counts out loud. Round
  * logic and every spoken phrase live here so they can be unit-tested and
  * registered for the game TTS voice.
  */
+
+export interface CountFeedFood {
+  emoji: string;
+  /** Spoken name for one, e.g. "crab". */
+  one: string;
+  /** Spoken name for several, e.g. "crabs". */
+  many: string;
+}
 
 export interface CountFeedFriend {
   /** Key passed to AnimalPhoto — every friend has a real /animals/ photo. */
   word: string;
   color: string;
+  /** What this friend really eats in the sea. */
+  food: CountFeedFood;
 }
 
 export interface CountFeedRange {
@@ -21,15 +31,15 @@ export interface CountFeedRound {
   index: number;
   friend: CountFeedFriend;
   target: number;
-  shellCount: number;
+  foodCount: number;
 }
 
 export const COUNT_FEED_FRIENDS: readonly CountFeedFriend[] = [
-  { word: "Octopus", color: "#E86FA4" },
-  { word: "Turtle", color: "#41A85F" },
-  { word: "Whale", color: "#3D7EA6" },
-  { word: "Fish", color: "#54A0FF" },
-  { word: "Shark", color: "#7F8FA6" },
+  { word: "Octopus", color: "#E86FA4", food: { emoji: "🦀", one: "crab", many: "crabs" } },
+  { word: "Turtle", color: "#41A85F", food: { emoji: "🌿", one: "seaweed", many: "seaweeds" } },
+  { word: "Whale", color: "#3D7EA6", food: { emoji: "🦐", one: "shrimp", many: "shrimp" } },
+  { word: "Fish", color: "#54A0FF", food: { emoji: "🪱", one: "worm", many: "worms" } },
+  { word: "Shark", color: "#7F8FA6", food: { emoji: "🐟", one: "fish", many: "fish" } },
 ];
 
 const COUNT_WORDS = [
@@ -47,8 +57,8 @@ const COUNT_WORDS = [
 
 export const COUNT_FEED_MAX = COUNT_WORDS.length;
 
-/** Spare shells beyond the target, so the child has to stop at the right number. */
-const EXTRA_SHELLS = 2;
+/** Spare food beyond the target, so the child has to stop at the right number. */
+const EXTRA_FOOD = 2;
 
 /** "One".."Ten" for 1..10. */
 export function countWord(n: number) {
@@ -76,9 +86,9 @@ export function pickTarget(
   return choices[Math.floor(random() * choices.length)];
 }
 
-/** A couple of spare shells — tops out at 12 shells for a target of 10. */
-export function shellCountFor(target: number) {
-  return target + EXTRA_SHELLS;
+/** A couple of spare pieces — tops out at 12 for a target of 10. */
+export function foodCountFor(target: number) {
+  return target + EXTRA_FOOD;
 }
 
 /** Friends take turns in a fixed order so every one gets fed. */
@@ -96,34 +106,38 @@ export function buildCountFeedRound(
     index,
     friend: friendForRound(index),
     target,
-    shellCount: shellCountFor(target),
+    foodCount: foodCountFor(target),
   };
 }
 
-function shells(n: number) {
-  return n === 1 ? "shell" : "shells";
+function foodName(food: CountFeedFood, n: number) {
+  return n === 1 ? food.one : food.many;
 }
 
-export function getCountFeedPromptPhrase(friendWord: string, target: number) {
-  return `Feed ${friendWord} ${target} ${shells(target)}!`;
+export function getCountFeedPromptPhrase(friend: CountFeedFriend, target: number) {
+  return `Feed ${friend.word} ${target} ${foodName(friend.food, target)}!`;
 }
 
-/** Spoken on every shell tap with the running count. */
+/** Spoken on every food tap with the running count. */
 export function getCountFeedCountPhrase(n: number) {
   return `${countWord(n)}!`;
 }
 
-export function getCountFeedPraisePhrase(target: number) {
-  return `Yum! ${countWord(target)} ${shells(target)}!`;
+export function getCountFeedPraisePhrase(food: CountFeedFood, target: number) {
+  return `Yum! ${countWord(target)} ${foodName(food, target)}!`;
 }
 
 const COUNT_NUMBERS = Array.from({ length: COUNT_FEED_MAX }, (_, i) => i + 1);
 
 /** Every exact phrase the Count & Feed screen can speak — register these for TTS. */
 export const COUNT_FEED_PHRASES: readonly string[] = [
-  ...COUNT_NUMBERS.map((n) => getCountFeedCountPhrase(n)),
-  ...COUNT_NUMBERS.map((n) => getCountFeedPraisePhrase(n)),
-  ...COUNT_FEED_FRIENDS.flatMap((friend) =>
-    COUNT_NUMBERS.map((n) => getCountFeedPromptPhrase(friend.word, n))
-  ),
+  ...new Set([
+    ...COUNT_NUMBERS.map((n) => getCountFeedCountPhrase(n)),
+    ...COUNT_FEED_FRIENDS.flatMap((friend) =>
+      COUNT_NUMBERS.flatMap((n) => [
+        getCountFeedPraisePhrase(friend.food, n),
+        getCountFeedPromptPhrase(friend, n),
+      ])
+    ),
+  ]),
 ];

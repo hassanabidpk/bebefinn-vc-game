@@ -6,21 +6,26 @@ import {
   getColoringPickPhrase,
   getColoringPraisePhrase,
   getCrayonPhrase,
+  getMainRegions,
   isPageComplete,
   type ColoringPage,
 } from "./coloring-pages";
 
 function fillAll(page: ColoringPage, hex = "#FF5A5F") {
-  return Object.fromEntries(page.regions.map((region) => [region.id, hex]));
+  return Object.fromEntries(getMainRegions(page).map((region) => [region.id, hex]));
 }
 
 describe("COLORING_PAGES", () => {
-  it("has the four ocean pictures in order", () => {
+  it("has the eight ocean pictures in order", () => {
     expect(COLORING_PAGES.map((page) => page.word)).toEqual([
       "Fish",
       "Turtle",
       "Octopus",
       "Starfish",
+      "Whale",
+      "Crab",
+      "Jellyfish",
+      "Seahorse",
     ]);
   });
 
@@ -32,10 +37,20 @@ describe("COLORING_PAGES", () => {
     }
   });
 
-  it("gives every page five to eight fillable regions", () => {
+  it("gives every page five to eight main regions to finish", () => {
     for (const page of COLORING_PAGES) {
-      expect(page.regions.length).toBeGreaterThanOrEqual(5);
-      expect(page.regions.length).toBeLessThanOrEqual(8);
+      expect(getMainRegions(page).length).toBeGreaterThanOrEqual(5);
+      expect(getMainRegions(page).length).toBeLessThanOrEqual(8);
+    }
+  });
+
+  it("gives every page pre-colored eyes to color, painted after the main regions", () => {
+    for (const page of COLORING_PAGES) {
+      const extras = page.regions.filter((region) => region.start);
+      expect(extras.some((region) => region.id.startsWith("eye"))).toBe(true);
+      for (const region of extras) expect(region.start).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      const firstExtra = page.regions.findIndex((region) => region.start);
+      expect(page.regions.slice(firstExtra).every((region) => region.start)).toBe(true);
     }
   });
 
@@ -72,16 +87,16 @@ describe("COLORING_PAGES", () => {
     }
   });
 
-  it("gives every page a face drawn on top", () => {
+  it("gives every page pupils and a face drawn on top", () => {
     for (const page of COLORING_PAGES) {
-      expect(page.details.length).toBeGreaterThanOrEqual(4);
+      expect(page.details.length).toBeGreaterThanOrEqual(3);
     }
   });
 });
 
 describe("COLORING_CRAYONS", () => {
-  it("matches the Draw game's six crayons", () => {
-    expect(COLORING_CRAYONS).toEqual([
+  it("starts with the Draw game's six crayons", () => {
+    expect(COLORING_CRAYONS.slice(0, 6)).toEqual([
       { name: "Red", hex: "#FF5A5F" },
       { name: "Orange", hex: "#FF9F43" },
       { name: "Yellow", hex: "#FFD93D" },
@@ -89,6 +104,12 @@ describe("COLORING_CRAYONS", () => {
       { name: "Blue", hex: "#4DA6FF" },
       { name: "Purple", hex: "#A66BFF" },
     ]);
+  });
+
+  it("has twelve crayons with unique names and colors", () => {
+    expect(COLORING_CRAYONS).toHaveLength(12);
+    expect(new Set(COLORING_CRAYONS.map((crayon) => crayon.name)).size).toBe(12);
+    expect(new Set(COLORING_CRAYONS.map((crayon) => crayon.hex)).size).toBe(12);
   });
 });
 
@@ -99,8 +120,8 @@ describe("isPageComplete", () => {
     expect(isPageComplete({}, fish)).toBe(false);
   });
 
-  it("is false while any one region is still white", () => {
-    for (const region of fish.regions) {
+  it("is false while any one main region is still white", () => {
+    for (const region of getMainRegions(fish)) {
       const filled: Record<string, string> = fillAll(fish);
       delete filled[region.id];
       expect(isPageComplete(filled, fish)).toBe(false);
@@ -113,6 +134,11 @@ describe("isPageComplete", () => {
       fish.regions.map((region, i) => [region.id, COLORING_CRAYONS[i % 6].hex])
     );
     expect(isPageComplete(rainbow, fish)).toBe(true);
+  });
+
+  it("does not need the pre-colored eyes, cheeks or bubbles", () => {
+    expect(fish.regions.some((region) => region.start)).toBe(true);
+    expect(isPageComplete(fillAll(fish), fish)).toBe(true);
   });
 
   it("ignores colors for regions that belong to another page", () => {
@@ -134,6 +160,12 @@ describe("COLORING_PHRASES", () => {
       "Green!",
       "Blue!",
       "Purple!",
+      "Pink!",
+      "Brown!",
+      "Light Blue!",
+      "Gray!",
+      "Black!",
+      "White!",
       "Let's color the Fish!",
       "Beautiful Fish!",
       "Let's color the Turtle!",
@@ -142,6 +174,14 @@ describe("COLORING_PHRASES", () => {
       "Beautiful Octopus!",
       "Let's color the Starfish!",
       "Beautiful Starfish!",
+      "Let's color the Whale!",
+      "Beautiful Whale!",
+      "Let's color the Crab!",
+      "Beautiful Crab!",
+      "Let's color the Jellyfish!",
+      "Beautiful Jellyfish!",
+      "Let's color the Seahorse!",
+      "Beautiful Seahorse!",
     ]);
   });
 

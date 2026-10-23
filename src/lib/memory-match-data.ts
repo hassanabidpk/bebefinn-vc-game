@@ -60,8 +60,33 @@ export const MEMORY_MATCH_ANIMALS: readonly MemoryMatchAnimal[] = alphabetData
   .filter((entry) => /^[A-Z]$/.test(entry.letter) && PHOTO_ANIMAL_WORDS.has(entry.word))
   .map(({ word, spokenWord, color }) => ({ word, spokenWord: spokenWord ?? word, color }));
 
-/** Boards grow 2 → 3 → 4 → 6 pairs, then stay at 6. */
-export const MEMORY_MATCH_PAIR_STEPS = [2, 3, 4, 6] as const;
+export type MemoryMatchThemeId = "ocean" | "jungle" | "meadow";
+
+export interface MemoryMatchTheme {
+  id: MemoryMatchThemeId;
+  /** Emoji on the card backs. */
+  back: string;
+  /** Animals dealt first on this theme's boards; others fill bigger boards. */
+  words: readonly string[];
+}
+
+/** Boards take turns: ocean, jungle, meadow, then ocean again. */
+export const MEMORY_MATCH_THEMES: readonly MemoryMatchTheme[] = [
+  { id: "ocean", back: "🐚", words: ["Fish", "Jellyfish", "Octopus", "Shark", "Turtle", "Whale"] },
+  {
+    id: "jungle",
+    back: "🌴",
+    words: ["Elephant", "Gorilla", "Hippo", "Kangaroo", "Lion", "Panda", "Quokka", "Zebra"],
+  },
+  { id: "meadow", back: "🌼", words: ["Alpaca", "Bear", "Cat", "Dog", "Unicorn", "Vulture", "Yak"] },
+];
+
+export function themeForRound(round: number) {
+  return MEMORY_MATCH_THEMES[Math.max(0, round) % MEMORY_MATCH_THEMES.length];
+}
+
+/** Boards grow 2 → 3 → 4 → 6 → 8 pairs, then stay at 8. */
+export const MEMORY_MATCH_PAIR_STEPS = [2, 3, 4, 6, 8] as const;
 
 export const MEMORY_MATCH_PRAISE = ["You found them all!", "Great memory!"] as const;
 
@@ -93,15 +118,31 @@ function shuffled<T>(items: readonly T[], random: () => number): T[] {
   return result;
 }
 
-/** Pick `pairCount` different animals, deal each twice, and shuffle. */
-export function buildDeck(pairCount: number, random: () => number = Math.random): MemoryCard[] {
-  const animals = shuffled(MEMORY_MATCH_ANIMALS, random).slice(0, pairCount);
+/**
+ * Pick `pairCount` different animals — the theme's own first, topped up from
+ * the rest when the board is bigger than the theme — deal each twice, shuffle.
+ */
+export function buildDeck(
+  pairCount: number,
+  random: () => number = Math.random,
+  theme?: MemoryMatchTheme
+): MemoryCard[] {
+  const inTheme = (animal: MemoryMatchAnimal) => Boolean(theme?.words.includes(animal.word));
+  const animals = [
+    ...shuffled(MEMORY_MATCH_ANIMALS.filter(inTheme), random),
+    ...shuffled(MEMORY_MATCH_ANIMALS.filter((animal) => !inTheme(animal)), random),
+  ].slice(0, pairCount);
   const cards = animals.flatMap((animal) => [animal, animal]).map((animal, id) => ({ ...animal, id }));
   return shuffled(cards, random);
 }
 
 export function createMemoryBoard(round: number, random: () => number = Math.random): MemoryMatchBoard {
-  return { round, cards: buildDeck(pairCountForRound(round), random), faceUp: [], matched: [] };
+  return {
+    round,
+    cards: buildDeck(pairCountForRound(round), random, themeForRound(round)),
+    faceUp: [],
+    matched: [],
+  };
 }
 
 export function isMatch(first: MemoryCard, second: MemoryCard) {
