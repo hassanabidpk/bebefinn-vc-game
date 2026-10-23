@@ -18,9 +18,9 @@ const PAUSE_AFTER_PRAISE_MS = 900;
 const COUNT_SPEECH_FALLBACK_MS = 3500;
 const CELEBRATION_FALLBACK_MS = 9000;
 
-interface FedShell {
+interface FedFood {
   id: number;
-  /** Offset from the shell to the friend, driving the fly-in animation. */
+  /** Offset from the food to the friend, driving the fly-in animation. */
   dx: number;
   dy: number;
 }
@@ -48,7 +48,7 @@ interface CountFeedScreenProps {
 
 export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
   const [round, setRound] = useState<CountFeedRound>(() => buildCountFeedRound(0));
-  const [fed, setFed] = useState<FedShell[]>([]);
+  const [fed, setFed] = useState<FedFood[]>([]);
   const [counting, setCounting] = useState(false);
   const countingRef = useRef(false);
   const countRequestId = useRef(0);
@@ -62,8 +62,9 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
 
   const count = fed.length;
   const done = count >= round.target;
-  const prompt = getCountFeedPromptPhrase(round.friend.word, round.target);
-  const praise = getCountFeedPraisePhrase(round.target);
+  const food = round.friend.food;
+  const prompt = getCountFeedPromptPhrase(round.friend, round.target);
+  const praise = getCountFeedPraisePhrase(food, round.target);
 
   const clearPromptTimer = useCallback(() => {
     if (!promptTimer.current) return;
@@ -133,10 +134,10 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
     [advance, playCelebrate, praise, speak]
   );
 
-  const onShell = useCallback(
+  const onFood = useCallback(
     (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
       // Extra taps once the friend is full are simply ignored — no "wrong" feedback.
-      if (countingRef.current || done || fed.some((shell) => shell.id === id)) return;
+      if (countingRef.current || done || fed.some((piece) => piece.id === id)) return;
       clearPromptTimer();
       const from = layoutCenter(event.currentTarget);
       const to = friendRef.current ? layoutCenter(friendRef.current) : from;
@@ -147,7 +148,7 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
       const countPhrase = getCountFeedCountPhrase(nextFed.length);
       if (nextFed.length >= round.target) celebrate(countPhrase);
       else {
-        // Let each number finish before accepting another shell. The ref also
+        // Let each number finish before accepting another piece. The ref also
         // guards a second pointer arriving before React renders disabled buttons.
         const roundId = celebrationId.current;
         const requestId = ++countRequestId.current;
@@ -171,7 +172,7 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
     speak(prompt);
   };
 
-  // Alternating class names restart the gulp animation on every shell.
+  // Alternating class names restart the gulp animation on every bite.
   const gulpClass = count ? (count % 2 ? "count-gulp-odd" : "count-gulp-even") : "";
 
   return (
@@ -213,7 +214,7 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
             <div
               className="count-dots"
               role="img"
-              aria-label={`${count} of ${round.target} shells`}
+              aria-label={`${count} of ${round.target} ${food.many}`}
             >
               {Array.from({ length: round.target }, (_, i) => (
                 <span
@@ -226,11 +227,11 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
         </div>
 
         {/* Positioned wrapper centres the Next button over the tray; it has no
-            border, so layoutCenter() offsets for the shells stay exact. */}
+            border, so layoutCenter() offsets for the food stay exact. */}
         <div className="count-tray-area">
           <div className="count-tray" key={`tray-${round.index}`}>
-            {Array.from({ length: round.shellCount }, (_, i) => {
-              const fedShell = fed.find((shell) => shell.id === i);
+            {Array.from({ length: round.foodCount }, (_, i) => {
+              const fedShell = fed.find((piece) => piece.id === i);
               return (
                 <button
                   key={`${round.index}-${i}`}
@@ -245,11 +246,11 @@ export function CountFeedScreen({ onHome }: CountFeedScreenProps) {
                         } as React.CSSProperties)
                       : undefined
                   }
-                  onClick={(event) => onShell(i, event)}
+                  onClick={(event) => onFood(i, event)}
                   disabled={done || counting || Boolean(fedShell)}
-                  aria-label={`Shell ${i + 1}`}
+                  aria-label={`${food.one} ${i + 1}`}
                 >
-                  <span className="count-shell-emoji" aria-hidden>🐚</span>
+                  <span className="count-shell-emoji" aria-hidden>{food.emoji}</span>
                 </button>
               );
             })}

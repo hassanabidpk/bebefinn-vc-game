@@ -13,6 +13,7 @@ import {
   COLORING_OUTLINE,
   COLORING_PAGES,
   getColoringPickPhrase,
+  getMainRegions,
   getColoringPraisePhrase,
   getCrayonPhrase,
   isPageComplete,
@@ -53,9 +54,10 @@ function ColoringPicture({ page, fills, onFill }: ColoringPictureProps) {
           d={region.d}
           // Fill goes through style (not the attribute) so the CSS fill
           // transition softens each new color in.
-          style={{ fill: fills[region.id] ?? BLANK_FILL }}
-          stroke={COLORING_OUTLINE}
-          strokeWidth={OUTLINE_WIDTH}
+          style={{ fill: fills[region.id] ?? region.start ?? BLANK_FILL }}
+          stroke={region.width === 0 ? "none" : COLORING_OUTLINE}
+          // A borderless cheek still gets a full-width keyboard focus ring.
+          strokeWidth={region.width || OUTLINE_WIDTH}
           strokeLinecap="round"
           strokeLinejoin="round"
           role={onFill ? "button" : undefined}
@@ -73,8 +75,8 @@ function ColoringPicture({ page, fills, onFill }: ColoringPictureProps) {
           }
         />
       ))}
-      {/* Eyes, smiles and bubbles never take a tap — it falls through to
-          the region underneath. */}
+      {/* Pupils and smiles never take a tap — it falls through to the
+          region underneath. */}
       <g pointerEvents="none">
         {page.details.map((detail, i) => (
           <path
@@ -108,6 +110,8 @@ export function ColoringScreen({ onHome }: ColoringScreenProps) {
 
   const { speak, stop } = useFriendlySpeech();
   const { playTap, playCelebrate } = useGameAudio();
+  const mainRegions = page ? getMainRegions(page) : [];
+  const coloredCount = mainRegions.filter((region) => fills[region.id]).length;
 
   const pickPage = (chosen: ColoringPage) => {
     playTap();
@@ -183,7 +187,7 @@ export function ColoringScreen({ onHome }: ColoringScreenProps) {
         </button>
         <div className="progress-pill">
           <span className="progress-letter">🖍️ Color</span>
-          {page ? <span className="progress-count" aria-label={`${Object.keys(fills).length} of ${page.regions.length} parts colored`}>{Object.keys(fills).length} / {page.regions.length}</span> : null}
+          {page ? <span className="progress-count" aria-label={`${coloredCount} of ${mainRegions.length} parts colored`}>{coloredCount} / {mainRegions.length}</span> : null}
         </div>
         {page ? <button className="icon-btn" onClick={undo} disabled={!history.length} aria-label="Undo last color">↶</button> : <div />}
         {page ? (

@@ -4,8 +4,10 @@
  * Every path is designed for a 512x512 viewBox. Regions are closed shapes the
  * child taps to fill; they are painted in array order (back to front) with a
  * thick round-joined outline, so a fin or flipper is tucked UNDER the body
- * that follows it and only its outer part shows. Details (eyes, smiles,
- * cheeks, bubbles) are drawn on top of every region and never take a tap.
+ * that follows it and only its outer part shows. Small parts (eyes, cheeks,
+ * bubbles) are regions too: they start pre-colored and are optional, so the
+ * picture finishes once its big parts are colored. Details (pupils, smiles)
+ * are drawn on top of every region and never take a tap.
  *
  * Circles/ellipses are written as two half arcs, e.g. a circle at (cx, cy)
  * with radius r is `M cx-r cy A r r 0 1 1 cx+r cy A r r 0 1 1 cx-r cy Z`.
@@ -17,6 +19,13 @@ export interface ColoringRegion {
   id: string;
   /** Closed SVG path d string (viewBox 0 0 512 512). */
   d: string;
+  /**
+   * Small extra part (eyes, cheeks, bubbles): starts in this color and is
+   * not needed to finish the picture.
+   */
+  start?: string;
+  /** Outline weight for small parts; 0 draws the fill alone. */
+  width?: number;
 }
 
 export interface ColoringDetail {
@@ -33,16 +42,16 @@ export interface ColoringPage {
   word: string;
   /** Accent hex for the picker card, bright and kid-friendly. */
   color: string;
-  /** Fillable shapes, painted back to front. */
+  /** Fillable shapes, painted back to front; small optional parts last. */
   regions: ColoringRegion[];
-  /** Non-fillable face and decoration lines, painted over the regions. */
+  /** Non-fillable pupils and face lines, painted over the regions. */
   details: ColoringDetail[];
 }
 
 /** Region id -> crayon hex. A region missing from the map is still white. */
 export type ColoringFills = Readonly<Record<string, string>>;
 
-/** Same names and hex values as the Draw game's crayons. */
+/** The first six match the Draw game's crayons; the rest round out the box. */
 export const COLORING_CRAYONS = [
   { name: "Red", hex: "#FF5A5F" },
   { name: "Orange", hex: "#FF9F43" },
@@ -50,10 +59,16 @@ export const COLORING_CRAYONS = [
   { name: "Green", hex: "#6BCB77" },
   { name: "Blue", hex: "#4DA6FF" },
   { name: "Purple", hex: "#A66BFF" },
+  { name: "Pink", hex: "#FF8AC8" },
+  { name: "Brown", hex: "#A86B3C" },
+  { name: "Light Blue", hex: "#9BE3FF" },
+  { name: "Gray", hex: "#9AA5B1" },
+  { name: "Black", hex: "#33333D" },
+  { name: "White", hex: "#FFFFFF" },
 ] as const;
 
 export const COLORING_OUTLINE = "#2A2F45";
-const EYE_WHITE = "#FFFFFF";
+const WHITE = "#FFFFFF";
 const CHEEK = "#FF9BB3";
 const THIN = 7;
 
@@ -91,15 +106,19 @@ export const COLORING_PAGES: ColoringPage[] = [
         id: "side fin",
         d: "M 290 272 C 266 238 212 238 188 266 C 204 300 250 318 290 272 Z",
       },
+      { id: "eye", d: "M 374 222 A 22 22 0 1 1 418 222 A 22 22 0 1 1 374 222 Z", start: WHITE },
+      { id: "cheek", d: "M 378 272 A 9 9 0 1 1 396 272 A 9 9 0 1 1 378 272 Z", start: CHEEK, width: 0 },
+      {
+        id: "bubbles",
+        d: "M 450 166 A 13 13 0 1 1 476 166 A 13 13 0 1 1 450 166 Z M 464 120 A 9 9 0 1 1 482 120 A 9 9 0 1 1 464 120 Z",
+        start: WHITE,
+        width: 6,
+      },
     ],
     details: [
-      { d: "M 374 222 A 22 22 0 1 1 418 222 A 22 22 0 1 1 374 222 Z", fill: EYE_WHITE },
       { d: "M 390 224 A 11 11 0 1 1 412 224 A 11 11 0 1 1 390 224 Z", fill: COLORING_OUTLINE, width: 0 },
-      { d: "M 402 218 A 4 4 0 1 1 410 218 A 4 4 0 1 1 402 218 Z", fill: EYE_WHITE, width: 0 },
+      { d: "M 402 218 A 4 4 0 1 1 410 218 A 4 4 0 1 1 402 218 Z", fill: WHITE, width: 0 },
       { d: "M 404 290 Q 420 302 432 286", width: THIN },
-      { d: "M 378 272 A 9 9 0 1 1 396 272 A 9 9 0 1 1 378 272 Z", fill: CHEEK, width: 0 },
-      { d: "M 450 166 A 13 13 0 1 1 476 166 A 13 13 0 1 1 450 166 Z", width: 6 },
-      { d: "M 464 120 A 9 9 0 1 1 482 120 A 9 9 0 1 1 464 120 Z", width: 6 },
     ],
   },
   {
@@ -137,15 +156,23 @@ export const COLORING_PAGES: ColoringPage[] = [
         // One region: a rounded hexagon plate ringed by six round spots.
         d: "M 256 236 L 300 262 L 300 318 L 256 344 L 212 318 L 212 262 Z M 232 184 A 24 24 0 1 1 280 184 A 24 24 0 1 1 232 184 Z M 232 396 A 24 24 0 1 1 280 396 A 24 24 0 1 1 232 396 Z M 150 246 A 24 24 0 1 1 198 246 A 24 24 0 1 1 150 246 Z M 314 246 A 24 24 0 1 1 362 246 A 24 24 0 1 1 314 246 Z M 150 334 A 24 24 0 1 1 198 334 A 24 24 0 1 1 150 334 Z M 314 334 A 24 24 0 1 1 362 334 A 24 24 0 1 1 314 334 Z",
       },
+      {
+        id: "eyes",
+        d: "M 220 86 A 14 14 0 1 1 248 86 A 14 14 0 1 1 220 86 Z M 264 86 A 14 14 0 1 1 292 86 A 14 14 0 1 1 264 86 Z",
+        start: WHITE,
+        width: 6,
+      },
+      {
+        id: "cheeks",
+        d: "M 212 112 A 8 8 0 1 1 228 112 A 8 8 0 1 1 212 112 Z M 284 112 A 8 8 0 1 1 300 112 A 8 8 0 1 1 284 112 Z",
+        start: CHEEK,
+        width: 0,
+      },
     ],
     details: [
-      { d: "M 220 86 A 14 14 0 1 1 248 86 A 14 14 0 1 1 220 86 Z", fill: EYE_WHITE, width: 6 },
-      { d: "M 264 86 A 14 14 0 1 1 292 86 A 14 14 0 1 1 264 86 Z", fill: EYE_WHITE, width: 6 },
       { d: "M 228 88 A 8 8 0 1 1 244 88 A 8 8 0 1 1 228 88 Z", fill: COLORING_OUTLINE, width: 0 },
       { d: "M 268 88 A 8 8 0 1 1 284 88 A 8 8 0 1 1 268 88 Z", fill: COLORING_OUTLINE, width: 0 },
       { d: "M 240 114 Q 256 128 272 114", width: THIN },
-      { d: "M 212 112 A 8 8 0 1 1 228 112 A 8 8 0 1 1 212 112 Z", fill: CHEEK, width: 0 },
-      { d: "M 284 112 A 8 8 0 1 1 300 112 A 8 8 0 1 1 284 112 Z", fill: CHEEK, width: 0 },
     ],
   },
   {
@@ -182,17 +209,24 @@ export const COLORING_PAGES: ColoringPage[] = [
         id: "head",
         d: "M 256 52 C 338 52 388 112 388 188 C 388 252 356 296 312 310 C 284 318 228 318 200 310 C 156 296 124 252 124 188 C 124 112 174 52 256 52 Z",
       },
+      {
+        id: "eyes",
+        d: "M 188 206 A 24 24 0 1 1 236 206 A 24 24 0 1 1 188 206 Z M 276 206 A 24 24 0 1 1 324 206 A 24 24 0 1 1 276 206 Z",
+        start: WHITE,
+      },
+      {
+        id: "cheeks",
+        d: "M 162 250 A 12 10 0 1 1 186 250 A 12 10 0 1 1 162 250 Z M 326 250 A 12 10 0 1 1 350 250 A 12 10 0 1 1 326 250 Z",
+        start: CHEEK,
+        width: 0,
+      },
     ],
     details: [
-      { d: "M 188 206 A 24 24 0 1 1 236 206 A 24 24 0 1 1 188 206 Z", fill: EYE_WHITE },
-      { d: "M 276 206 A 24 24 0 1 1 324 206 A 24 24 0 1 1 276 206 Z", fill: EYE_WHITE },
       { d: "M 202 210 A 12 12 0 1 1 226 210 A 12 12 0 1 1 202 210 Z", fill: COLORING_OUTLINE, width: 0 },
       { d: "M 286 210 A 12 12 0 1 1 310 210 A 12 12 0 1 1 286 210 Z", fill: COLORING_OUTLINE, width: 0 },
-      { d: "M 216 203 A 4 4 0 1 1 224 203 A 4 4 0 1 1 216 203 Z", fill: EYE_WHITE, width: 0 },
-      { d: "M 300 203 A 4 4 0 1 1 308 203 A 4 4 0 1 1 300 203 Z", fill: EYE_WHITE, width: 0 },
+      { d: "M 216 203 A 4 4 0 1 1 224 203 A 4 4 0 1 1 216 203 Z", fill: WHITE, width: 0 },
+      { d: "M 300 203 A 4 4 0 1 1 308 203 A 4 4 0 1 1 300 203 Z", fill: WHITE, width: 0 },
       { d: "M 230 262 Q 256 284 282 262", width: THIN },
-      { d: "M 162 250 A 12 10 0 1 1 186 250 A 12 10 0 1 1 162 250 Z", fill: CHEEK, width: 0 },
-      { d: "M 326 250 A 12 10 0 1 1 350 250 A 12 10 0 1 1 326 250 Z", fill: CHEEK, width: 0 },
     ],
   },
   {
@@ -226,28 +260,199 @@ export const COLORING_PAGES: ColoringPage[] = [
         id: "middle",
         d: "M 173 279 A 83 83 0 1 1 339 279 A 83 83 0 1 1 173 279 Z",
       },
+      {
+        id: "eyes",
+        d: "M 217 262 A 16 16 0 1 1 249 262 A 16 16 0 1 1 217 262 Z M 263 262 A 16 16 0 1 1 295 262 A 16 16 0 1 1 263 262 Z",
+        start: WHITE,
+        width: 6,
+      },
+      {
+        id: "cheeks",
+        d: "M 199 295 A 9 9 0 1 1 217 295 A 9 9 0 1 1 199 295 Z M 295 295 A 9 9 0 1 1 313 295 A 9 9 0 1 1 295 295 Z",
+        start: CHEEK,
+        width: 0,
+      },
+      {
+        // One little bump on each arm, partway out to the tip.
+        id: "bumps",
+        d: "M 244 106 A 12 12 0 1 1 268 106 A 12 12 0 1 1 244 106 Z M 408 226 A 12 12 0 1 1 432 226 A 12 12 0 1 1 408 226 Z M 345 418 A 12 12 0 1 1 369 418 A 12 12 0 1 1 345 418 Z M 143 418 A 12 12 0 1 1 167 418 A 12 12 0 1 1 143 418 Z M 80 226 A 12 12 0 1 1 104 226 A 12 12 0 1 1 80 226 Z",
+        start: WHITE,
+        width: 5,
+      },
     ],
     details: [
-      { d: "M 217 262 A 16 16 0 1 1 249 262 A 16 16 0 1 1 217 262 Z", fill: EYE_WHITE, width: 6 },
-      { d: "M 263 262 A 16 16 0 1 1 295 262 A 16 16 0 1 1 263 262 Z", fill: EYE_WHITE, width: 6 },
       { d: "M 225 265 A 9 9 0 1 1 243 265 A 9 9 0 1 1 225 265 Z", fill: COLORING_OUTLINE, width: 0 },
       { d: "M 269 265 A 9 9 0 1 1 287 265 A 9 9 0 1 1 269 265 Z", fill: COLORING_OUTLINE, width: 0 },
       { d: "M 233 302 Q 256 320 279 302", width: THIN },
-      { d: "M 199 295 A 9 9 0 1 1 217 295 A 9 9 0 1 1 199 295 Z", fill: CHEEK, width: 0 },
-      { d: "M 295 295 A 9 9 0 1 1 313 295 A 9 9 0 1 1 295 295 Z", fill: CHEEK, width: 0 },
-      // One little bump ring on each arm, partway out to the tip.
-      { d: "M 244 106 A 12 12 0 1 1 268 106 A 12 12 0 1 1 244 106 Z", width: 5 },
-      { d: "M 408 226 A 12 12 0 1 1 432 226 A 12 12 0 1 1 408 226 Z", width: 5 },
-      { d: "M 345 418 A 12 12 0 1 1 369 418 A 12 12 0 1 1 345 418 Z", width: 5 },
-      { d: "M 143 418 A 12 12 0 1 1 167 418 A 12 12 0 1 1 143 418 Z", width: 5 },
-      { d: "M 80 226 A 12 12 0 1 1 104 226 A 12 12 0 1 1 80 226 Z", width: 5 },
+    ],
+  },
+  {
+    id: "whale",
+    word: "Whale",
+    color: "#4DA6FF",
+    regions: [
+      {
+        id: "spout",
+        d: "M 362 184 C 360 140 344 112 312 98 C 334 80 362 90 376 112 C 390 90 418 80 440 98 C 408 112 392 140 390 184 Z",
+      },
+      {
+        id: "tail",
+        d: "M 150 310 C 116 290 98 248 98 198 C 70 196 42 176 30 140 C 64 134 90 146 106 166 C 112 140 130 118 158 104 C 168 140 160 172 140 194 C 156 214 180 236 210 252 Z",
+      },
+      {
+        id: "body",
+        d: "M 476 292 C 476 214 404 168 306 168 C 214 168 150 220 120 292 C 154 362 222 410 306 410 C 404 410 476 370 476 292 Z",
+      },
+      {
+        id: "belly",
+        d: "M 196 384 C 260 340 390 330 466 336 C 448 384 392 410 306 410 C 254 410 218 400 196 384 Z",
+      },
+      { id: "flipper", d: "M 300 282 C 288 318 258 340 224 344 C 236 310 264 286 300 272 Z" },
+      { id: "eye", d: "M 378 262 A 20 20 0 1 1 418 262 A 20 20 0 1 1 378 262 Z", start: WHITE },
+      { id: "cheek", d: "M 413 306 A 11 11 0 1 1 435 306 A 11 11 0 1 1 413 306 Z", start: CHEEK, width: 0 },
+    ],
+    details: [
+      { d: "M 392 265 A 10 10 0 1 1 412 265 A 10 10 0 1 1 392 265 Z", fill: COLORING_OUTLINE, width: 0 },
+      { d: "M 402 259 A 4 4 0 1 1 410 259 A 4 4 0 1 1 402 259 Z", fill: WHITE, width: 0 },
+      { d: "M 438 322 Q 458 330 472 312", width: THIN },
+      { d: "M 252 392 Q 320 374 430 368", width: 5 },
+    ],
+  },
+  {
+    id: "crab",
+    word: "Crab",
+    color: "#FF5A5F",
+    regions: [
+      {
+        id: "left legs",
+        d: "M 150 300 L 70 290 Q 50 288 44 308 L 30 352 L 58 360 L 72 320 L 150 330 Z M 150 340 L 84 344 Q 66 346 62 364 L 54 404 L 82 410 L 92 374 L 160 370 Z M 170 374 L 116 392 Q 100 398 100 414 L 102 450 L 130 452 L 130 420 L 184 398 Z",
+      },
+      {
+        id: "right legs",
+        d: "M 362 300 L 442 290 Q 462 288 468 308 L 482 352 L 454 360 L 440 320 L 362 330 Z M 362 340 L 428 344 Q 446 346 450 364 L 458 404 L 430 410 L 420 374 L 352 370 Z M 342 374 L 396 392 Q 412 398 412 414 L 410 450 L 382 452 L 382 420 L 328 398 Z",
+      },
+      {
+        id: "arms",
+        d: "M 182 262 L 128 178 L 162 158 L 216 242 Z M 330 262 L 384 178 L 350 158 L 296 242 Z",
+      },
+      {
+        id: "eye stalks",
+        d: "M 208 226 L 208 150 L 232 150 L 232 226 Z M 280 226 L 280 150 L 304 150 L 304 226 Z",
+      },
+      { id: "body", d: "M 106 300 A 150 100 0 1 1 406 300 A 150 100 0 1 1 106 300 Z" },
+      { id: "left claw", d: "M 168 118 L 124 126 L 142 86 A 60 60 0 1 0 168 118 Z" },
+      { id: "right claw", d: "M 344 118 L 388 126 L 370 86 A 60 60 0 1 1 344 118 Z" },
+      {
+        id: "eyes",
+        d: "M 194 136 A 26 26 0 1 1 246 136 A 26 26 0 1 1 194 136 Z M 266 136 A 26 26 0 1 1 318 136 A 26 26 0 1 1 266 136 Z",
+        start: WHITE,
+      },
+      {
+        id: "cheeks",
+        d: "M 171 318 A 13 13 0 1 1 197 318 A 13 13 0 1 1 171 318 Z M 315 318 A 13 13 0 1 1 341 318 A 13 13 0 1 1 315 318 Z",
+        start: CHEEK,
+        width: 0,
+      },
+    ],
+    details: [
+      { d: "M 212 140 A 12 12 0 1 1 236 140 A 12 12 0 1 1 212 140 Z", fill: COLORING_OUTLINE, width: 0 },
+      { d: "M 276 140 A 12 12 0 1 1 300 140 A 12 12 0 1 1 276 140 Z", fill: COLORING_OUTLINE, width: 0 },
+      { d: "M 224 134 A 4 4 0 1 1 232 134 A 4 4 0 1 1 224 134 Z", fill: WHITE, width: 0 },
+      { d: "M 288 134 A 4 4 0 1 1 296 134 A 4 4 0 1 1 288 134 Z", fill: WHITE, width: 0 },
+      { d: "M 226 322 Q 256 346 286 322", width: THIN },
+    ],
+  },
+  {
+    id: "jellyfish",
+    word: "Jellyfish",
+    color: "#A66BFF",
+    regions: [
+      {
+        id: "tentacle 1",
+        d: "M 137 262 C 109 330 165 390 137 440 A 13 13 0 0 0 163 440 C 191 390 135 330 163 262 Z",
+      },
+      {
+        id: "tentacle 2",
+        d: "M 209 262 C 237 330 181 390 209 478 A 13 13 0 0 0 235 478 C 207 390 263 330 235 262 Z",
+      },
+      {
+        id: "tentacle 3",
+        d: "M 277 262 C 249 330 305 390 277 478 A 13 13 0 0 0 303 478 C 331 390 275 330 303 262 Z",
+      },
+      {
+        id: "tentacle 4",
+        d: "M 349 262 C 377 330 321 390 349 440 A 13 13 0 0 0 375 440 C 347 390 403 330 375 262 Z",
+      },
+      {
+        id: "frill",
+        d: "M 100 236 L 412 236 L 412 262 Q 386 304 360 262 Q 334 304 308 262 Q 282 304 256 262 Q 230 304 204 262 Q 178 304 152 262 Q 126 304 100 262 Z",
+      },
+      { id: "bell", d: "M 100 250 C 100 128 170 52 256 52 C 342 52 412 128 412 250 Z" },
+      {
+        id: "spots",
+        d: "M 236 96 A 20 20 0 1 1 276 96 A 20 20 0 1 1 236 96 Z M 162 130 A 14 14 0 1 1 190 130 A 14 14 0 1 1 162 130 Z M 322 130 A 14 14 0 1 1 350 130 A 14 14 0 1 1 322 130 Z M 128 206 A 14 14 0 1 1 156 206 A 14 14 0 1 1 128 206 Z M 356 206 A 14 14 0 1 1 384 206 A 14 14 0 1 1 356 206 Z",
+      },
+      {
+        id: "eyes",
+        d: "M 194 182 A 20 20 0 1 1 234 182 A 20 20 0 1 1 194 182 Z M 278 182 A 20 20 0 1 1 318 182 A 20 20 0 1 1 278 182 Z",
+        start: WHITE,
+      },
+      {
+        id: "cheeks",
+        d: "M 173 216 A 11 11 0 1 1 195 216 A 11 11 0 1 1 173 216 Z M 317 216 A 11 11 0 1 1 339 216 A 11 11 0 1 1 317 216 Z",
+        start: CHEEK,
+        width: 0,
+      },
+    ],
+    details: [
+      { d: "M 206 186 A 10 10 0 1 1 226 186 A 10 10 0 1 1 206 186 Z", fill: COLORING_OUTLINE, width: 0 },
+      { d: "M 286 186 A 10 10 0 1 1 306 186 A 10 10 0 1 1 286 186 Z", fill: COLORING_OUTLINE, width: 0 },
+      { d: "M 216 180 A 4 4 0 1 1 224 180 A 4 4 0 1 1 216 180 Z", fill: WHITE, width: 0 },
+      { d: "M 296 180 A 4 4 0 1 1 304 180 A 4 4 0 1 1 296 180 Z", fill: WHITE, width: 0 },
+      { d: "M 236 214 Q 256 232 276 214", width: THIN },
+    ],
+  },
+  {
+    id: "seahorse",
+    word: "Seahorse",
+    color: "#FFD93D",
+    regions: [
+      { id: "crown", d: "M 236 104 L 244 50 L 266 86 L 288 40 L 300 90 L 326 62 L 322 112 Z" },
+      { id: "fin", d: "M 326 222 C 378 206 414 238 412 292 C 384 304 354 302 334 290 Z" },
+      {
+        id: "tail",
+        d: "M 226 330 C 210 420 250 486 330 486 C 394 486 430 446 416 400 C 404 362 352 356 340 392 C 332 418 352 436 376 426 C 380 448 360 456 330 456 C 280 456 256 410 276 334 Z",
+      },
+      { id: "snout", d: "M 214 128 L 140 140 Q 112 144 112 162 Q 112 180 140 180 L 214 186 Z" },
+      {
+        id: "body",
+        d: "M 232 176 C 172 216 160 300 200 350 C 232 390 300 396 332 360 C 366 320 356 236 322 184 Z",
+      },
+      { id: "head", d: "M 196 144 A 72 62 0 1 1 340 144 A 72 62 0 1 1 196 144 Z" },
+      {
+        id: "belly",
+        d: "M 222 196 C 186 232 180 300 212 344 C 232 330 236 296 238 266 C 240 236 248 214 262 200 Z",
+      },
+      { id: "eye", d: "M 238 132 A 20 20 0 1 1 278 132 A 20 20 0 1 1 238 132 Z", start: WHITE },
+      { id: "cheek", d: "M 219 170 A 11 11 0 1 1 241 170 A 11 11 0 1 1 219 170 Z", start: CHEEK, width: 0 },
+    ],
+    details: [
+      { d: "M 244 135 A 10 10 0 1 1 264 135 A 10 10 0 1 1 244 135 Z", fill: COLORING_OUTLINE, width: 0 },
+      { d: "M 248 129 A 4 4 0 1 1 256 129 A 4 4 0 1 1 248 129 Z", fill: WHITE, width: 0 },
+      { d: "M 118 168 Q 126 174 134 170", width: THIN },
+      { d: "M 196 252 Q 214 256 236 248 M 194 290 Q 212 296 234 288 M 204 326 Q 218 330 232 322", width: 5 },
     ],
   },
 ];
 
-/** True once every region on the page has been colored at least once. */
+/** The big parts a picture needs colored to finish; pre-colored small parts are extra. */
+export function getMainRegions(page: ColoringPage): ColoringRegion[] {
+  return page.regions.filter((region) => !region.start);
+}
+
+/** True once every main region on the page has been colored at least once. */
 export function isPageComplete(filled: ColoringFills, page: ColoringPage): boolean {
-  return page.regions.every((region) => Boolean(filled[region.id]));
+  return getMainRegions(page).every((region) => Boolean(filled[region.id]));
 }
 
 export function getCrayonPhrase(name: string) {

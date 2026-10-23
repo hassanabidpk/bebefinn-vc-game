@@ -10,7 +10,7 @@ import {
   getCountFeedPraisePhrase,
   getCountFeedPromptPhrase,
   pickTarget,
-  shellCountFor,
+  foodCountFor,
   targetRangeForRound,
 } from "./count-feed-data";
 
@@ -63,12 +63,25 @@ describe("pickTarget", () => {
   });
 });
 
-describe("shellCountFor", () => {
-  it("always offers more shells than the target, up to 12", () => {
+describe("foodCountFor", () => {
+  it("always offers more food than the target, up to 12", () => {
     for (let target = 1; target <= COUNT_FEED_MAX; target += 1) {
-      expect(shellCountFor(target)).toBe(target + 2);
+      expect(foodCountFor(target)).toBe(target + 2);
     }
-    expect(shellCountFor(10)).toBe(12);
+    expect(foodCountFor(10)).toBe(12);
+  });
+});
+
+describe("COUNT_FEED_FRIENDS", () => {
+  it("gives every friend its own real food", () => {
+    expect(COUNT_FEED_FRIENDS.map((friend) => [friend.word, friend.food.many])).toEqual([
+      ["Octopus", "crabs"],
+      ["Turtle", "seaweeds"],
+      ["Whale", "shrimp"],
+      ["Fish", "worms"],
+      ["Shark", "fish"],
+    ]);
+    expect(new Set(COUNT_FEED_FRIENDS.map((friend) => friend.food.emoji)).size).toBe(5);
   });
 });
 
@@ -81,41 +94,45 @@ describe("friendForRound", () => {
 });
 
 describe("buildCountFeedRound", () => {
-  it("pairs the round's friend with a fresh target and its shell tray", () => {
+  it("pairs the round's friend with a fresh target and its food tray", () => {
     const round = buildCountFeedRound(4, 3, () => 0.5);
     expect(round.index).toBe(4);
     expect(round.friend).toBe(friendForRound(4));
     expect(round.target).not.toBe(3);
     expect(round.target).toBeLessThanOrEqual(5);
-    expect(round.shellCount).toBe(shellCountFor(round.target));
+    expect(round.foodCount).toBe(foodCountFor(round.target));
   });
 });
 
 describe("phrases", () => {
-  it("builds the round prompt with singular and plural shells", () => {
-    expect(getCountFeedPromptPhrase("Octopus", 3)).toBe("Feed Octopus 3 shells!");
-    expect(getCountFeedPromptPhrase("Turtle", 1)).toBe("Feed Turtle 1 shell!");
+  const [octopus, turtle, whale] = COUNT_FEED_FRIENDS;
+
+  it("builds the round prompt with the friend's food, singular and plural", () => {
+    expect(getCountFeedPromptPhrase(octopus, 3)).toBe("Feed Octopus 3 crabs!");
+    expect(getCountFeedPromptPhrase(octopus, 1)).toBe("Feed Octopus 1 crab!");
+    expect(getCountFeedPromptPhrase(turtle, 2)).toBe("Feed Turtle 2 seaweeds!");
+    expect(getCountFeedPromptPhrase(whale, 4)).toBe("Feed Whale 4 shrimp!");
   });
 
   it("counts out loud and praises by name of the number", () => {
     expect(getCountFeedCountPhrase(1)).toBe("One!");
     expect(getCountFeedCountPhrase(10)).toBe("Ten!");
-    expect(getCountFeedPraisePhrase(3)).toBe("Yum! Three shells!");
-    expect(getCountFeedPraisePhrase(1)).toBe("Yum! One shell!");
+    expect(getCountFeedPraisePhrase(octopus.food, 3)).toBe("Yum! Three crabs!");
+    expect(getCountFeedPraisePhrase(octopus.food, 1)).toBe("Yum! One crab!");
   });
 
   it("registers every phrase the screen can speak, with no duplicates", () => {
     const expected = new Set<string>();
     for (let n = 1; n <= COUNT_FEED_MAX; n += 1) {
       expected.add(getCountFeedCountPhrase(n));
-      expected.add(getCountFeedPraisePhrase(n));
       for (const friend of COUNT_FEED_FRIENDS) {
-        expected.add(getCountFeedPromptPhrase(friend.word, n));
+        expected.add(getCountFeedPraisePhrase(friend.food, n));
+        expected.add(getCountFeedPromptPhrase(friend, n));
       }
     }
     expect(new Set(COUNT_FEED_PHRASES)).toEqual(expected);
     expect(COUNT_FEED_PHRASES).toHaveLength(expected.size);
-    expect(COUNT_FEED_PHRASES).toHaveLength(70);
+    expect(COUNT_FEED_PHRASES).toHaveLength(110);
     expect(COUNT_FEED_PHRASES).toContain("Ten!");
   });
 });

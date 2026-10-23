@@ -12,7 +12,9 @@ import {
   MEMORY_MATCH_PHRASES,
   MEMORY_MATCH_PRAISE,
   getMemoryMatchPraise,
+  MEMORY_MATCH_THEMES,
   pairCountForRound,
+  themeForRound,
   type MemoryMatchBoard,
 } from "./memory-match-data";
 
@@ -71,14 +73,30 @@ describe("MEMORY_MATCH_ANIMALS", () => {
 });
 
 describe("pairCountForRound", () => {
-  it("grows 2 → 3 → 4 → 6 pairs and then stays at 6", () => {
-    expect([0, 1, 2, 3, 4, 10].map(pairCountForRound)).toEqual([2, 3, 4, 6, 6, 6]);
+  it("grows 2 → 3 → 4 → 6 → 8 pairs and then stays at 8", () => {
+    expect([0, 1, 2, 3, 4, 5, 10].map(pairCountForRound)).toEqual([2, 3, 4, 6, 8, 8, 8]);
+  });
+});
+
+describe("MEMORY_MATCH_THEMES", () => {
+  it("puts every photo animal in exactly one theme", () => {
+    const themed = MEMORY_MATCH_THEMES.flatMap((theme) => theme.words);
+    expect([...themed].sort()).toEqual(MEMORY_MATCH_ANIMALS.map((animal) => animal.word).sort());
+  });
+
+  it("takes turns ocean, jungle, meadow", () => {
+    expect([0, 1, 2, 3].map((round) => themeForRound(round).id)).toEqual([
+      "ocean",
+      "jungle",
+      "meadow",
+      "ocean",
+    ]);
   });
 });
 
 describe("buildDeck", () => {
   it("deals every animal exactly twice with unique card ids", () => {
-    for (const pairCount of [2, 3, 4, 6]) {
+    for (const pairCount of [2, 3, 4, 6, 8]) {
       const deck = buildDeck(pairCount, seeded(pairCount));
       expect(deck).toHaveLength(pairCount * 2);
       expect(new Set(deck.map((card) => card.id)).size).toBe(pairCount * 2);
@@ -88,6 +106,16 @@ describe("buildDeck", () => {
       expect(counts.size).toBe(pairCount);
       expect([...counts.values()].every((count) => count === 2)).toBe(true);
     }
+  });
+
+  it("deals the theme's animals first and tops up from the rest", () => {
+    const [ocean] = MEMORY_MATCH_THEMES;
+    const words = (pairCount: number) =>
+      new Set(buildDeck(pairCount, seeded(3), ocean).map((card) => card.word));
+    expect([...words(4)].every((word) => ocean.words.includes(word))).toBe(true);
+    const big = words(8);
+    expect(big.size).toBe(8);
+    for (const word of ocean.words) expect(big.has(word)).toBe(true);
   });
 
   it("is repeatable for the same random source and varies with another", () => {
