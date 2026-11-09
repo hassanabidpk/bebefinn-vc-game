@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two New Games — Ocean Buddy</title>
+<style>
+  :root {
+    /* Unified tokens — shared with report-template.html */
+    --ink: #17202a;
+    --ink-soft: #1e293b;
+    --muted: #5d6978;
+    --muted-soft: #94a3b8;
+    --bg: #f5f7fa;
+    --bg-soft: #eef2f7;
+    --panel: #ffffff;
+    --border: #d9e0e8;
+    --border-soft: #eef2f7;
+
+    --accent: #0f766e;
+    --accent-bright: #14b8a6;
+    --navy: #20314b;
+    --navy-deep: #182438;
+
+    --info:   #2d6cdf;
+    --good:   #258760;
+    --warn:   #c47d17;
+    --bad:    #c54040;
+    --violet: #7b4ab8;
+
+    --shadow:    0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.05), 0 12px 24px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 18px 50px rgba(32, 49, 75, 0.14);
+
+    /* Legacy aliases — keep existing snippets / SVG cookbook working */
+    --fg: var(--ink);
+    --fg-soft: var(--ink-soft);
+    --card: var(--panel);
+    --code-bg: #0f172a;
+    --code-fg: #e2e8f0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e2e8f0;
+      --ink-soft: #cbd5e1;
+      --muted: #94a3b8;
+      --muted-soft: #64748b;
+      --bg: #020617;
+      --bg-soft: #0f172a;
+      --panel: #0f172a;
+      --border: #1e293b;
+      --border-soft: #1e293b;
+
+      --accent: #2dd4bf;
+      --accent-bright: #5eead4;
+
+      --info:   #60a5fa;
+      --good:   #34d399;
+      --warn:   #fbbf24;
+      --bad:    #f87171;
+      --violet: #a78bfa;
+
+      --shadow:    0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5), 0 12px 24px rgba(0, 0, 0, 0.4);
+
+      --fg: var(--ink);
+      --fg-soft: var(--ink-soft);
+      --card: var(--panel);
+      --code-bg: #020617;
+      --code-fg: #cbd5e1;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+  }
+
+  .layout {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+  }
+  @media (min-width: 1024px) {
+    .layout { grid-template-columns: 220px minmax(0, 1fr); padding: 64px 48px 120px; }
+    aside.toc-rail {
+      position: sticky;
+      top: 32px;
+      align-self: start;
+      max-height: calc(100vh - 64px);
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+  }
+  main { min-width: 0; }
+
+  /* Title block */
+  header.title {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 34px;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    color: var(--fg);
+  }
+  .lede {
+    color: var(--muted);
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.55;
+    max-width: 64ch;
+  }
+  .lede strong { color: var(--fg-soft); font-weight: 600; }
+
+  /* Section headings (manual numbering: <h2>1. Foo</h2>) */
+  h2 {
+    font-size: 22px;
+    margin: 56px 0 14px;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+    color: var(--fg);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  h2::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 2px;
+    margin-right: 12px;
+    vertical-align: -3px;
+  }
+  h3 {
+    font-size: 17px;
+    margin: 28px 0 8px;
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: -0.005em;
+  }
+  h4 {
+    font-size: 12px;
+    margin: 18px 0 6px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+
+  p { margin: 12px 0; max-width: 72ch; }
+  ul, ol { padding-left: 22px; max-width: 72ch; }
+  ul li, ol li { margin: 6px 0; }
+  strong { font-weight: 600; color: var(--fg); }
+  a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  a:hover { text-decoration: underline; }
+
+  /* Code */
+  code, pre {
+    font-family: 'JetBrains Mono', "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+  }
+  code {
+    background: var(--bg-soft);
+    color: var(--fg-soft);
+    padding: 2px 6px;
+    border-radius: 5px;
+    border: 1px solid var(--border-soft);
+    font-size: 12.5px;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    line-height: 1.55;
+    margin: 14px 0;
+    box-shadow: var(--shadow);
+    font-size: 12.5px;
+  }
+  pre code { background: transparent; color: var(--code-fg); padding: 0; border: none; font-size: 12.5px; }
+  pre.ascii {
+    background: var(--card);
+    color: var(--fg-soft);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre;
+    box-shadow: var(--shadow);
+  }
+  pre.ascii strong { color: var(--accent); font-weight: 700; }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.18s ease;
+  }
+  .card:hover { box-shadow: var(--shadow-md); }
+  .card h3 { margin-top: 0; padding-right: 8px; }
+  .card h3 + h4 { margin-top: 16px; }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-left: 10px;
+    vertical-align: 3px;
+    border: 1px solid transparent;
+  }
+  .pill-good { background: #ecfdf5; color: var(--good); border-color: #a7f3d0; }
+  .pill-warn { background: #fffbeb; color: var(--warn); border-color: #fcd34d; }
+  .pill-bad  { background: #fef2f2; color: var(--bad);  border-color: #fecaca; }
+  .pill-rec  { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Tables */
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin: 16px 0;
+    font-size: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  tr:last-child td { border-bottom: none; }
+  th {
+    background: var(--bg-soft);
+    font-weight: 600;
+    color: var(--fg-soft);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:hover { background: var(--bg-soft); }
+  td pre, td code { font-size: 12px; }
+  td pre { margin: 4px 0; padding: 10px 12px; }
+
+  /* Pros / cons */
+  .pros { color: var(--good); }
+  .cons { color: var(--bad); }
+  .pros::before {
+    content: "✓";
+    display: inline-block;
+    width: 18px;
+    font-weight: 700;
+    color: var(--good);
+    margin-right: 2px;
+  }
+  .cons::before {
+    content: "✗";
+    display: inline-block;
+    width: 18px;
+    font-weight: 700;
+    color: var(--bad);
+    margin-right: 2px;
+  }
+  li.pros, li.cons { list-style: none; margin-left: -22px; padding-left: 0; }
+
+  /* Recommend block */
+  .recommend {
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 100%);
+    border: 1px solid #99f6e4;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    box-shadow: var(--shadow);
+  }
+  .recommend h3 { color: var(--accent); margin-top: 16px; }
+  .recommend h3:first-child { margin-top: 0; }
+  @media (prefers-color-scheme: dark) {
+    .recommend {
+      background: linear-gradient(135deg, rgba(45, 212, 191, 0.08) 0%, rgba(20, 184, 166, 0.05) 100%);
+      border-color: rgba(45, 212, 191, 0.3);
+    }
+  }
+
+  /* TOC */
+  nav.toc { font-size: 13.5px; color: var(--muted); }
+  nav.toc strong {
+    display: block;
+    color: var(--fg);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+  nav.toc ol { list-style: none; counter-reset: toc; padding-left: 0; margin: 0; }
+  nav.toc li {
+    counter-increment: toc;
+    margin: 4px 0;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  nav.toc li:hover { background: var(--bg-soft); }
+  nav.toc li::before {
+    content: counter(toc, decimal-leading-zero) ".";
+    color: var(--muted-soft);
+    margin-right: 8px;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+  }
+  nav.toc a { color: var(--muted); text-decoration: none; font-weight: 400; }
+  nav.toc a:hover { color: var(--fg); }
+
+  /* Inline SVG diagrams */
+  .diagram {
+    margin: 24px 0 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px 16px;
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+  }
+  .diagram svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .diagram-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    margin: 10px 0 0;
+    font-style: italic;
+  }
+  .diagram .label-fg  { fill: var(--fg); }
+  .diagram .label-mu  { fill: var(--muted); }
+  .diagram .label-bad { fill: var(--bad); }
+  .diagram .label-good{ fill: var(--good); }
+  .diagram .label-wht { fill: #ffffff; }
+  .diagram .box-stroke{ stroke: var(--border); }
+  .diagram .arrow      { stroke: var(--muted); fill: none; stroke-width: 1.5; }
+  .diagram .arrow-good { stroke: var(--accent); fill: none; stroke-width: 1.5; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 48px 0 24px; }
+
+  /* Footer */
+  footer {
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    margin-top: 64px;
+    padding-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Mobile */
+  @media (max-width: 720px) {
+    .layout { padding: 32px 20px 80px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 19px; }
+    pre { font-size: 11.5px; padding: 12px 14px; }
+    table { font-size: 13px; }
+    th, td { padding: 8px 10px; }
+  }
+
+  /* Print */
+  @media print {
+    body { background: white; color: black; }
+    .layout { display: block; padding: 0; }
+    aside.toc-rail, footer { display: none; }
+    .card, table, pre, .diagram, .recommend { box-shadow: none; }
+    h2 { page-break-after: avoid; }
+    .card, .recommend, .diagram { page-break-inside: avoid; }
+  }
+
+  .meta { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; font-size:12px; color:var(--muted); }
+  .meta span { padding:5px 11px; border:1px solid var(--border); border-radius:99px; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .pair .card { margin:0; }
+  .step-list { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:18px 0; }
+  .step { background:var(--bg-soft); border-radius:12px; padding:16px; }
+  .step b { display:block; color:var(--accent); margin-bottom:4px; }
+  .screen { padding:14px; border-radius:26px; background:#123c56; margin:20px 0 8px; }
+  .screen svg { width:100%; height:auto; display:block; border-radius:16px; background:#dff8ff; }
+  .screen text { font-family:system-ui,sans-serif; }
+  .screen .sea-label { fill:#123c56; font-size:18px; font-weight:700; }
+  .screen .sea-small { fill:#214a5d; font-size:14px; }
+  .caption { font-size:13px; color:var(--muted); }
+  .table-scroll { overflow-x:auto; }
+  .table-scroll table { min-width:470px; }
+  .visual-defs { position:absolute; width:0; height:0; overflow:hidden; }
+  @media(max-width:720px) { .pair,.step-list { grid-template-columns:1fr; } .screen { padding:7px; border-radius:20px; } }
+  @page { size:A4; margin:16mm; }
+  @media print {
+    :root { --bg:#fff; --fg:#17202a; --ink:#17202a; --muted:#5d6978; --card:#fff; --bg-soft:#eef2f7; --accent:#0f766e; }
+    body { font-size:10pt; }
+    h1 { font-size:24pt; } h2 { margin-top:24px; }
+    .screen,.pair,.step-list,.table-scroll { break-inside:avoid; }
+    .screen { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    a { color:#0f766e; } .meta { margin-top:10px; }
+  }
+</style>
+</head>
+<body><svg class="visual-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="shell" viewBox="0 0 100 100"><path d="M50 83C40 85 4 53 9 33C12 20 25 17 33 23C39 7 57 7 64 22C80 13 95 25 93 40C91 59 65 85 50 83Z" fill="#ff9dba" stroke="#923d5a" stroke-width="4"/><path d="M50 77L29 30M50 77V22M50 77L74 30" stroke="#923d5a" stroke-width="4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="star" viewBox="0 0 100 100"><path d="M50 9L64 35L94 42L73 63L77 91L50 77L23 91L27 63L6 42L36 35Z" fill="#ffd852" stroke="#896311" stroke-width="4" stroke-linejoin="round"/><circle cx="40" cy="52" r="3" fill="#123c56"/><circle cx="60" cy="52" r="3" fill="#123c56"/><path d="M42 64Q50 72 58 64" fill="none" stroke="#123c56" stroke-width="3"/></symbol>
+<symbol id="fish" viewBox="0 0 100 100"><path d="M28 42L8 23V77L28 60C47 90 90 81 93 51C86 17 47 15 28 42Z" fill="#ffab5a" stroke="#914716" stroke-width="4" stroke-linejoin="round"/><circle cx="75" cy="43" r="5" fill="#123c56"/><path d="M53 37Q39 50 53 64" fill="none" stroke="#914716" stroke-width="4"/></symbol>
+</defs></svg>
+<div class="layout"><aside class="toc-rail"><nav class="toc" aria-label="Contents"><strong>Ocean Buddy · Design</strong><ol>
+<li><a href="#overview">Two new learning skills</a></li><li><a href="#patterns">Bubble Patterns</a></li><li><a href="#builder">Little Reef Builder</a></li><li><a href="#delivery">Build and validation plan</a></li>
+</ol></nav></aside><main>
+<header class="title"><div class="eyebrow">Game design · 09 November 2026</div><h1>A little thinking.<br>A whole ocean to discover.</h1><p class="lede">Two gentle games for Ocean Buddy: spot what comes next, then help sea friends find their place. Built around pictures, touch, and English narration.</p>
+<div class="meta"><span>Proposed designs</span><span>Ages 2–6</span><span>Source: 17b30b0</span><span>No new paid media</span></div></header>
+<section aria-labelledby="overview"><h2 id="overview">1. Two new learning skills</h2>
+<p>The latest code already includes eight coloring pictures, 12 crayons, real feed foods, and themed Match boards. These additions introduce <strong>sequencing</strong> and <strong>spatial language</strong> alongside the existing alphabet, counting, matching, and shape games.</p>
+<div class="pair"><div class="card"><h3>01 · Bubble Patterns</h3><p>“What comes next?”</p><p>Complete a repeating treasure parade. One correct choice makes a pearl; five pearls make a bracelet.</p></div><div class="card"><h3>02 · Little Reef Builder</h3><p>“Put the fish above the rock.”</p><p>Place friends relative to familiar landmarks. Four placements bring one reef scene to life.</p></div></div>
+<p class="caption">The screens below are static design mockups. The full game rules, data contracts, and acceptance criteria are in the linked specifications.</p></section>
+<section aria-labelledby="patterns"><h2 id="patterns">2. Bubble Patterns</h2><p>A quiet observation game. The sequence stays visible, every symbol has its own shape, and the child can ask for a hint at any time.</p>
+<figure class="screen"><svg viewBox="0 0 720 410" role="img" aria-labelledby="pattern-title pattern-desc" xmlns="http://www.w3.org/2000/svg"><title id="pattern-title">Bubble Patterns choice screen</title><desc id="pattern-desc">A shell, starfish, shell, starfish, and empty bubble. Two big choices below: shell or starfish. The correct shell completes the sequence.</desc>
+<path d="M0 330Q180 300 360 335T720 320V410H0Z" fill="#b3eee4"/><circle cx="42" cy="40" r="24" fill="#fff"/><text x="42" y="47" text-anchor="middle" class="sea-label">←</text><text x="92" y="47" class="sea-label">Bubble Patterns</text><text x="496" y="46" class="sea-small">● ● ○ ○ ○</text><circle cx="669" cy="40" r="25" fill="#fff"/><text x="669" y="47" text-anchor="middle" class="sea-label">♪</text>
+<text x="360" y="103" text-anchor="middle" class="sea-label">What comes next?</text>
+<g fill="#fff" stroke="#79c8df" stroke-width="3"><circle cx="120" cy="175" r="44"/><circle cx="240" cy="175" r="44"/><circle cx="360" cy="175" r="44"/><circle cx="480" cy="175" r="44"/></g><circle cx="600" cy="175" r="44" fill="#fff9cf" stroke="#8b6b13" stroke-width="4" stroke-dasharray="7 6"/>
+<use href="#shell" x="86" y="142" width="68" height="68"/><use href="#star" x="206" y="142" width="68" height="68"/><use href="#shell" x="326" y="142" width="68" height="68"/><use href="#star" x="446" y="142" width="68" height="68"/><text x="600" y="190" font-size="42" text-anchor="middle" fill="#8b6b13">?</text>
+<path d="M80 231V241H280V231M320 231V241H520V231" fill="none" stroke="#277285" stroke-width="3"/>
+<rect x="210" y="275" width="130" height="112" rx="28" fill="#fff" stroke="#de89a6" stroke-width="4"/><use href="#shell" x="235" y="290" width="80" height="80"/>
+<rect x="380" y="275" width="130" height="112" rx="28" fill="#fff" stroke="#d3ad38" stroke-width="4"/><use href="#star" x="405" y="290" width="80" height="80"/>
+<circle cx="653" cy="344" r="29" fill="#fff" stroke="#76b2be" stroke-width="2"/><text x="653" y="354" text-anchor="middle" font-size="30" fill="#123c56">☝</text></svg></figure>
+<p class="caption">Choice state · one repeated pair is bracketed for younger players. The yellow bubble is the destination; tray objects retain distinct silhouettes.</p>
+<div class="step-list"><div class="step"><b>Look</b>The pattern remains visible.</div><div class="step"><b>Choose</b>Tap one of 2–3 treasures.</div><div class="step"><b>Celebrate</b>Add one pearl. Next waits for you.</div></div>
+<div class="table-scroll"><table><caption>Difficulty progression</caption><thead><tr><th>Discover</th><th>Repeat</th><th>Explore</th><th>Mix</th></tr></thead><tbody><tr><td>AB · 2 choices</td><td>AAB · 2 choices</td><td>ABB · 3 choices</td><td>ABC · 3 choices</td></tr></tbody></table></div>
+<p>Another choice makes a gentle bounce and reveals the repeated group. Help points to the answer, and the child still earns the same pearl. There is no countdown or penalty.</p>
+<p><a href="../superpowers/specs/2026-11-09-bubble-patterns-design.md">Read the Bubble Patterns implementation spec →</a></p></section>
+<section aria-labelledby="builder"><h2 id="builder">3. Little Reef Builder</h2><p>Learn <strong>above, below, inside, and beside</strong> by placing friends in an original reef. A tiny picture instruction makes the task understandable with speech muted.</p>
+<figure class="screen"><svg viewBox="0 0 720 430" role="img" aria-labelledby="reef-title reef-desc" xmlns="http://www.w3.org/2000/svg"><title id="reef-title">Little Reef Builder placement screen</title><desc id="reef-desc">The fish is selected in the tray. Two landing pads are shown above and below a rock, and a picture cue models the fish above the rock. The child taps the upper pad.</desc>
+<path d="M0 299Q170 270 360 305T720 285V430H0Z" fill="#ffe6ab"/><circle cx="42" cy="40" r="24" fill="#fff"/><text x="42" y="47" text-anchor="middle" class="sea-label">←</text><text x="92" y="47" class="sea-label">Little Reef Builder</text><text x="513" y="46" class="sea-small">● ○ ○ ○</text>
+<rect x="32" y="86" width="145" height="125" rx="24" fill="#fff"/><use href="#fish" x="73" y="92" width="60" height="60"/><path d="M73 188Q65 146 108 152Q148 151 145 188Z" fill="#829aaf"/><text x="104" y="234" text-anchor="middle" class="sea-small">Picture hint</text>
+<path d="M273 241Q250 172 336 166Q398 150 427 204L438 241Z" fill="#859cb2" stroke="#3a5a70" stroke-width="4"/><path d="M310 240Q307 198 349 196Q389 197 391 240Z" fill="#294f66"/>
+<rect x="309" y="79" width="100" height="73" rx="25" fill="#f6ffff" stroke="#368297" stroke-width="3" stroke-dasharray="7 5"/><rect x="309" y="257" width="100" height="73" rx="25" fill="#f6ffff" stroke="#368297" stroke-width="3" stroke-dasharray="7 5"/>
+<path d="M533 285Q559 240 540 195M551 286Q584 238 574 212M557 282Q608 262 600 228" fill="none" stroke="#2e8561" stroke-width="15" stroke-linecap="round"/>
+<circle cx="627" cy="109" r="12" fill="none" stroke="#69bdd3" stroke-width="3"/><circle cx="652" cy="80" r="8" fill="none" stroke="#69bdd3" stroke-width="3"/>
+<rect x="215" y="350" width="290" height="67" rx="28" fill="#d6f4fa"/><rect x="312" y="337" width="99" height="81" rx="24" fill="#fff" stroke="#895f0f" stroke-width="4"/><use href="#fish" x="322" y="337" width="80" height="80"/>
+<circle cx="652" cy="370" r="29" fill="#fff" stroke="#76b2be" stroke-width="2"/><text x="652" y="380" text-anchor="middle" font-size="30" fill="#123c56">☝</text></svg></figure>
+<p class="caption">Guided first step · tap the fish, then the upper landing pad. Pads share a neutral shape, so placement teaches position rather than outline matching.</p>
+<div class="step-list"><div class="step"><b>See and hear</b>One relation at a time.</div><div class="step"><b>Place</b>Tap → tap; optional drag.</div><div class="step"><b>Bring it to life</b>Four placements finish a reef.</div></div>
+<p>Three authored scenes: Sunny Reef, Shell Cove, and Kelp Garden. Inside targets keep the whole friend visible. Beside offers one eligible side so an equally valid mirror placement is never rejected.</p>
+<p>Gentle correction models the destination. Replay resets placements but keeps earned reef tiles. Every accepted placement saves before the celebration, so a reload can resume safely.</p>
+<p><a href="../superpowers/specs/2026-11-09-little-reef-builder-design.md">Read the Little Reef Builder implementation spec →</a></p></section>
+<section aria-labelledby="delivery"><h2 id="delivery">4. Build and validation plan</h2>
+<div class="recommend"><h3>Build Bubble Patterns first</h3><p>It has the smaller input surface and establishes shared sea symbols, localized messages, and guarded progress storage. Reef Builder can then reuse those pieces and the existing Shape Sort transform helpers.</p></div>
+<div class="pair"><div class="card"><h3>Shared product rules</h3><ul><li>English labels and narration.</li><li>At least 64px targets after frame scaling.</li><li>Silent, keyboard, touch, and reduced-motion play.</li><li>Progress on device; no accounts or telemetry.</li><li>No new paid audio or image generation.</li></ul></div><div class="card"><h3>Before shipping</h3><ul><li>Validate every authored puzzle.</li><li>Test duplicate input and stale callbacks.</li><li>Test reload, replay, corrupt/blocked storage.</li><li>Verify 360×800, 800×360, and tablet layouts.</li><li>Run browser and real-device touch QA.</li></ul></div></div>
+<h3>Integration boundary</h3><p>Add lazy-loaded <code>patterns</code> and <code>builder</code> modes. Keep current lessons and sticker payloads intact; each game owns its own versioned device save. New narration uses a typed English message catalog, with browser speech as the baseline.</p>
+<p>Home needs two additional chips. Validate all 14 entries remain visible and tappable. If they do not fit, use two pages of seven chips with a large Next control; any game stays within two taps. Preserve the Start action and sticker-book access.</p>
+<p class="caption">Design review only · no runtime source, live site, generated media, or deployment configuration changed. Mockups illustrate gameplay hierarchy; actual accessibility and touch-size proof belong to implementation QA.</p></section>
+<footer><span>Ocean Buddy · Original characters and sea symbols</span><span>Design baseline 17b30b0 · 2026-11-09</span></footer>
+</main></div></body></html>

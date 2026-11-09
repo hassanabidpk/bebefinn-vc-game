@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+import { gameMessages } from "@/lib/game-messages";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { useSpeech } from "@/hooks/use-speech";
 import { IpadShell } from "@/components/game/ipad-shell";
@@ -19,6 +21,13 @@ import { CountFeedScreen } from "@/components/game/count-feed-screen";
 import { ColoringScreen } from "@/components/game/coloring-screen";
 import { ShapeSortScreen } from "@/components/game/shape-sort-screen";
 
+const PatternsScreen = dynamic(() => import("@/components/game/patterns-screen").then(m => m.PatternsScreen), {
+  loading: () => <div className="thinking-loading" role="status">{gameMessages.loading}</div>,
+});
+const ReefBuilderScreen = dynamic(() => import("@/components/game/reef-builder-screen").then(m => m.ReefBuilderScreen), {
+  loading: () => <div className="thinking-loading" role="status">{gameMessages.loading}</div>,
+});
+
 type Screen =
   | "home"
   | "lesson"
@@ -33,7 +42,9 @@ type Screen =
   | "count"
   | "color"
   | "shapes"
-  | "stickers";
+  | "stickers"
+  | "patterns"
+  | "builder";
 
 interface Route {
   screen: Screen;
@@ -152,8 +163,13 @@ export default function Home() {
       | "count"
       | "color"
       | "shapes"
+      | "patterns"
+      | "builder"
   ) => {
-    if (mode === "lesson") goLesson(0);
+    if (mode === "patterns" || mode === "builder") {
+      playStart(); warmUp(); stopBackgroundMusic(); setRoute({ screen: mode, index: 0 });
+    }
+    else if (mode === "lesson") goLesson(0);
     else if (mode === "listen") goListen();
     else if (mode === "play") goPlay();
     else if (mode === "spelling") goSpelling();
@@ -166,6 +182,11 @@ export default function Home() {
     else if (mode === "shapes") goShapes();
     else goNotepad();
   };
+
+  // New thinking games use native responsive dimensions so phone targets are not
+  // shrunk or rotated by the legacy fixed-size iPad shell.
+  if (route.screen === "patterns") return <PatternsScreen onHome={goHome} />;
+  if (route.screen === "builder") return <ReefBuilderScreen onHome={goHome} />;
 
   return (
     <IpadShell>

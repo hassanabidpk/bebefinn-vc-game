@@ -2960,3 +2960,121 @@ html, body {
   .coloring-crayons { display: grid; grid-template-columns: repeat(2, 140px); border-radius: 40px; }
   .coloring-crayon { width: 140px; height: 140px; }
 }
+
+/* Thinking games use real viewport pixels, outside the legacy scaled iPad. */
+.thinking-game, .thinking-loading {
+  position: fixed; inset: 0; z-index: 40; overflow: auto;
+  color: #123c56; background: radial-gradient(ellipse at 20% 10%,#effdff,transparent 70%), linear-gradient(#c9f4ff,#74cee2);
+  font-family: 'Fredoka',system-ui,sans-serif;
+}
+.thinking-game { display: flex; flex-direction: column; padding: max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); }
+.thinking-loading { display: grid; place-items: center; font-size: 24px; }
+.thinking-header, .thinking-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; max-width: 1000px; margin: 0 auto; flex-shrink: 0; }
+.thinking-title { text-align: center; }
+.thinking-title > span { font-size: 13px; font-weight: 600; color: #245c6e; letter-spacing: .08em; }
+.thinking-title h1 { margin: 2px 0; font-size: clamp(19px,3vw,30px); line-height: 1.15; }
+.thinking-icon, .thinking-next {
+  flex: none; min-width: 64px; min-height: 64px; border: 3px solid #fff; border-radius: 24px;
+  background: #fff; color: #123c56; font-size: 32px; font-weight: 800;
+  box-shadow: 0 5px 0 #509aae; cursor: pointer; touch-action: manipulation;
+}
+.thinking-game button:focus-visible { outline: 4px solid #144a6c; outline-offset: 4px; }
+.thinking-game button:disabled { cursor: default; }
+.thinking-icon:disabled { opacity: .5; }
+.thinking-next { background: #ffdb5e; border-color: #fff; width: 90px; height: 76px; box-shadow: 0 5px 0 #a88118; }
+.thinking-next:disabled { opacity: .55; }
+.thinking-content { flex: 1; width: 100%; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; min-height: 0; position: relative; }
+.thinking-prompt { font-size: clamp(20px,3vw,30px); text-align: center; margin: 0; line-height: 1.3; max-width: 90%; }
+.thinking-footer { margin-top: 12px; }
+.thinking-buddy { height: 76px; }
+.thinking-buddy img { width: 100%; height: 100%; object-fit: contain; }
+.thinking-game .sea-symbol { display: block; width: 100%; height: 100%; pointer-events: none; }
+.thinking-progress { display: flex; align-items: center; gap: 12px; }
+.pearl { width: 23px; height: 23px; border: 2px solid #437d90; background: #edfaff; border-radius: 50%; }
+.pearl.earned { background: #ffe18a; border-color: #816219; box-shadow: inset -3px -3px #edb94e; }
+.bracelet-total { font-size: 18px; }
+.pattern-path { display: flex; justify-content: center; gap: 16px; list-style: none; padding: 0; margin: 12px 0; width: 100%; }
+.pattern-bubble { position: relative; flex: 0 1 130px; aspect-ratio: 1; min-width: 0; border: 3px solid #6db3c5; border-radius: 50%; background: #fff; padding: 14px; }
+.pattern-bubble.missing { background: #fff7cf; border: 3px dashed #907020; display: grid; place-items: center; font-size: 48px; }
+.pattern-bubble.spotlight { outline: 5px solid #a46d0a; outline-offset: 4px; transform: translateY(-5px); }
+.pattern-path.grouped .pattern-bubble::after { content: ''; position: absolute; left: -4px; right: -4px; bottom: -14px; border-bottom: 3px solid #31778a; }
+.pattern-turn { display: none; }
+.pattern-choices { display: flex; justify-content: center; align-items: center; gap: 22px; min-height: 130px; }
+.pattern-choice { width: clamp(86px,16vw,140px); height: clamp(86px,16vw,140px); padding: 12px; background: #fff; border: 3px solid #41829a; border-radius: 30px; box-shadow: 0 6px 0 #5a9baa; cursor: pointer; touch-action: manipulation; }
+.pattern-choice:active { translate: 0 3px; }
+.guided { outline: 5px solid #9c6b11; outline-offset: 3px; background-color: #fff3bb !important; }
+.idle-cue { box-shadow: 0 0 0 6px #fff,0 6px 0 #5a9baa; }
+.reef-shelf { display: flex; justify-content: center; gap: 12px; }
+.reef-shelf button { min-width: 90px; min-height: 64px; display: flex; flex-direction: column; justify-content: center; gap: 3px; border: 2px solid #39748a; border-radius: 18px; background: #f5fdff; color: #123c56; font-size: 13px; padding: 6px 10px; cursor: pointer; }
+.reef-shelf button > span:first-child { font-size: 22px; }
+.reef-shelf button.current { background: #ffe49a; border-color: #865f15; }
+.reef-shelf button:disabled:not(.current) { opacity: .55; }
+.reef-play-area { width: 100%; max-width: 850px; position: relative; }
+.reef-scene { height: clamp(250px,39vh,420px); position: relative; border: 4px solid #fff; border-radius: 32px; box-shadow: 0 7px 0 #4c9aac; overflow: visible; }
+.reef-landscape { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 28px; pointer-events: none; }
+.reef-pad, .reef-friend { position: absolute; translate: -50% -50%; width: clamp(64px,10vw,90px); height: clamp(64px,10vw,90px); }
+.reef-pad { border: 3px dashed #317489; border-radius: 23px; background: #f2fcff; color: #317489; font-size: 32px; cursor: pointer; touch-action: manipulation; padding: 4px; }
+.reef-pad.selecting { box-shadow: 0 0 0 3px #fff; }
+.reef-friend { z-index: 1; pointer-events: none; }
+.reef-ghost { opacity: .4; display: block; width: 100%; height: 100%; }
+.reef-picture-cue { position: absolute; z-index: 2; left: 6px; top: 12px; width: clamp(64px,12vw,100px); height: 110px; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.reef-picture-cue > span { font-size: 25px; }
+.relation-model { position: relative; height: 80px; width: 70px; background: #fff; border: 2px solid #6193a4; border-radius: 15px; }
+.model-landmark { position: absolute; font-size: 33px; left: 16px; top: 20px; }
+.model-friend { position: absolute; width: 30px; height: 30px; left: 20px; top: -1px; }
+.relation-below .model-friend { top: 48px; }
+.relation-inside .model-friend { top: 28px; background: #fff; border-radius: 50%; }
+.relation-beside .model-landmark { left: 0; }
+.relation-beside .model-friend { left: 34px; top: 28px; }
+.reef-tray { min-height: 90px; display: flex; gap: 18px; align-items: center; justify-content: center; }
+.reef-piece { width: 90px; height: 90px; padding: 8px; background: #fff; border: 3px solid #477e94; border-radius: 26px; cursor: grab; touch-action: none; position: relative; z-index: 5; }
+.reef-piece.selected { outline: 4px solid #9c6b11; }
+.reef-tap-cue { font-size: 17px; max-width: 180px; }
+.reef-next-overlay { position: absolute; right: 12px; bottom: 12px; z-index: 3; }
+.home-with-library { padding: 20px; }
+.home-with-library .home-title { font-size: 64px; }
+.home-with-library .home-subtitle { font-size: 28px; }
+.home-with-library .home-mascot { width: 140px; height: 140px; }
+.home-with-library .home-cta-block { max-width: 1040px; }
+.home-with-library .start-btn { width: 460px; }
+.home-library { width: 1040px; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.home-library .home-chip { height: 180px; font-size: 30px; border-radius: 30px; color: #103b54; background: #e7f9ff; }
+.home-library .home-chip-patterns { background: #ffe5a2; }
+.home-library .home-chip-builder { background: #bcf3dd; }
+.home-library .home-library-page { background: #fff; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+@media (max-width: 600px) {
+  .thinking-content { gap: 12px; }
+  .pattern-path { display: grid; grid-template-columns: repeat(3,minmax(0,90px)); gap: 25px 16px; width: auto; }
+  .pattern-bubble { width: 90px; height: 90px; padding: 10px; }
+  .pattern-turn { display: block; position: absolute; bottom: -33px; right: 7px; font-size: 23px; color: #123c56; }
+  .thinking-prompt { max-width: 100%; font-size: 20px; }
+  .pattern-choices { gap: 15px; min-height: 100px; }
+  .reef-shelf { gap: 8px; }
+  .reef-shelf button { padding: 4px 6px; }
+  .reef-tray { min-height: 80px; }
+  .reef-piece { width: 76px; height: 76px; }
+  .reef-tap-cue { max-width: 160px; font-size: 15px; }
+}
+@media (max-height: 500px) and (min-width: 601px) {
+  .thinking-game { padding: 8px 12px; }
+  .thinking-header { max-width: none; }
+  .thinking-content { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+  .thinking-progress, .reef-shelf { grid-column: 1; }
+  .thinking-prompt { grid-column: 1; font-size: 19px; }
+  .pattern-path { grid-column: 1; display: grid; grid-template-columns: repeat(3,64px); gap: 12px; grid-row: 3 / 5; }
+  .pattern-bubble { width: 64px; height: 64px; padding: 6px; }
+  .pattern-choices { grid-column: 2; grid-row: 1 / 5; }
+  .thinking-footer { position: absolute; bottom: 12px; right: 12px; width: auto; gap: 16px; }
+  .thinking-buddy { display: none; }
+  .reef-play-area { grid-column: 2; grid-row: 1 / 5; }
+  .reef-scene { height: 250px; }
+  .reef-tray { grid-column: 1; margin-bottom: 64px; }
+  .reef-picture-cue { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-game *, .home-with-library * { animation: none !important; transition: none !important; }
+  .thinking-game .confetti { display: none; }
+  .pattern-bubble.spotlight { transform: none; }
+}
+.pattern-path.grouped .pattern-bubble.unit-start::after { border-left: 3px solid #31778a; height: 7px; }
+.pattern-path.grouped .pattern-bubble.unit-end::after { border-right: 3px solid #31778a; height: 7px; }
